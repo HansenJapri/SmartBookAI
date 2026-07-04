@@ -1,4 +1,4 @@
-# BukuPintar AI — Aplikasi Pembukuan Otomatis Multi-Channel untuk UMKM
+# SmartBookAI — Aplikasi Pembukuan Otomatis Multi-Channel untuk UMKM
 
 Aplikasi web **full-stack nyata** (bukan demo): user mendaftar, login, mencatat &
 mengimpor transaksi yang **tersimpan permanen** di database, lalu menghasilkan
