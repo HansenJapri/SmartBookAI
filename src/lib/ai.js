@@ -4,6 +4,12 @@ import { supabase } from './supabase'
 // "BukuPencatatan", jadi nama di sini harus sama persis.
 const AI_FUNCTION = 'BukuPencatatan'
 
+// Deteksi perangkat sederhana — dipakai agar instruksi navigasi dari chatbot
+// sesuai tampilan pengguna (bar bawah di HP vs sidebar di desktop).
+export function deviceKind() {
+  try { return window.innerWidth < 768 ? 'mobile' : 'desktop' } catch { return 'desktop' }
+}
+
 // Membersihkan simbol markdown dari jawaban AI agar tampil rapi sebagai teks
 // biasa (tanpa *, **, #, backtick). Penanda daftar diubah jadi butir yang rapi.
 export function cleanReply(text) {
@@ -18,20 +24,51 @@ export function cleanReply(text) {
     .trim()
 }
 
-// Mengirim pertanyaan ke Edge Function AI. History hanya dipakai untuk
-// konteks dalam sesi; tidak disimpan di server maupun database.
-export async function askAI(message, history = []) {
-  const { data, error } = await supabase.functions.invoke(AI_FUNCTION, {
-    body: { message, history },
-  })
+// Helper umum: panggil Edge Function + angkat pesan error yang jelas.
+async function invokeFn(name, body, fallbackErr) {
+  const { data, error } = await supabase.functions.invoke(name, { body })
   if (error) {
-    // Coba ambil pesan error dari respons fungsi bila ada.
     let detail = ''
     try { detail = (await error.context?.json())?.error } catch { /* abaikan */ }
-    throw new Error(detail || 'Asisten AI belum aktif atau gagal dihubungi. Pastikan Edge Function sudah di-deploy.')
+    throw new Error(detail || fallbackErr)
   }
   if (data?.error) throw new Error(data.error)
+  return data
+}
+
+// Mengirim pertanyaan ke Edge Function AI (mode Tanya). History hanya untuk
+// konteks dalam sesi; tidak disimpan di server maupun database.
+export async function askAI(message, history = []) {
+  const data = await invokeFn(AI_FUNCTION, { message, history, device: deviceKind() },
+    'Asisten AI belum aktif atau gagal dihubungi. Pastikan Edge Function sudah di-deploy.')
   return cleanReply(data?.reply || '')
+}
+
+// Mode Catat: kalimat bebas -> daftar kandidat transaksi (belum tersimpan;
+// pengguna WAJIB meninjau & menekan Simpan dulu).
+export async function catatAI(message) {
+  return invokeFn('ai-catat', { message },
+    'Fitur catat via asisten belum aktif. Pastikan Edge Function "ai-catat" sudah di-deploy.')
+}
+
+// Insight harian Dashboard. force=true memaksa buat ulang (kena kuota harian).
+export async function narasiAI(force = false) {
+  return invokeFn('ai-narasi', { force },
+    'Fitur insight belum aktif. Pastikan Edge Function "ai-narasi" sudah di-deploy.')
+}
+
+// Draf komposisi biaya (BoM) untuk 1 produk — hasilnya HANYA draf,
+// dikoreksi & disimpan pengguna sendiri.
+export async function hppDraftAI({ productName, businessType, unit, sellPrice }) {
+  return invokeFn('ai-hpp-draft', { productName, businessType, unit, sellPrice },
+    'Fitur draf HPP belum aktif. Pastikan Edge Function "ai-hpp-draft" sudah di-deploy.')
+}
+
+// Memicu pipeline makro harian (berjalan sekali per hari untuk SEMUA pengguna;
+// pemanggilan berikutnya di hari yang sama langsung kembali tanpa biaya AI).
+export async function makroRefresh() {
+  return invokeFn('makro-harian', {},
+    'Pipeline makro belum aktif. Pastikan Edge Function "makro-harian" sudah di-deploy.')
 }
 
 // Mengubah File jadi base64 (tanpa prefix data URL) untuk dikirim ke AI.
@@ -45,7 +82,7 @@ function fileToBase64(file) {
 }
 
 // Mengirim foto/PDF struk ke Edge Function vision dan mengembalikan data
-// terstruktur: { merchant, date, total, items: [{name, qty, unit, unit_price, total}] }.
+// terstruktur: { merchant, date, total, legibility, items: [...] }.
 export async function readReceipt(file) {
   const { base64, mimeType } = await fileToBase64(file)
   const { data, error } = await supabase.functions.invoke('BukuPencatatanStruk', {

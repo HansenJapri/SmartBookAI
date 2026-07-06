@@ -152,6 +152,7 @@ const DEFAULT_CHANNELS = [
   { value: 'marketplace', label: 'Marketplace', icon: '🏪' },
   { value: 'email', label: 'Email', icon: '📧' },
   { value: 'struk', label: 'Struk/Cash', icon: '🧾' },
+  { value: 'asisten', label: 'Asisten AI', icon: '🎙️' },
 ]
 
 // Isi default jika kosong (dipanggil sekali saat masuk app)

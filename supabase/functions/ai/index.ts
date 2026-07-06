@@ -1,5 +1,5 @@
 // ============================================================
-// Supabase Edge Function: ai
+// Supabase Edge Function: ai  (deploy dengan nama: BukuPencatatan)
 // Proxy aman ke Google Gemini untuk chatbot tutorial BukuPintar AI.
 //
 // Prinsip keamanan & privasi (sesuai Kebijakan Privasi & UU PDP):
@@ -44,32 +44,46 @@ Tugasmu: memandu pengguna memakai aplikasi dan menjawab pertanyaan tentang keuan
 
 CARA MENJAWAB (wajib dipatuhi):
 - Tulis dalam TEKS BIASA. DILARANG memakai format markdown: tidak boleh ada tanda bintang (*), pagar (#), garis bawah (_), atau tanda kutip kode. Jangan menebalkan teks.
+- STRUKTUR JAWABAN: mulai dengan jawaban inti 1-2 kalimat. Bila memakai angka, sebutkan angkanya persis. Bila menjelaskan cara, lanjutkan dengan langkah bernomor.
 - Jawab SINGKAT dan langsung ke inti. Hindari basa-basi.
-- Jika menjelaskan cara melakukan sesuatu, beri LANGKAH BERNOMOR yang jelas dan berurutan. Sebutkan nama menu (di sidebar kiri) dan tombol yang harus ditekan. Contoh gaya:
-1. Buka menu Transaksi di sidebar kiri.
+- Jika menjelaskan cara melakukan sesuatu, beri LANGKAH BERNOMOR yang jelas dan berurutan. Sebutkan nama menu dan tombol yang harus ditekan. Contoh gaya:
+1. Buka menu Transaksi.
 2. Tekan tombol + Tambah.
 3. Pilih jenis Pemasukan, isi nominal, lalu tekan Simpan.
-- Gunakan ANGKA hanya dari "Ringkasan data usaha". Jangan mengarang angka; bila belum ada, katakan jujur.
+- Gunakan ANGKA hanya dari "Ringkasan data usaha". DILARANG KERAS mengarang atau memperkirakan angka. Bila angka yang ditanya tidak ada di ringkasan, jawab persis: "Data itu belum tercatat di aplikasi." lalu sarankan cara mencatatnya.
 - Jangan memberi nasihat hukum atau pajak yang final; ingatkan verifikasi ke pihak berwenang bila perlu.
 - Jangan meminta data sensitif seperti nomor rekening atau kata sandi.
+- Akhiri jawaban tentang angka dengan pengingat singkat bahwa jawaban AI perlu diperiksa ulang di menu Laporan.
+
+NAVIGASI SESUAI PERANGKAT:
+- Bila "Perangkat: mobile" -> menu utama ada di BAR BAWAH layar (Dashboard, Transaksi, tombol + Catat di tengah, Radar, Menu). Menu lain (Stok, Laporan, dll) dibuka lewat tombol Menu di bar bawah.
+- Bila "Perangkat: desktop" -> semua menu ada di SIDEBAR KIRI.
+Sesuaikan instruksi langkahmu dengan perangkat pengguna.
 
 PETA MENU APLIKASI (untuk panduan navigasi yang akurat):
-- Dashboard: ringkasan pemasukan, pengeluaran, laba, margin, filter rentang tanggal, peringatan stok menipis.
+- Dashboard: ringkasan pemasukan, pengeluaran, laba, margin, filter rentang tanggal, kartu Insight AI (narasi tren otomatis), kartu Target Penjualan (prediksi 3 skenario), peringatan stok menipis.
 - Transaksi: catat dan lihat transaksi; tombol "+ Tambah"; ada filter jenis dan status bayar; tiap pemasukan punya tombol "Invoice".
 - Import Data: unggah file CSV atau Excel dari mutasi bank, QRIS, atau marketplace.
-- Foto/PDF Struk: unggah foto atau PDF struk.
+- Foto/PDF Struk: unggah foto atau PDF struk, dibaca AI, ditinjau dulu sebelum disimpan.
 - Rekonsiliasi: mendeteksi transaksi duplikat.
 - Stok Produk: kelola produk, stok, satuan, dan kategori produk; ada peringatan stok menipis.
+- Simulasi HPP: hitung modal (HPP) per produk dari komposisi bahan, lengkap dengan simulasi bila harga bahan naik. Ada tombol Buat Draf AI untuk mengisi komposisi awal.
 - Pemasok: kelola data pemasok.
+- Radar Harga: sinyal arah harga bahan pokok dari berita ekonomi (diperbarui harian), kurs USD/IDR, dan info inflasi BPS.
 - Reveal Kebocoran: melihat biaya dan potongan marketplace.
 - Laporan: unduh laporan laba/rugi (PDF dan Excel) serta rekap pajak.
 - Pengaturan: profil usaha, kategori Pemasukan dan Pengeluaran, channel, serta status persetujuan.
+- Asisten (jendela chat ini): mode Tanya untuk bertanya, mode Catat untuk mencatat transaksi lewat ketikan atau suara.
 
-PENTING: JANGAN mengarang nama menu. Menu yang TERSEDIA hanya yang ada di daftar di atas. TIDAK ADA menu bernama "Penjualan". Untuk mencatat penjualan/pemasukan, gunakan menu Transaksi.
+PENTING: JANGAN mengarang nama menu. Menu yang TERSEDIA hanya yang ada di daftar di atas. TIDAK ADA menu bernama "Penjualan". Untuk mencatat penjualan/pemasukan, gunakan menu Transaksi atau mode Catat di asisten ini.
 
 ALUR UMUM (ikuti persis, sebutkan langkah bernomor):
-- Mencatat penjualan/pemasukan:
-1. Buka menu Transaksi di sidebar kiri.
+- Mencatat penjualan/pemasukan cepat lewat asisten:
+1. Di jendela asisten ini, pindah ke mode Catat.
+2. Ketik atau ucapkan transaksinya, misal: laku 3 kue coklat total 45 ribu.
+3. Periksa kartu hasil baca AI, perbaiki bila salah, lalu tekan Simpan.
+- Mencatat penjualan/pemasukan manual:
+1. Buka menu Transaksi.
 2. Tekan tombol + Tambah.
 3. Pada pilihan Jenis, pilih Pemasukan.
 4. Isi Nominal dan pilih Kategori. Bila perlu, isi Nama pelanggan dan pilih status Lunas atau Belum Lunas.
@@ -89,8 +103,15 @@ ALUR UMUM (ikuti persis, sebutkan langkah bernomor):
 3. Tekan tombol + Tambah Produk.
 - Membaca struk dengan AI:
 1. Buka menu Foto/PDF Struk.
-2. Unggah foto atau PDF struk.
-3. Tekan tombol Baca Struk dengan AI.
+2. Unggah foto atau PDF struk (paling akurat: struk cetak kasir).
+3. Tekan tombol Baca Struk dengan AI, tinjau hasilnya, lalu simpan.
+- Menghitung HPP / simulasi kenaikan bahan:
+1. Buka menu Simulasi HPP.
+2. Pilih produk, lalu isi komposisi bahan atau tekan Buat Draf AI.
+3. Koreksi draf bila perlu, simpan, lalu lihat simulasi di bagian bawah.
+- Melihat prediksi harga bahan pokok:
+1. Buka menu Radar Harga.
+2. Lihat kartu sinyal per bahan beserta sumber beritanya.
 - Mengunduh laporan:
 1. Buka menu Laporan.
 2. Tekan Unduh PDF atau Unduh Excel.`
@@ -121,9 +142,10 @@ serve(async (req) => {
     const { data: allowed } = await supabase.rpc('bump_ai_usage', { p_kind: 'chat', p_limit: 60 })
     if (allowed === false) return json({ error: 'Batas pemakaian asisten AI harian tercapai. Silakan coba lagi besok.' }, 429)
 
-    const { message, history } = await req.json()
+    const { message, history, device } = await req.json()
     if (!message || typeof message !== 'string') return json({ error: 'Pesan kosong.' }, 400)
     if (message.length > 2000) return json({ error: 'Pesan terlalu panjang.' }, 400)
+    const dev = device === 'mobile' ? 'mobile' : 'desktop'
 
     // ---- Susun RINGKASAN TERAGREGASI (tanpa data pribadi mentah) ----
     const { data: txs } = await supabase
@@ -136,12 +158,17 @@ serve(async (req) => {
     const catExpense: Record<string, number> = {}
     let unpaidCount = 0, unpaidTotal = 0
     const now = new Date(); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    let monthIncome = 0, monthExpense = 0
+    const weekAgo = new Date(Date.now() - 7 * 86400000)
+    const twoWeeksAgo = new Date(Date.now() - 14 * 86400000)
+    let monthIncome = 0, monthExpense = 0, wk1Income = 0, wk2Income = 0
     for (const t of txs || []) {
       const amt = Number(t.amount) || 0
-      const inMonth = new Date(t.occurred_at) >= monthStart
+      const dt = new Date(t.occurred_at)
+      const inMonth = dt >= monthStart
       if (t.direction === 'in') {
         income += amt; if (inMonth) monthIncome += amt
+        if (dt >= weekAgo) wk1Income += amt
+        else if (dt >= twoWeeksAgo) wk2Income += amt
         if (t.payment_status === 'belum') { unpaidCount++; unpaidTotal += amt }
       } else {
         expense += amt; if (inMonth) monthExpense += amt
@@ -149,6 +176,7 @@ serve(async (req) => {
       }
     }
     const topCats = Object.entries(catExpense).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    const wow = wk2Income > 0 ? Math.round(((wk1Income - wk2Income) / wk2Income) * 100) : null
 
     const { data: products } = await supabase.from('products').select('name, stock, min_stock, unit')
     const lowStock = (products || []).filter((p) => Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock))
@@ -158,10 +186,12 @@ serve(async (req) => {
       `Total pengeluaran (semua waktu): ${rupiah(expense)}`,
       `Laba bersih (semua waktu): ${rupiah(income - expense)}`,
       `Pemasukan bulan ini: ${rupiah(monthIncome)}; Pengeluaran bulan ini: ${rupiah(monthExpense)}`,
+      `Pemasukan 7 hari terakhir: ${rupiah(wk1Income)}; 7 hari sebelumnya: ${rupiah(wk2Income)}${wow === null ? '' : `; perubahan minggu-ke-minggu: ${wow}%`}`,
       `Jumlah transaksi tercatat: ${(txs || []).length}`,
       `Penjualan belum lunas: ${unpaidCount} (total ${rupiah(unpaidTotal)})`,
       topCats.length ? `Pengeluaran terbesar per kategori: ${topCats.map(([k, v]) => `${k} ${rupiah(v)}`).join('; ')}` : 'Belum ada data pengeluaran per kategori.',
       `Jumlah produk: ${(products || []).length}; Produk stok menipis: ${lowStock.length}${lowStock.length ? ' (' + lowStock.slice(0, 8).map((p) => p.name).join(', ') + ')' : ''}`,
+      `Perangkat: ${dev}`,
     ].join('\n')
 
     // ---- Riwayat singkat dalam sesi (tidak disimpan di server) ----
@@ -183,7 +213,7 @@ serve(async (req) => {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM }] },
           contents,
-          generationConfig: { temperature: 0.4, maxOutputTokens: 800 },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 800 },
         }),
       },
     )

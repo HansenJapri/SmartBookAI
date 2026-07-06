@@ -1,7 +1,7 @@
 // ============================================================
 // Supabase Edge Function: ai-struk  (deploy dengan nama: BukuPencatatanStruk)
 // Membaca foto/PDF struk dengan Gemini (vision) dan mengembalikan data
-// terstruktur: nama toko, tanggal, total, dan daftar item belanja.
+// terstruktur: nama toko, tanggal, total, daftar item, dan keterbacaan.
 //
 // Keamanan: kunci dari Secret server; wajib login (JWT). Gambar TIDAK disimpan
 // di server. (Catatan: pada paket gratis, isi gambar dapat dipakai penyedia AI
@@ -36,12 +36,16 @@ Ekstrak isinya menjadi JSON dengan struktur PERSIS:
   "merchant": string,            // nama toko/penjual, "" jika tidak jelas
   "date": string,                // tanggal pada struk format YYYY-MM-DD, "" jika tidak ada
   "total": number,               // total akhir yang dibayar (angka, tanpa titik/Rp)
+  "legibility": string,          // "cetak_jelas" | "buram" | "tulisan_tangan"
   "items": [
     { "name": string, "qty": number, "unit": string, "unit_price": number, "total": number }
   ]
 }
 Aturan: angka tanpa pemisah ribuan dan tanpa "Rp". Bila satuan tak tertulis, isi "pcs".
-Bila qty tak jelas, isi 1. Jangan menambah item yang tidak ada di struk. Balas HANYA JSON.`
+Bila qty tak jelas, isi 1. Jangan menambah item yang tidak ada di struk.
+"legibility": isi "tulisan_tangan" bila struk ditulis tangan (bon warung/pasar),
+"buram" bila foto gelap/kabur/terpotong sehingga banyak bagian tak terbaca,
+selain itu "cetak_jelas". Balas HANYA JSON.`
 
 serve(async (req) => {
   const origin = req.headers.get('Origin')
@@ -104,10 +108,14 @@ serve(async (req) => {
       total: Number(it.total) || 0,
     })) : []
 
+    const legibility = ['cetak_jelas', 'buram', 'tulisan_tangan'].includes(parsed.legibility)
+      ? parsed.legibility : 'cetak_jelas'
+
     return json({
       merchant: String(parsed.merchant ?? '').slice(0, 120),
       date: String(parsed.date ?? '').slice(0, 10),
       total: Number(parsed.total) || items.reduce((s: number, i: any) => s + (i.total || 0), 0),
+      legibility,
       items,
     })
   } catch (e) {
