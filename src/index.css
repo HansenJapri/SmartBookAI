@@ -687,3 +687,61 @@ table.tbl tr:hover td { background: #fafbfc; }
 /* ---------- Landing extras (honest framing) ---------- */
 .soon-badge { font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--amber-50); color: var(--amber); border: 1px solid #fde68a; vertical-align: middle; }
 .phone-note { text-align: center; font-size: 11px; color: var(--muted); padding: 8px 0 2px; }
+
+/* ============================================================
+   FITUR "MASA DEPAN": disclaimer AI, chat mode Catat, kartu draf,
+   navigasi bawah mobile, lembar aksi, Radar Harga, Simulasi HPP.
+   ============================================================ */
+.ai-note { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 9px; margin-top: 8px; }
+.ai-note svg { flex: none; margin-top: 1px; }
+.spin { animation: spin 1s linear infinite; }
+
+/* Chatbot: mode Tanya/Catat + kartu draf transaksi */
+.chat-mode { margin: 10px 12px 0; }
+.chat-msg.draft-wrap { width: 92%; max-width: 92%; }
+.draft-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px; margin: 6px 0; display: flex; flex-direction: column; gap: 6px; }
+.draft-card.saved { background: #f8fafc; font-size: 13px; }
+.draft-row { display: flex; gap: 6px; }
+.draft-row .input { flex: 1; min-width: 0; font-size: 13px; padding: 7px 8px; }
+.draft-warn { font-size: 12px; color: #b45309; }
+
+/* Navigasi bawah (mobile-first) */
+.bottom-nav { display: none; }
+@media (max-width: 767px) {
+  .bottom-nav { position: fixed; z-index: 60; bottom: 0; left: 0; right: 0; display: flex; align-items: stretch; justify-content: space-around; background: #fff; border-top: 1px solid #e2e8f0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+  .bn-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 8px; font-size: 10.5px; color: #64748b; background: none; border: none; text-decoration: none; min-width: 56px; cursor: pointer; }
+  .bn-item.active { color: #4f46e5; font-weight: 600; }
+  .bn-fab { width: 52px; height: 52px; margin-top: -22px; border-radius: 50%; background: #4f46e5; color: #fff; border: 4px solid #fff; box-shadow: 0 6px 16px rgba(79, 70, 229, .35); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .main { padding-bottom: 70px; }
+  .chat-fab { bottom: 86px; }
+  .chat-panel { bottom: 86px; max-height: calc(100dvh - 130px); }
+}
+
+/* Lembar aksi "+ Catat" */
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 70; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: #fff; width: 100%; max-width: 480px; border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
+.sheet h4 { margin: 0 0 4px; }
+.sheet button { text-align: left; padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 15px; cursor: pointer; }
+.sheet button:active { background: #eef2ff; }
+.sheet .sheet-cancel { text-align: center; background: #fff; border: none; color: #64748b; }
+
+/* Radar Harga */
+.sig-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.sig-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #fff; }
+.sig-dir { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.sig-drivers { margin: 4px 0 6px; padding-left: 16px; font-size: 12.5px; color: #475569; display: flex; flex-direction: column; gap: 3px; }
+.sig-sources { display: flex; flex-direction: column; gap: 3px; }
+.sig-sources a { font-size: 12px; color: #4f46e5; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.sig-sources a:hover { text-decoration: underline; }
+
+/* Simulasi HPP + Target */
+.scen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.scen-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #f8fafc; }
+.scen-v { font-size: 20px; font-weight: 700; margin: 2px 0; }
+.row-ai td { background: #fffbeb; }
+.progress-bar { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+.progress-bar > div { height: 100%; background: #4f46e5; border-radius: 999px; }
+.scn-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.scn-chip { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 8px 6px; text-align: center; background: #fff; }
+.scn-chip b { display: block; font-size: 12.5px; margin-top: 2px; }
+.scn-chip span { font-size: 11px; color: #64748b; }

@@ -435,3 +435,158 @@ export async function fetchLowStock() {
   if (error) throw error
   return (data || []).filter((p) => Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock))
 }
+
+// ---------- RINGKASAN HARI INI (rekap deterministik untuk asisten) ----------
+export async function fetchTodayTotals() {
+  const start = new Date(); start.setHours(0, 0, 0, 0)
+  const { data, error } = await supabase
+    .from('transactions').select('direction, amount')
+    .gte('occurred_at', start.toISOString())
+  if (error) throw error
+  let income = 0, expense = 0
+  for (const t of data || []) {
+    if (t.direction === 'in') income += Number(t.amount) || 0
+    else expense += Number(t.amount) || 0
+  }
+  return { income, expense, profit: income - expense, count: (data || []).length }
+}
+
+// ---------- TARGET PENJUALAN (untuk prediksi 3 skenario) ----------
+export async function fetchActiveTarget() {
+  const { data, error } = await supabase
+    .from('sales_targets').select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return (data && data[0]) || null
+}
+
+export async function addTarget({ name, amount, start_date, deadline }) {
+  const { data: { user } } = await supabase.auth.getUser()
+  // Hanya satu target aktif: nonaktifkan yang lama dulu.
+  await supabase.from('sales_targets').update({ is_active: false }).eq('is_active', true)
+  const { data, error } = await supabase
+    .from('sales_targets')
+    .insert({ name: name.trim(), amount, start_date, deadline: deadline || null, user_id: user.id })
+    .select().single()
+  if (error) throw error
+  track('target_added')
+  return data
+}
+
+export async function deactivateTarget(id) {
+  const { error } = await supabase.from('sales_targets').update({ is_active: false }).eq('id', id)
+  if (error) throw error
+}
+
+// ---------- BAHAN / KOMPONEN BIAYA (untuk HPP) ----------
+export async function fetchIngredients() {
+  const { data, error } = await supabase.from('ingredients').select('*').order('name')
+  if (error) throw error
+  return data || []
+}
+
+export async function updateIngredient(id, patch) {
+  const { data, error } = await supabase
+    .from('ingredients').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteIngredient(id) {
+  const { error } = await supabase.from('ingredients').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------- KOMPOSISI PRODUK / BoM ----------
+export async function fetchBom(productId) {
+  const { data, error } = await supabase
+    .from('product_boms').select('*').eq('product_id', productId)
+  if (error) throw error
+  return data || []
+}
+
+// Simpan komposisi 1 produk sekaligus. rows: hasil editor BoM
+// [{ ingredient_id?, name, type, unit, price_per_unit, commodity_key,
+//    import_exposure, qty_per_unit, is_ai_estimated, price_source? }]
+// Bahan baru dibuat otomatis; bahan lama diperbarui dari isi editor
+// (editor = sumber kebenaran karena pengguna baru saja meninjaunya).
+export async function saveBom(productId, rows) {
+  const { data: { user } } = await supabase.auth.getUser()
+  const existing = await fetchIngredients()
+  const byName = new Map(existing.map((i) => [i.name.trim().toLowerCase(), i]))
+  const bomRows = []
+  for (const r of rows) {
+    const qty = Number(r.qty_per_unit) || 0
+    if (!r.name?.trim() || qty <= 0) continue
+    let ing = r.ingredient_id ? existing.find((i) => i.id === r.ingredient_id) : byName.get(r.name.trim().toLowerCase())
+    const fields = {
+      name: r.name.trim(),
+      type: r.type || 'bahan',
+      unit: r.unit || 'pcs',
+      price_per_unit: Number(r.price_per_unit) || 0,
+      commodity_key: r.commodity_key || null,
+      import_exposure: r.import_exposure || 'rendah',
+      price_source: r.price_source || 'manual',
+    }
+    if (ing) {
+      const { data, error } = await supabase
+        .from('ingredients').update({ ...fields, updated_at: new Date().toISOString() })
+        .eq('id', ing.id).select().single()
+      if (error) throw error
+      ing = data
+    } else {
+      const { data, error } = await supabase
+        .from('ingredients').insert({ ...fields, user_id: user.id }).select().single()
+      if (error) throw error
+      ing = data
+      byName.set(ing.name.trim().toLowerCase(), ing)
+    }
+    bomRows.push({
+      user_id: user.id, product_id: productId, ingredient_id: ing.id,
+      qty_per_unit: qty, is_ai_estimated: Boolean(r.is_ai_estimated),
+    })
+  }
+  const { error: delErr } = await supabase.from('product_boms').delete().eq('product_id', productId)
+  if (delErr) throw delErr
+  if (bomRows.length) {
+    const { error } = await supabase.from('product_boms').insert(bomRows)
+    if (error) throw error
+  }
+  track('bom_saved', { rows: bomRows.length })
+  return bomRows.length
+}
+
+// ---------- DATA MAKRO BERSAMA (cache dari Edge Function makro-harian) ----------
+// Sinyal harga komoditas dari run terakhir.
+export async function fetchMacroSignals() {
+  const { data, error } = await supabase
+    .from('macro_signals').select('*')
+    .order('run_date', { ascending: false })
+    .limit(42) // 2 hari x ~21 komoditas
+  if (error) throw error
+  const rows = data || []
+  if (!rows.length) return { runDate: null, signals: [] }
+  const latest = rows[0].run_date
+  return { runDate: latest, signals: rows.filter((r) => r.run_date === latest) }
+}
+
+export async function fetchExchangeRates(days = 90) {
+  const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
+  const { data, error } = await supabase
+    .from('exchange_rates').select('*')
+    .gte('rate_date', since)
+    .order('rate_date', { ascending: true })
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchMacroConfigLatest() {
+  const { data, error } = await supabase
+    .from('macro_config').select('*')
+    .order('month', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return (data && data[0]) || null
+}

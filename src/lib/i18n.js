@@ -93,7 +93,7 @@ export const translations = {
     },
     app: {
       sections: { ringkasan: 'Ringkasan', transaksi: 'Transaksi', produk: 'Produk', analisis: 'Analisis', lainnya: 'Lainnya' },
-      nav: { dashboard: 'Dashboard', transaksi: 'Transaksi', import: 'Import Data', struk: 'Foto/PDF Struk', rekonsiliasi: 'Rekonsiliasi', stok: 'Stok Produk', pemasok: 'Pemasok', reveal: 'Reveal Kebocoran', laporan: 'Laporan', feedback: 'Forum Feedback', pengaturan: 'Pengaturan' },
+      nav: { dashboard: 'Dashboard', transaksi: 'Transaksi', import: 'Import Data', struk: 'Foto/PDF Struk', rekonsiliasi: 'Rekonsiliasi', stok: 'Stok Produk', hpp: 'Simulasi HPP', pemasok: 'Pemasok', radar: 'Radar Harga', reveal: 'Reveal Kebocoran', laporan: 'Laporan', feedback: 'Forum Feedback', pengaturan: 'Pengaturan' },
       titleStruk: 'Input dari Foto/PDF Struk', logout: 'Keluar', business: 'Usaha Saya',
     },
     auth: {
@@ -296,7 +296,7 @@ export const translations = {
     },
     app: {
       sections: { ringkasan: 'Overview', transaksi: 'Transactions', produk: 'Products', analisis: 'Analysis', lainnya: 'Other' },
-      nav: { dashboard: 'Dashboard', transaksi: 'Transactions', import: 'Import Data', struk: 'Receipt Photo/PDF', rekonsiliasi: 'Reconciliation', stok: 'Product Stock', pemasok: 'Suppliers', reveal: 'Reveal Leaks', laporan: 'Reports', feedback: 'Feedback Forum', pengaturan: 'Settings' },
+      nav: { dashboard: 'Dashboard', transaksi: 'Transactions', import: 'Import Data', struk: 'Receipt Photo/PDF', rekonsiliasi: 'Reconciliation', stok: 'Product Stock', hpp: 'COGS Simulator', pemasok: 'Suppliers', radar: 'Price Radar', reveal: 'Reveal Leaks', laporan: 'Reports', feedback: 'Feedback Forum', pengaturan: 'Settings' },
       titleStruk: 'Input from Receipt Photo/PDF', logout: 'Sign out', business: 'My Business',
     },
     auth: {

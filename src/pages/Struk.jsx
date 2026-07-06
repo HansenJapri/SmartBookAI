@@ -4,7 +4,9 @@ import { Camera, FolderOpen, ScanLine, FileText, Sparkles, Plus, Trash2, X } fro
 import { useCatalog } from '../context/CatalogContext'
 import { uploadReceipt, addTransaction, fetchProducts, updateProduct } from '../lib/api'
 import { readReceipt } from '../lib/ai'
+import { compressImage } from '../lib/imageCompress'
 import { toDateInput, rupiah } from '../lib/format'
+import AIDisclaimer from '../components/AIDisclaimer'
 
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.heic,.pdf,image/*,application/pdf'
 const blankItem = () => ({ name: '', qty: 1, unit: 'pcs', total: '', productId: '', conv: 1 })
@@ -28,6 +30,8 @@ export default function Struk() {
   const [err, setErr] = useState('')
   const [doneMsg, setDoneMsg] = useState('')
   const [confirming, setConfirming] = useState(false)
+  // Metadata hasil baca AI: total versi struk & tingkat keterbacaan (cetak/buram/tulisan tangan).
+  const [aiMeta, setAiMeta] = useState(null)
 
   const cats = catNames(direction)
   useEffect(() => { if (!cats.includes(category)) setCategory(cats[0] || '') }, [direction, ready]) // eslint-disable-line
@@ -51,9 +55,11 @@ export default function Struk() {
 
   const runAI = async () => {
     if (!file) { setErr('Unggah foto atau PDF struk dulu.'); return }
-    setErr(''); setAiBusy(true)
+    setErr(''); setAiBusy(true); setAiMeta(null)
     try {
-      const res = await readReceipt(file)
+      // Kompres di sisi klien: hemat biaya AI vision + kuota data seluler.
+      const toSend = await compressImage(file)
+      const res = await readReceipt(toSend)
       const mapped = (res.items || []).map((it) => {
         const p = matchProduct(it.name)
         return {
@@ -65,6 +71,7 @@ export default function Struk() {
       setItems(mapped.length ? mapped : [blankItem()])
       setKeterangan(res.merchant ? `Belanja di ${res.merchant}` : '')
       setDirection('out')
+      setAiMeta({ total: Number(res.total) || 0, legibility: res.legibility || 'cetak_jelas' })
       if (res.date) { try { setOccurredAt(toDateInput(res.date + 'T12:00')) } catch { /* abaikan */ } }
       if (!mapped.length) setErr('AI tidak menemukan item. Anda bisa menambah item manual di bawah.')
     } catch (e) { setErr(e.message) } finally { setAiBusy(false) }
@@ -80,6 +87,10 @@ export default function Struk() {
   const stockQty = (it) => (it.productId ? (Number(it.qty) || 0) * (Number(it.conv) || 0) : 0)
   const mismatchCount = items.filter((it) => it.productId && (!it.conv || Number(it.conv) <= 0)).length
   const linkedCount = items.filter((it) => it.productId && stockQty(it) > 0).length
+  // Silang-periksa DETERMINISTIK: jumlah rincian item vs total yang terbaca
+  // di struk (toleransi 2%) — menangkap salah baca OCR tanpa panggilan AI baru.
+  const aiTotalMismatch = Boolean(aiMeta && aiMeta.total > 0 && grandTotal > 0
+    && Math.abs(grandTotal - aiMeta.total) / aiMeta.total > 0.02)
 
   const submit = (e) => {
     e.preventDefault(); setErr(''); setDoneMsg('')
@@ -118,7 +129,7 @@ export default function Struk() {
       }
       setDoneMsg(`Transaksi tersimpan (${items.length} item)` + (linkedCount ? ` dan stok ${linkedCount} produk diperbarui.` : '.'))
       setFile(null); if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null)
-      setItems([]); setKeterangan('')
+      setItems([]); setKeterangan(''); setAiMeta(null)
       fetchProducts().then(setProducts).catch(() => {})
     } catch (e) {
       setErr(e.message?.toLowerCase().includes('bucket')
@@ -149,7 +160,7 @@ export default function Struk() {
               ) : file ? (
                 <><div className="di"><FileText size={30} /></div><h3>{file.name}</h3><p>Siap dibaca</p></>
               ) : (
-                <><div className="di"><ScanLine size={30} /></div><h3>Ambil foto atau pilih file</h3><p>JPG, PNG, atau PDF, maksimal 10 MB</p></>
+                <><div className="di"><ScanLine size={30} /></div><h3>Ambil foto atau pilih file</h3><p>JPG, PNG, atau PDF, maks. 10 MB. Paling akurat: struk cetak kasir — bon tulisan tangan belum didukung penuh.</p></>
               )}
             </div>
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => pickFile(e.target.files[0])} />
@@ -178,7 +189,24 @@ export default function Struk() {
           <h3 className="card-title">2. Tinjau Item dan Simpan</h3>
           <div className="card-sub">Periksa item hasil pindaian. Anda bisa tambah, ubah, atau hapus item sebelum menyimpan.</div>
 
-          <div className="grid-2" style={{ marginBottom: 6 }}>
+          {aiMeta?.legibility === 'tulisan_tangan' && (
+            <div className="alert alert-err" style={{ margin: '10px 0 0' }}>
+              Struk ini terdeteksi <b>tulisan tangan</b>. Dukungan penuh hanya untuk struk cetak kasir — hasil baca kemungkinan banyak salah, mohon periksa setiap baris.
+            </div>
+          )}
+          {aiMeta?.legibility === 'buram' && (
+            <div className="alert alert-err" style={{ margin: '10px 0 0' }}>
+              Foto terdeteksi <b>buram/kurang jelas</b>. Bila banyak yang salah, foto ulang dengan cahaya cukup dan posisi tegak lurus.
+            </div>
+          )}
+          {aiTotalMismatch && (
+            <div className="alert alert-err" style={{ margin: '10px 0 0' }}>
+              Jumlah rincian item ({rupiah(grandTotal)}) <b>tidak cocok</b> dengan total di struk ({rupiah(aiMeta.total)}). Periksa kembali harga tiap baris.
+            </div>
+          )}
+          {aiMeta && <AIDisclaimer text="Hasil baca AI bisa keliru — periksa nama item, jumlah, dan harga sebelum simpan." />}
+
+          <div className="grid-2" style={{ marginBottom: 6, marginTop: 10 }}>
             <div className="field">
               <label>Simpan sebagai</label>
               <div className="seg">

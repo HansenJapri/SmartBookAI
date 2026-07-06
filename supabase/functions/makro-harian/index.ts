@@ -2,8 +2,9 @@
 // Supabase Edge Function: makro-harian
 // Pipeline makroekonomi BERSAMA untuk seluruh platform (bukan per user):
 //   1) Tarik kurs USD/IDR dari API gratis -> tabel exchange_rates.
-//   2) Tarik judul berita Google News RSS per komoditas (gratis, hanya
-//      judul+link dari feed, tanpa scraping artikel).
+//   2) Tarik judul berita Bing News RSS per komoditas (gratis, hanya
+//      judul+link dari feed, tanpa scraping artikel). Catatan: Google News
+//      TIDAK dipakai karena memblokir IP datacenter edge (terverifikasi 503).
 //   3) SATU panggilan Gemini 2.5 Flash menilai arah & estimasi kenaikan 30 hari
 //      per komoditas -> tabel macro_signals.
 // Dipicu "lazy": pengguna pertama yang membuka Radar Harga hari itu memicu
@@ -70,7 +71,7 @@ async function fetchRss(url: string, max = 4): Promise<{ title: string; link: st
   try {
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 8000)
-    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (BukuPintarAI)' } })
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36' } })
     clearTimeout(t)
     if (!res.ok) return []
     const xml = await res.text()
@@ -146,12 +147,12 @@ serve(async (req) => {
       }
     } catch { /* backfill opsional */ }
 
-    // ---------- 2) BERITA (Google News RSS — gratis) ----------
+    // ---------- 2) BERITA (Bing News RSS — gratis, ramah IP datacenter) ----------
     const feeds = await Promise.all(COMMODITIES.map(async (c) => {
-      const urlId = `https://news.google.com/rss/search?q=${encodeURIComponent(c.q + ' when:7d')}&hl=id&gl=ID&ceid=ID:id`
+      const urlId = `https://www.bing.com/news/search?q=${encodeURIComponent(c.q)}&format=RSS&setmkt=id-ID&qft=interval%3d%227%22`
       let items = await fetchRss(urlId, 4)
       if (c.qEn) {
-        const urlEn = `https://news.google.com/rss/search?q=${encodeURIComponent(c.qEn + ' when:7d')}&hl=en-US&gl=US&ceid=US:en`
+        const urlEn = `https://www.bing.com/news/search?q=${encodeURIComponent(c.qEn)}&format=RSS&setmkt=en-US&qft=interval%3d%227%22`
         items = items.concat(await fetchRss(urlEn, 2))
       }
       // Dedup judul.

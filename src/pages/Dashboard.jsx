@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Wallet, Percent } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Percent, Sparkles, RefreshCw, Target as TargetIcon, Trash2 } from 'lucide-react'
 import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { fetchTransactions, fetchLowStock, fetchTxCount } from '../lib/api'
+import { fetchTransactions, fetchLowStock, fetchTxCount, fetchActiveTarget, addTarget, deactivateTarget } from '../lib/api'
+import { narasiAI } from '../lib/ai'
+import { forecastTarget } from '../lib/regression'
 import { sampleTransactions } from '../lib/sampleData'
-import { rupiah, rupiahShort, fmtDateTime } from '../lib/format'
+import { rupiah, rupiahShort, fmtDateTime, fmtDate } from '../lib/format'
 import { summarize, trendDaily, channelMix, expenseByCategory, findDuplicateGroups } from '../lib/analytics'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import AIDisclaimer from '../components/AIDisclaimer'
 
 const PRESET_KEYS = ['today', 'week', 'month', 'quarter', 'semester', 'year', 'all', 'custom']
 
@@ -128,6 +131,12 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* INSIGHT AI + TARGET PENJUALAN (fitur Masa Depan) */}
+      <div className="two-col" style={{ marginBottom: 16 }}>
+        <InsightCard />
+        <TargetCard tx={tx} />
       </div>
 
       {tx.length === 0 ? (
@@ -261,5 +270,139 @@ export default function Dashboard() {
         </>
       )}
     </>
+  )
+}
+
+// ---------- KARTU INSIGHT AI HARIAN ----------
+// Angka dihitung server secara deterministik (Edge Function ai-narasi tahap 1);
+// Gemini hanya menarasikan. Hasil di-cache per hari — buka berulang = gratis.
+function InsightCard() {
+  const [st, setSt] = useState({ loading: true, content: '', err: '' })
+  const load = (force) => {
+    setSt((s) => ({ ...s, loading: true, err: '' }))
+    narasiAI(force)
+      .then((d) => setSt({ loading: false, content: d.content, err: '' }))
+      .catch((e) => setSt({ loading: false, content: '', err: e.message }))
+  }
+  useEffect(() => { load(false) }, [])
+  return (
+    <div className="card card-pad">
+      <div className="flex between" style={{ alignItems: 'flex-start' }}>
+        <div>
+          <h3 className="card-title"><Sparkles size={16} style={{ verticalAlign: '-2px', marginRight: 6, color: '#f59e0b' }} />Insight AI Hari Ini</h3>
+          <div className="card-sub">Narasi otomatis dari angka usaha Anda</div>
+        </div>
+        <button className="icon-btn" onClick={() => load(true)} disabled={st.loading} title="Buat ulang insight">
+          <RefreshCw size={15} className={st.loading ? 'spin' : ''} />
+        </button>
+      </div>
+      {st.loading ? (
+        <p className="muted-sm" style={{ marginTop: 8 }}>Menyiapkan insight…</p>
+      ) : st.err ? (
+        <p className="muted-sm" style={{ marginTop: 8 }}>{st.err}</p>
+      ) : (
+        <p style={{ margin: '8px 0 0', fontSize: 14.5, lineHeight: 1.6 }}>{st.content}</p>
+      )}
+      <AIDisclaimer text="Angka dihitung sistem dari catatan Anda; narasinya dibuat AI dan bisa keliru — cek menu Laporan untuk angka resmi." />
+    </div>
+  )
+}
+
+// ---------- KARTU TARGET PENJUALAN (3 SKENARIO) ----------
+// Prediksi dihitung DETERMINISTIK di perangkat (lib/regression.js): regresi
+// musiman + persentil residual. Bukan AI — dapat diaudit dan gratis.
+function TargetCard({ tx }) {
+  const [target, setTarget] = useState(undefined) // undefined = memuat, null = belum ada
+  const [form, setForm] = useState({ name: '', amount: '', start_date: new Date().toISOString().slice(0, 10) })
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  useEffect(() => { fetchActiveTarget().then(setTarget).catch(() => setTarget(null)) }, [])
+  const fc = useMemo(() => (target && tx ? forecastTarget(tx, target) : null), [target, tx])
+
+  const create = async (e) => {
+    e.preventDefault()
+    if (!(Number(form.amount) > 0)) { setErr('Isi nominal target dulu.'); return }
+    setBusy(true); setErr('')
+    try {
+      setTarget(await addTarget({ name: form.name || 'Target omzet', amount: Number(form.amount), start_date: form.start_date }))
+    } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
+  }
+  const stop = async () => {
+    if (!target) return
+    setBusy(true)
+    try { await deactivateTarget(target.id); setTarget(null) } catch { /* abaikan */ } finally { setBusy(false) }
+  }
+  const dateLabel = (d) => (d ? fmtDate(d) : '> 1 tahun')
+
+  return (
+    <div className="card card-pad">
+      <div className="flex between" style={{ alignItems: 'flex-start' }}>
+        <div>
+          <h3 className="card-title"><TargetIcon size={16} style={{ verticalAlign: '-2px', marginRight: 6, color: '#4f46e5' }} />Target Penjualan</h3>
+          <div className="card-sub">Prediksi 3 skenario dari pola penjualan Anda (regresi musiman, bukan AI)</div>
+        </div>
+        {target && (
+          <button className="icon-btn danger" onClick={stop} disabled={busy} title="Hapus target">
+            <Trash2 size={15} />
+          </button>
+        )}
+      </div>
+      {err && <div className="alert alert-err" style={{ marginTop: 8 }}>{err}</div>}
+
+      {target === undefined ? (
+        <p className="muted-sm" style={{ marginTop: 8 }}>Memuat…</p>
+      ) : !target ? (
+        <form onSubmit={create} className="flex gap" style={{ flexWrap: 'wrap', marginTop: 8, alignItems: 'flex-end' }}>
+          <div className="field" style={{ flex: 2, minWidth: 130 }}>
+            <label>Nama target</label>
+            <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Omzet Juli" />
+          </div>
+          <div className="field" style={{ flex: 2, minWidth: 120 }}>
+            <label>Nominal (Rp)</label>
+            <input className="input" type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="10000000" />
+          </div>
+          <div className="field" style={{ flex: 1.5, minWidth: 130 }}>
+            <label>Dihitung sejak</label>
+            <input className="input" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+          </div>
+          <button className="btn btn-primary" disabled={busy}>{busy ? '...' : 'Buat Target'}</button>
+        </form>
+      ) : (
+        <>
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+            <b>{target.name}</b>
+            <span>{rupiahShort(fc?.achieved || 0)} / <b>{rupiahShort(target.amount)}</b> ({fc?.progressPct ?? 0}%)</span>
+          </div>
+          <div className="progress-bar" style={{ margin: '8px 0 10px' }}>
+            <div style={{ width: `${Math.min(100, fc?.progressPct || 0)}%` }} />
+          </div>
+          {fc?.done ? (
+            <div className="alert alert-ok">Target tercapai! 🎉 Hapus target ini untuk membuat target baru.</div>
+          ) : !fc?.ready ? (
+            <p className="muted-sm">
+              Prediksi aktif setelah <b>{fc?.model?.daysNeed ?? 14} hari</b> data dan <b>{fc?.model?.txNeed ?? 10} transaksi</b> pemasukan.
+              Saat ini: {fc?.model?.daysHave ?? 0} hari, {fc?.model?.txHave ?? 0} transaksi. Terus catat ya!
+            </p>
+          ) : (
+            <>
+              <div className="scn-chips">
+                <div className="scn-chip" style={{ borderColor: '#86efac' }}><span>Optimis</span><b>{dateLabel(fc.scenarios.optimis)}</b></div>
+                <div className="scn-chip" style={{ borderColor: '#c7d2fe' }}><span>Realistis</span><b>{dateLabel(fc.scenarios.realistis)}</b></div>
+                <div className="scn-chip" style={{ borderColor: '#fecaca' }}><span>Pesimis</span><b>{dateLabel(fc.scenarios.pesimis)}</b></div>
+              </div>
+              {fc.trendDown && (
+                <p className="muted-sm" style={{ marginTop: 8, color: '#b45309' }}>
+                  Tren penjualan sedang mendatar/menurun — tanggal di atas bisa mundur. Rata-rata 14 hari terakhir: {rupiah(Math.round(fc.model.avg14))}/hari.
+                </p>
+              )}
+              <p className="muted-sm" style={{ marginTop: 6 }}>
+                Memperhitungkan pola akhir pekan Anda. Skenario pesimis membantu bersiap untuk kondisi terburuk — ini perkiraan, bukan jaminan.
+              </p>
+            </>
+          )}
+        </>
+      )}
+    </div>
   )
 }

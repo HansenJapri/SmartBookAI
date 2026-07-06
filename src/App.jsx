@@ -23,6 +23,8 @@ const Reveal = lazy(() => import('./pages/Reveal'))
 const Reports = lazy(() => import('./pages/Reports'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Feedback = lazy(() => import('./pages/Feedback'))
+const Radar = lazy(() => import('./pages/Radar'))
+const Hpp = lazy(() => import('./pages/Hpp'))
 
 const Loader = () => <div className="full-center"><div className="spinner" /></div>
 
@@ -70,6 +72,8 @@ export default function App() {
           <Route path="stok" element={<Stok />} />
           <Route path="supplier" element={<Supplier />} />
           <Route path="rekonsiliasi" element={<Reconciliation />} />
+          <Route path="radar" element={<Radar />} />
+          <Route path="hpp" element={<Hpp />} />
           <Route path="reveal" element={<Reveal />} />
           <Route path="laporan" element={<Reports />} />
           <Route path="feedback" element={<Feedback />} />

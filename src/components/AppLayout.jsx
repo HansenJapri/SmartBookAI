@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Wallet, Upload, ScanLine, Package, Truck,
   ArrowLeftRight, TrendingDown, FileText, MessageSquare, Settings, Menu,
+  Newspaper, Calculator, Plus,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -26,9 +27,11 @@ const NAV = [
   ] },
   { sec: 'produk', items: [
     { to: '/app/stok', icon: Package, key: 'stok' },
+    { to: '/app/hpp', icon: Calculator, key: 'hpp' },
     { to: '/app/supplier', icon: Truck, key: 'pemasok' },
   ] },
   { sec: 'analisis', items: [
+    { to: '/app/radar', icon: Newspaper, key: 'radar' },
     { to: '/app/reveal', icon: TrendingDown, key: 'reveal' },
     { to: '/app/laporan', icon: FileText, key: 'laporan' },
   ] },
@@ -41,6 +44,7 @@ const NAV = [
 const TITLE_KEY = {
   '/app': 'dashboard', '/app/transaksi': 'transaksi', '/app/import': 'import',
   '/app/rekonsiliasi': 'rekonsiliasi', '/app/stok': 'stok', '/app/supplier': 'pemasok',
+  '/app/hpp': 'hpp', '/app/radar': 'radar',
   '/app/reveal': 'reveal', '/app/laporan': 'laporan', '/app/feedback': 'feedback', '/app/pengaturan': 'pengaturan',
 }
 
@@ -48,15 +52,23 @@ export default function AppLayout() {
   const { user, signOut } = useAuth()
   const { t } = useLang()
   const loc = useLocation()
+  const nav = useNavigate()
   const [open, setOpen] = useState(false)
+  const [sheet, setSheet] = useState(false) // lembar aksi "+ Catat" (mobile)
   const [profile, setProfile] = useState(null)
 
   useEffect(() => { fetchProfile().then(setProfile).catch(() => {}) }, [])
-  useEffect(() => { setOpen(false) }, [loc.pathname])
+  useEffect(() => { setOpen(false); setSheet(false) }, [loc.pathname])
 
   const title = loc.pathname === '/app/struk'
     ? t.app.titleStruk
     : (TITLE_KEY[loc.pathname] ? t.app.nav[TITLE_KEY[loc.pathname]] : 'BukuPintar')
+
+  const openAsisten = () => {
+    setSheet(false)
+    // Chatbot mendengarkan event ini dan langsung membuka mode Catat.
+    window.dispatchEvent(new CustomEvent('open-chat-catat'))
+  }
 
   return (
     <div className="app-shell">
@@ -104,6 +116,37 @@ export default function AppLayout() {
           </CatalogProvider>
         </div>
       </div>
+
+      {/* Navigasi bawah — hanya tampil di layar sempit (mobile-first). */}
+      <nav className="bottom-nav" aria-label="Navigasi bawah">
+        <NavLink to="/app" end className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
+          <LayoutDashboard size={20} /><span>Beranda</span>
+        </NavLink>
+        <NavLink to="/app/transaksi" className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
+          <Wallet size={20} /><span>Transaksi</span>
+        </NavLink>
+        <button type="button" className="bn-fab" onClick={() => setSheet(true)} aria-label="Catat cepat">
+          <Plus size={26} />
+        </button>
+        <NavLink to="/app/radar" className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
+          <Newspaper size={20} /><span>Radar</span>
+        </NavLink>
+        <button type="button" className="bn-item" onClick={() => setOpen(true)}>
+          <Menu size={20} /><span>Menu</span>
+        </button>
+      </nav>
+
+      {sheet && (
+        <div className="sheet-backdrop" onClick={() => setSheet(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <h4>Catat transaksi</h4>
+            <button type="button" onClick={openAsisten}>🎙️ Ketik / Suara (Asisten AI)</button>
+            <button type="button" onClick={() => { setSheet(false); nav('/app/struk') }}>📷 Scan Struk</button>
+            <button type="button" onClick={() => { setSheet(false); nav('/app/transaksi') }}>✍️ Input Manual</button>
+            <button type="button" className="sheet-cancel" onClick={() => setSheet(false)}>Batal</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
