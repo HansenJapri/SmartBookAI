@@ -19,7 +19,10 @@ export async function effectiveOwnerId() {
   } catch { _ownerCache = user.id }
   return _ownerCache
 }
-supabase.auth.onAuthStateChange(() => { _ownerCache = null })
+// Reset cache saat sesi berubah. Optional-chaining penting: saat env Supabase
+// belum diisi (mis. di Vercel tanpa env var), `supabase` bernilai null dan
+// aplikasi harus tetap hidup untuk menampilkan halaman /setup — bukan blank.
+supabase?.auth?.onAuthStateChange(() => { _ownerCache = null })
 
 // ---------- TRANSAKSI ----------
 // Plafon pengambilan transaksi ke klien. Untuk volume sangat tinggi, ringkasan
