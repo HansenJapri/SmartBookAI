@@ -302,7 +302,7 @@ export default function Chatbot() {
             />
             {SpeechRec && (
               <button className="icon-btn" onClick={toggleVoice} title="Input suara" aria-label="Input suara">
-                {listening ? <MicOff size={18} color="#dc2626" /> : <Mic size={18} />}
+                {listening ? <MicOff size={18} style={{ color: 'var(--red)' }} /> : <Mic size={18} />}
               </button>
             )}
             <button className="icon-btn" onClick={() => setInput('')} title="Hapus teks" aria-label="Hapus teks" disabled={!input}>

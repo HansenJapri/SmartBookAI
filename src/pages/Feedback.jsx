@@ -15,7 +15,7 @@ function Stars({ value, onChange, label }) {
           aria-label={`${n} ${label}`}
           style={{
             fontSize: 26, lineHeight: 1, padding: 0, background: 'none',
-            color: n <= value ? '#f59e0b' : '#cbd5e1', cursor: 'pointer',
+            color: n <= value ? '#f59e0b' : 'var(--line-strong)', cursor: 'pointer',
           }}>★</button>
       ))}
     </div>
@@ -143,7 +143,7 @@ export default function Feedback() {
                     <div className="flex gap" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                       <b>{x.author_name || f.user}</b>
                       <span className="pill pill-cat">{f.cats[x.category] || x.category}</span>
-                      {x.rating && <span style={{ color: '#f59e0b' }}>{'★'.repeat(x.rating)}<span style={{ color: '#cbd5e1' }}>{'★'.repeat(5 - x.rating)}</span></span>}
+                      {x.rating && <span style={{ color: '#f59e0b' }}>{'★'.repeat(x.rating)}<span style={{ color: 'var(--line-strong)' }}>{'★'.repeat(5 - x.rating)}</span></span>}
                       {x.helped === true && <span className="badge badge-green">{f.helpedBadge}</span>}
                       {x.helped === false && <span className="badge badge-amber">{f.notHelpedBadge}</span>}
                     </div>

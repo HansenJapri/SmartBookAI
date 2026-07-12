@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Camera, FileText, Smartphone, Store, MessageCircle, Mail,
@@ -6,6 +7,7 @@ import {
 import { CONTACT_EMAIL } from '../lib/legal'
 import { useLang } from '../context/LangContext'
 import LangToggle from '../components/LangToggle'
+import ThemeToggle from '../components/ThemeToggle'
 
 // Ikon tetap (teks diambil dari kamus i18n, dicocokkan berdasarkan urutan).
 const CHAN_ICONS = [Camera, FileText, Smartphone, Store, MessageCircle, Mail]
@@ -13,8 +15,27 @@ const CHAN_SOON = [false, false, false, false, true, true]
 const PROB_ICONS = [Landmark, Receipt, Puzzle]
 const FITUR_ICONS = [ArrowLeftRight, BarChart3, FileText]
 
+// Chip pembayaran/marketplace untuk strip berjalan (marquee).
+const STRIP_CHIPS = [
+  ['QRIS', '#1c36ee'], ['BCA', '#0ea5e9'], ['Mandiri', '#eab308'], ['BRI', '#1d4ed8'],
+  ['GoPay', '#16a34a'], ['OVO', '#7c3aed'], ['Dana', '#2563eb'], ['Tokopedia', '#16a34a'],
+  ['Shopee', '#f97316'], ['TikTok Shop', '#0f172a'],
+]
+
 export default function Landing() {
   const { t } = useLang()
+
+  // Animasi scroll-reveal (murni visual): elemen .rv diberi kelas .in saat masuk layar.
+  useEffect(() => {
+    const els = document.querySelectorAll('.rv')
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) }
+      })
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px' })
+    els.forEach((el) => io.observe(el))
+    return () => io.disconnect()
+  }, [])
   return (
     <>
       <header className="nav">
@@ -28,6 +49,7 @@ export default function Landing() {
           </nav>
           <div className="nav-spacer" />
           <div className="nav-cta">
+            <ThemeToggle />
             <LangToggle />
             <Link to="/masuk" className="btn btn-ghost">{t.nav.masuk}</Link>
             <Link to="/daftar" className="btn btn-primary">{t.nav.coba}</Link>
@@ -36,9 +58,10 @@ export default function Landing() {
       </header>
 
       <section className="hero">
-        <div className="hero-blob" />
-        <div className="container hero-grid">
-          <div>
+        <div className="container">
+          <div className="hero-panel">
+            <div className="hero-grid">
+          <div className="hero-copy">
             <span className="eyebrow">{t.hero.eyebrow}</span>
             <h1>{t.hero.h1pre}<em>{t.hero.h1em}</em>{t.hero.h1post}</h1>
             <p className="lead">{t.hero.lead}</p>
@@ -76,6 +99,8 @@ export default function Landing() {
               <div className="phone-note">{t.hero.pIlus}</div>
             </div>
           </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -83,8 +108,13 @@ export default function Landing() {
         <div className="container">
           <div className="strip-title">{t.strip}</div>
           <div className="strip-row">
-            {[['QRIS', '#4f46e5'], ['BCA', '#0ea5e9'], ['Mandiri', '#eab308'], ['BRI', '#1d4ed8'], ['GoPay', '#16a34a'], ['OVO', '#7c3aed'], ['Dana', '#2563eb'], ['Tokopedia', '#16a34a'], ['Shopee', '#f97316'], ['TikTok Shop', '#0f172a']].map(([n, c]) => (
-              <span className="chip" key={n}><span className="dot" style={{ background: c }} />{n}</span>
+            {/* Dua salinan track agar marquee berjalan mulus tanpa celah */}
+            {[false, true].map((dup) => (
+              <div className="marquee-track" key={dup ? 'dup' : 'main'} aria-hidden={dup || undefined}>
+                {STRIP_CHIPS.map(([n, c]) => (
+                  <span className="chip" key={n}><span className="dot" style={{ background: c }} />{n}</span>
+                ))}
+              </div>
             ))}
           </div>
         </div>
@@ -92,14 +122,14 @@ export default function Landing() {
 
       <section className="section" id="masalah">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head rv">
             <span className="eyebrow">{t.masalah.eyebrow}</span>
             <h2>{t.masalah.h2}</h2>
             <p>{t.masalah.p}</p>
           </div>
           <div className="prob-grid">
             {t.masalah.items.map((p, i) => { const Ic = PROB_ICONS[i]; return (
-              <div className="prob-card" key={p.t}><div className="pe"><Ic size={24} /></div><h3>{p.t}</h3><p>{p.d}</p></div>
+              <div className="prob-card rv" key={p.t}><div className="pe"><Ic size={24} /></div><h3>{p.t}</h3><p>{p.d}</p></div>
             ) })}
           </div>
         </div>
@@ -107,12 +137,12 @@ export default function Landing() {
 
       <section className="section" id="reveal">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head rv">
             <span className="eyebrow">{t.reveal.eyebrow}</span>
             <h2>{t.reveal.h2}</h2>
             <p>{t.reveal.p}</p>
           </div>
-          <div className="reveal-card">
+          <div className="reveal-card rv">
             <div className="reveal-top">
               <div><div className="reveal-k">{t.reveal.gross}</div><div className="reveal-gross">Rp 50.000.000</div></div>
               <div className="reveal-net-wrap"><div className="reveal-k">{t.reveal.net}</div><div className="reveal-net">Rp 43.000.000</div></div>
@@ -133,14 +163,14 @@ export default function Landing() {
 
       <section className="section section-alt" id="channel">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head rv">
             <span className="eyebrow">{t.channel.eyebrow}</span>
             <h2>{t.channel.h2}</h2>
             <p>{t.channel.p}</p>
           </div>
           <div className="chan-grid">
             {t.channel.items.map((c, i) => { const Ic = CHAN_ICONS[i]; return (
-              <div className="chan-card" key={c.t}>
+              <div className="chan-card rv" key={c.t}>
                 <div className="cic"><Ic size={24} /></div>
                 <h3>{c.t} {CHAN_SOON[i] && <span className="soon-badge">{t.channel.soon}</span>}</h3>
                 <p>{c.d}</p>
@@ -152,13 +182,13 @@ export default function Landing() {
 
       <section className="section" id="fitur">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head rv">
             <span className="eyebrow">{t.fitur.eyebrow}</span>
             <h2>{t.fitur.h2}</h2>
           </div>
           <div className="prob-grid">
             {t.fitur.items.map((f, i) => { const Ic = FITUR_ICONS[i]; return (
-              <div className="prob-card" key={f.t}><div className="pe"><Ic size={24} /></div><h3>{f.t}</h3><p>{f.d}</p></div>
+              <div className="prob-card rv" key={f.t}><div className="pe"><Ic size={24} /></div><h3>{f.t}</h3><p>{f.d}</p></div>
             ) })}
           </div>
         </div>
@@ -166,14 +196,14 @@ export default function Landing() {
 
       <section className="section section-alt" id="metrik">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head rv">
             <span className="eyebrow">{t.metrik.eyebrow}</span>
             <h2>{t.metrik.h2}</h2>
             <p>{t.metrik.p}</p>
           </div>
           <div className="metric-grid">
             {t.metrik.items.map((m) => (
-              <div className="metric" key={m.l}><div className="mv">{m.v}</div><div className="ml">{m.l}</div></div>
+              <div className="metric rv" key={m.l}><div className="mv">{m.v}</div><div className="ml">{m.l}</div></div>
             ))}
           </div>
         </div>
@@ -181,14 +211,14 @@ export default function Landing() {
 
       <section className="section section-alt" id="privasi-ringkas">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head rv">
             <span className="eyebrow">{t.trust.eyebrow}</span>
             <h2>{t.trust.h2}</h2>
             <p>{t.trust.p}</p>
           </div>
           <div className="trust-grid">
             {t.trust.items.map((it) => (
-              <div className="trust-item" key={it.b}><b>{it.b}</b>{it.t}</div>
+              <div className="trust-item rv" key={it.b}><b>{it.b}</b>{it.t}</div>
             ))}
           </div>
         </div>
@@ -196,7 +226,7 @@ export default function Landing() {
 
       <section className="section">
         <div className="container">
-          <div className="cta">
+          <div className="cta rv">
             <h2>{t.cta.h2}</h2>
             <p>{t.cta.p}</p>
             <Link to="/daftar" className="btn btn-primary btn-lg">{t.cta.btn}</Link>

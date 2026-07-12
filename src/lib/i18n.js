@@ -92,8 +92,8 @@ export const translations = {
       disc: 'BukuPintar AI adalah alat bantu pencatatan, bukan nasihat keuangan, pajak, atau hukum.',
     },
     app: {
-      sections: { ringkasan: 'Ringkasan', transaksi: 'Transaksi', produk: 'Produk', analisis: 'Analisis', lainnya: 'Lainnya' },
-      nav: { dashboard: 'Dashboard', transaksi: 'Transaksi', import: 'Import Data', struk: 'Foto/PDF Struk', rekonsiliasi: 'Rekonsiliasi', stok: 'Stok Produk', hpp: 'Simulasi HPP', pemasok: 'Pemasok', radar: 'Radar Harga', reveal: 'Reveal Kebocoran', laporan: 'Laporan', feedback: 'Forum Feedback', pengaturan: 'Pengaturan' },
+      sections: { ringkasan: 'Ringkasan', operasional: 'Operasional', transaksi: 'Transaksi', produk: 'Produk', hr: 'Karyawan (HR)', analisis: 'Analisis', lainnya: 'Lainnya' },
+      nav: { dashboard: 'Dashboard', tugas: 'Papan Tugas', transaksi: 'Transaksi', import: 'Import Data', struk: 'Foto/PDF Struk', rekonsiliasi: 'Rekonsiliasi', piutang: 'Piutang & Utang', stok: 'Stok Produk', po: 'Purchase Order', opname: 'Stock Opname', hpp: 'Simulasi HPP', pemasok: 'Pemasok', karyawan: 'Data Karyawan', absensi: 'Absensi & Cuti', gaji: 'Penggajian', radar: 'Radar Harga', reveal: 'Reveal Kebocoran', laporan: 'Laporan', feedback: 'Forum Feedback', pengguna: 'Pengguna & Akses', audit: 'Audit Log', pengaturan: 'Pengaturan' },
       titleStruk: 'Input dari Foto/PDF Struk', logout: 'Keluar', business: 'Usaha Saya',
     },
     auth: {
@@ -295,8 +295,8 @@ export const translations = {
       disc: 'BukuPintar AI is a recording aid, not financial, tax, or legal advice.',
     },
     app: {
-      sections: { ringkasan: 'Overview', transaksi: 'Transactions', produk: 'Products', analisis: 'Analysis', lainnya: 'Other' },
-      nav: { dashboard: 'Dashboard', transaksi: 'Transactions', import: 'Import Data', struk: 'Receipt Photo/PDF', rekonsiliasi: 'Reconciliation', stok: 'Product Stock', hpp: 'COGS Simulator', pemasok: 'Suppliers', radar: 'Price Radar', reveal: 'Reveal Leaks', laporan: 'Reports', feedback: 'Feedback Forum', pengaturan: 'Settings' },
+      sections: { ringkasan: 'Overview', operasional: 'Operations', transaksi: 'Transactions', produk: 'Products', hr: 'Staff (HR)', analisis: 'Analysis', lainnya: 'Other' },
+      nav: { dashboard: 'Dashboard', tugas: 'Task Board', transaksi: 'Transactions', import: 'Import Data', struk: 'Receipt Photo/PDF', rekonsiliasi: 'Reconciliation', piutang: 'Receivables & Payables', stok: 'Product Stock', po: 'Purchase Orders', opname: 'Stock Take', hpp: 'COGS Simulator', pemasok: 'Suppliers', karyawan: 'Employees', absensi: 'Attendance & Leave', gaji: 'Payroll', radar: 'Price Radar', reveal: 'Reveal Leaks', laporan: 'Reports', feedback: 'Feedback Forum', pengguna: 'Users & Access', audit: 'Audit Log', pengaturan: 'Settings' },
       titleStruk: 'Input from Receipt Photo/PDF', logout: 'Sign out', business: 'My Business',
     },
     auth: {

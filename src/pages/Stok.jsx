@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   fetchProducts, addProduct, updateProduct, deleteProduct,
   fetchUnits, addUnit, updateUnit, deleteUnit,
@@ -11,6 +12,7 @@ import CrudList from '../components/CrudList'
 const emptyForm = { name: '', category: '', unit: 'pcs', stock: '', min_stock: '', price: '', cost_price: '', supplier_id: '' }
 
 export default function Stok() {
+  const nav = useNavigate()
   const [products, setProducts] = useState(null)
   const [units, setUnits] = useState([])
   const [cats, setCats] = useState([])
@@ -160,7 +162,7 @@ export default function Stok() {
               {filtered.map((p) => {
                 const isLow = Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock)
                 return (
-                  <tr key={p.id} style={isLow ? { background: '#fff7ed' } : {}}>
+                  <tr key={p.id} style={isLow ? { background: 'var(--amber-50)' } : {}}>
                     <td><b>{p.name}</b></td>
                     <td className="muted-sm">{p.category || '-'}</td>
                     <td style={{ textAlign: 'right' }}>
@@ -174,6 +176,10 @@ export default function Stok() {
                     </td>
                     <td className="muted-sm">{supplierName(p.supplier_id)}</td>
                     <td><div className="row-actions">
+                      {isLow && (
+                        <button className="linklike" title="Buat Purchase Order untuk restock produk ini"
+                          onClick={() => nav('/app/po', { state: { productId: p.id } })}>Buat PO</button>
+                      )}
                       <button className="linklike" onClick={() => startEdit(p)}>Ubah</button>
                       <button className="linklike" style={{ color: 'var(--red)' }} onClick={() => remove(p)}>Hapus</button>
                     </div></td>

@@ -23,15 +23,15 @@ export default class ErrorBoundary extends Component {
   render() {
     if (!this.state.hasError) return this.props.children
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#f8fafc' }}>
-        <div style={{ maxWidth: 440, textAlign: 'center', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '32px 28px', boxShadow: '0 8px 24px rgba(15,23,42,.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', color: '#f59e0b' }}><AlertTriangle size={44} /></div>
-          <h2 style={{ margin: '12px 0 8px', fontSize: 20, color: '#0f172a' }}>Maaf, terjadi kendala</h2>
-          <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--bg, #f7f9fc)' }}>
+        <div style={{ maxWidth: 440, textAlign: 'center', background: 'var(--card, #fff)', border: '1px solid var(--line, #e3e8f2)', borderRadius: 16, padding: '32px 28px', boxShadow: '0 8px 24px rgba(28,54,238,.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--warn-ink, #f59e0b)' }}><AlertTriangle size={44} /></div>
+          <h2 style={{ margin: '12px 0 8px', fontSize: 20, color: 'var(--ink, #000)' }}>Maaf, terjadi kendala</h2>
+          <p style={{ color: 'var(--muted, #66708a)', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
             Halaman gagal dimuat. Coba muat ulang. Jika berlanjut, periksa koneksi atau hubungi kami.
           </p>
           <button onClick={() => window.location.reload()}
-            style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+            style={{ background: 'var(--primary, #1c36ee)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
             Muat ulang halaman
           </button>
         </div>

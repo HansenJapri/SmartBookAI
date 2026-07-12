@@ -92,7 +92,7 @@ export default function Reveal() {
             </div>
           </div>
 
-          <div className="card card-pad mt" style={{ background: '#fff7ed', border: '1px solid #fdba74' }}>
+          <div className="card card-pad mt" style={{ background: 'var(--amber-50)', border: '1px solid rgba(245, 158, 11, 0.45)' }}>
             <div className="flex between gap" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 240 }}>
                 <div className="card-title" style={{ marginBottom: 6 }}>{rev.summaryTitle}</div>

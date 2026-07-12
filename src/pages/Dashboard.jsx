@@ -154,22 +154,22 @@ export default function Dashboard() {
         <>
           <div className="grid-kpi">
             <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.income}</span><span className="kpi-ic" style={{ background: '#dcfce7', color: '#16a34a' }}><TrendingUp size={16} /></span></div>
+              <div className="kpi-head"><span className="kpi-l">{d.income}</span><span className="kpi-ic" style={{ background: 'var(--green-50)', color: 'var(--green)' }}><TrendingUp size={16} /></span></div>
               <div className="kpi-v" style={{ color: 'var(--green)' }}>{rupiahShort(data.sum.income)}</div>
               <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>{data.sum.count} {d.txCount}</div>
             </div>
             <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.expense}</span><span className="kpi-ic" style={{ background: '#fee2e2', color: '#dc2626' }}><TrendingDown size={16} /></span></div>
+              <div className="kpi-head"><span className="kpi-l">{d.expense}</span><span className="kpi-ic" style={{ background: 'var(--red-50)', color: 'var(--red)' }}><TrendingDown size={16} /></span></div>
               <div className="kpi-v" style={{ color: 'var(--red)' }}>{rupiahShort(data.sum.expense)}</div>
               <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>{d.periodWord} {periodLabel.toLowerCase()}</div>
             </div>
             <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.profit}</span><span className="kpi-ic" style={{ background: '#eef2ff', color: '#4f46e5' }}><Wallet size={16} /></span></div>
+              <div className="kpi-head"><span className="kpi-l">{d.profit}</span><span className="kpi-ic" style={{ background: 'var(--indigo-50)', color: 'var(--secondary)' }}><Wallet size={16} /></span></div>
               <div className="kpi-v" style={{ color: data.sum.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>{rupiahShort(data.sum.profit)}</div>
               <div className={`kpi-d ${data.sum.profit >= 0 ? 'up' : 'down'}`}>{d.profitSub}</div>
             </div>
             <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.margin}</span><span className="kpi-ic" style={{ background: '#fef3c7', color: '#b45309' }}><Percent size={16} /></span></div>
+              <div className="kpi-head"><span className="kpi-l">{d.margin}</span><span className="kpi-ic" style={{ background: 'var(--amber-50)', color: 'var(--warn-ink)' }}><Percent size={16} /></span></div>
               <div className="kpi-v" style={{ color: data.margin >= 0 ? 'var(--green)' : 'var(--red)' }}>{data.margin}%</div>
               <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>
                 {data.unpaidCount > 0 ? `${data.unpaidCount} ${d.unpaidA} (${rupiahShort(data.unpaidTotal)})` : d.marginSub}
@@ -185,8 +185,8 @@ export default function Dashboard() {
                 <AreaChart data={data.trend} margin={{ left: -10, right: 6, top: 6 }}>
                   <defs>
                     <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.32} />
-                      <stop offset="100%" stopColor="#4f46e5" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#00fed9" stopOpacity={0.30} />
+                      <stop offset="100%" stopColor="#137be7" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.22} />
@@ -197,7 +197,7 @@ export default function Dashboard() {
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={(v) => rupiahShort(v).replace('Rp ', '')} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={56} />
                   <Tooltip formatter={(v) => rupiah(v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} />
-                  <Area type="monotone" dataKey="omzet" name={d.legIncome} stroke="#4f46e5" strokeWidth={2.5} fill="url(#gIn)" />
+                  <Area type="monotone" dataKey="omzet" name={d.legIncome} stroke="#137be7" strokeWidth={2.5} fill="url(#gIn)" />
                   <Area type="monotone" dataKey="pengeluaran" name={d.legExpense} stroke="#f43f5e" strokeWidth={2} fill="url(#gOut)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -261,7 +261,7 @@ export default function Dashboard() {
                     <XAxis type="number" tickFormatter={(v) => rupiahShort(v).replace('Rp ', '')} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} />
                     <Tooltip formatter={(v) => rupiah(v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} />
-                    <Bar dataKey="value" fill="#4f46e5" radius={[0, 6, 6, 0]} barSize={18} />
+                    <Bar dataKey="value" fill="#137be7" radius={[0, 6, 6, 0]} barSize={18} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -339,7 +339,7 @@ function TargetCard({ tx }) {
     <div className="card card-pad">
       <div className="flex between" style={{ alignItems: 'flex-start' }}>
         <div>
-          <h3 className="card-title"><TargetIcon size={16} style={{ verticalAlign: '-2px', marginRight: 6, color: '#4f46e5' }} />Target Penjualan</h3>
+          <h3 className="card-title"><TargetIcon size={16} style={{ verticalAlign: '-2px', marginRight: 6, color: 'var(--secondary)' }} />Target Penjualan</h3>
           <div className="card-sub">Prediksi 3 skenario dari pola penjualan Anda (regresi musiman, bukan AI)</div>
         </div>
         {target && (
@@ -388,11 +388,11 @@ function TargetCard({ tx }) {
             <>
               <div className="scn-chips">
                 <div className="scn-chip" style={{ borderColor: '#86efac' }}><span>Optimis</span><b>{dateLabel(fc.scenarios.optimis)}</b></div>
-                <div className="scn-chip" style={{ borderColor: '#c7d2fe' }}><span>Realistis</span><b>{dateLabel(fc.scenarios.realistis)}</b></div>
+                <div className="scn-chip" style={{ borderColor: 'var(--line-accent)' }}><span>Realistis</span><b>{dateLabel(fc.scenarios.realistis)}</b></div>
                 <div className="scn-chip" style={{ borderColor: '#fecaca' }}><span>Pesimis</span><b>{dateLabel(fc.scenarios.pesimis)}</b></div>
               </div>
               {fc.trendDown && (
-                <p className="muted-sm" style={{ marginTop: 8, color: '#b45309' }}>
+                <p className="muted-sm" style={{ marginTop: 8, color: 'var(--warn-ink)' }}>
                   Tren penjualan sedang mendatar/menurun — tanggal di atas bisa mundur. Rata-rata 14 hari terakhir: {rupiah(Math.round(fc.model.avg14))}/hari.
                 </p>
               )}

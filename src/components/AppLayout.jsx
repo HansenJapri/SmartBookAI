@@ -3,32 +3,46 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Wallet, Upload, ScanLine, Package, Truck,
   ArrowLeftRight, TrendingDown, FileText, MessageSquare, Settings, Menu,
-  Newspaper, Calculator, Plus,
+  Newspaper, Calculator, Plus, ClipboardList, ClipboardCheck, HandCoins,
+  Users, ScrollText, User, CalendarDays, Banknote, ListTodo,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { CatalogProvider } from '../context/CatalogContext'
-import { fetchProfile } from '../lib/api'
+import { fetchProfile, fetchMyMembership, claimMembership } from '../lib/api'
+import { filterNav, canModule } from '../lib/rbac'
 import DisclaimerGate from './DisclaimerGate'
 import Chatbot from './Chatbot'
 import AppLock from './AppLock'
 import LangToggle from './LangToggle'
+import ThemeToggle from './ThemeToggle'
 
 // Menu dikelompokkan agar rapi. Label & judul diambil dari kamus i18n via key.
 const NAV = [
   { sec: 'ringkasan', items: [
     { to: '/app', end: true, icon: LayoutDashboard, key: 'dashboard' },
   ] },
+  { sec: 'operasional', items: [
+    { to: '/app/tugas', icon: ListTodo, key: 'tugas' },
+  ] },
   { sec: 'transaksi', items: [
     { to: '/app/transaksi', icon: Wallet, key: 'transaksi' },
     { to: '/app/import', icon: Upload, key: 'import' },
     { to: '/app/struk', icon: ScanLine, key: 'struk' },
     { to: '/app/rekonsiliasi', icon: ArrowLeftRight, key: 'rekonsiliasi' },
+    { to: '/app/piutang', icon: HandCoins, key: 'piutang' },
   ] },
   { sec: 'produk', items: [
     { to: '/app/stok', icon: Package, key: 'stok' },
+    { to: '/app/po', icon: ClipboardList, key: 'po' },
+    { to: '/app/opname', icon: ClipboardCheck, key: 'opname' },
     { to: '/app/hpp', icon: Calculator, key: 'hpp' },
     { to: '/app/supplier', icon: Truck, key: 'pemasok' },
+  ] },
+  { sec: 'hr', items: [
+    { to: '/app/karyawan', icon: User, key: 'karyawan' },
+    { to: '/app/absensi', icon: CalendarDays, key: 'absensi' },
+    { to: '/app/gaji', icon: Banknote, key: 'gaji' },
   ] },
   { sec: 'analisis', items: [
     { to: '/app/radar', icon: Newspaper, key: 'radar' },
@@ -37,15 +51,19 @@ const NAV = [
   ] },
   { sec: 'lainnya', items: [
     { to: '/app/feedback', icon: MessageSquare, key: 'feedback' },
+    { to: '/app/pengguna', icon: Users, key: 'pengguna' },
+    { to: '/app/audit', icon: ScrollText, key: 'audit' },
     { to: '/app/pengaturan', icon: Settings, key: 'pengaturan' },
   ] },
 ]
 
 const TITLE_KEY = {
-  '/app': 'dashboard', '/app/transaksi': 'transaksi', '/app/import': 'import',
-  '/app/rekonsiliasi': 'rekonsiliasi', '/app/stok': 'stok', '/app/supplier': 'pemasok',
+  '/app': 'dashboard', '/app/tugas': 'tugas', '/app/transaksi': 'transaksi', '/app/import': 'import',
+  '/app/rekonsiliasi': 'rekonsiliasi', '/app/piutang': 'piutang', '/app/stok': 'stok', '/app/po': 'po', '/app/opname': 'opname', '/app/supplier': 'pemasok',
+  '/app/karyawan': 'karyawan', '/app/absensi': 'absensi', '/app/gaji': 'gaji',
   '/app/hpp': 'hpp', '/app/radar': 'radar',
-  '/app/reveal': 'reveal', '/app/laporan': 'laporan', '/app/feedback': 'feedback', '/app/pengaturan': 'pengaturan',
+  '/app/reveal': 'reveal', '/app/laporan': 'laporan', '/app/feedback': 'feedback',
+  '/app/pengguna': 'pengguna', '/app/audit': 'audit', '/app/pengaturan': 'pengaturan',
 }
 
 export default function AppLayout() {
@@ -56,9 +74,20 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false)
   const [sheet, setSheet] = useState(false) // lembar aksi "+ Catat" (mobile)
   const [profile, setProfile] = useState(null)
+  const [membership, setMembership] = useState(null) // null = owner; terisi = staf (RBAC)
 
-  useEffect(() => { fetchProfile().then(setProfile).catch(() => {}) }, [])
+  useEffect(() => {
+    // Klaim undangan staf (bila email cocok), lalu muat keanggotaan & profil owner.
+    claimMembership()
+      .then(() => fetchMyMembership())
+      .then((m) => { setMembership(m); return fetchProfile() })
+      .then(setProfile)
+      .catch(() => { fetchProfile().then(setProfile).catch(() => {}) })
+  }, [])
   useEffect(() => { setOpen(false); setSheet(false) }, [loc.pathname])
+
+  // Menu tersaring sesuai hak akses (owner = semua; staf = modul yang diizinkan)
+  const nav2 = filterNav(NAV, membership)
 
   const title = loc.pathname === '/app/struk'
     ? t.app.titleStruk
@@ -79,7 +108,7 @@ export default function AppLayout() {
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand"><img src="/logo.svg" alt="" /><span>Buku<b>Pintar</b></span></div>
         <nav className="side-nav">
-          {NAV.map((group) => (
+          {nav2.map((group) => (
             <div className="side-group" key={group.sec}>
               <div className="side-section">{t.app.sections[group.sec]}</div>
               {group.items.map((n) => {
@@ -108,7 +137,10 @@ export default function AppLayout() {
         <header className="topbar">
           <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Menu"><Menu size={22} /></button>
           <h1>{title}</h1>
-          <div style={{ marginLeft: 'auto' }}><LangToggle /></div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ThemeToggle />
+            <LangToggle />
+          </div>
         </header>
         <div className="page">
           <CatalogProvider>
@@ -122,15 +154,21 @@ export default function AppLayout() {
         <NavLink to="/app" end className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
           <LayoutDashboard size={20} /><span>Beranda</span>
         </NavLink>
-        <NavLink to="/app/transaksi" className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
-          <Wallet size={20} /><span>Transaksi</span>
-        </NavLink>
-        <button type="button" className="bn-fab" onClick={() => setSheet(true)} aria-label="Catat cepat">
-          <Plus size={26} />
-        </button>
-        <NavLink to="/app/radar" className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
-          <Newspaper size={20} /><span>Radar</span>
-        </NavLink>
+        {canModule(membership, 'transaksi') && (
+          <NavLink to="/app/transaksi" className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
+            <Wallet size={20} /><span>Transaksi</span>
+          </NavLink>
+        )}
+        {canModule(membership, 'transaksi') && (
+          <button type="button" className="bn-fab" onClick={() => setSheet(true)} aria-label="Catat cepat">
+            <Plus size={26} />
+          </button>
+        )}
+        {canModule(membership, 'analisis') && (
+          <NavLink to="/app/radar" className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>
+            <Newspaper size={20} /><span>Radar</span>
+          </NavLink>
+        )}
         <button type="button" className="bn-item" onClick={() => setOpen(true)}>
           <Menu size={20} /><span>Menu</span>
         </button>

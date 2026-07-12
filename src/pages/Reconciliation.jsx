@@ -55,7 +55,7 @@ export default function Reconciliation() {
 
       {groups.length === 0 ? (
         <div className="card"><div className="empty">
-          <div className="ee"><CheckCircle2 size={36} color="#16a34a" /></div>
+          <div className="ee"><CheckCircle2 size={36} style={{ color: 'var(--green)' }} /></div>
           <h3>{r.noneTitle}</h3>
           <p>{r.noneDesc}</p>
         </div></div>

@@ -25,6 +25,15 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Feedback = lazy(() => import('./pages/Feedback'))
 const Radar = lazy(() => import('./pages/Radar'))
 const Hpp = lazy(() => import('./pages/Hpp'))
+const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'))
+const Opname = lazy(() => import('./pages/Opname'))
+const Receivables = lazy(() => import('./pages/Receivables'))
+const Team = lazy(() => import('./pages/Team'))
+const Audit = lazy(() => import('./pages/Audit'))
+const Tasks = lazy(() => import('./pages/Tasks'))
+const Employees = lazy(() => import('./pages/Employees'))
+const Attendance = lazy(() => import('./pages/Attendance'))
+const Payroll = lazy(() => import('./pages/Payroll'))
 
 const Loader = () => <div className="full-center"><div className="spinner" /></div>
 
@@ -66,17 +75,26 @@ export default function App() {
         <Route path="/reset-password" element={<ConfigOnly><ForgotPassword /></ConfigOnly>} />
         <Route path="/app" element={<Protected><AppLayout /></Protected>}>
           <Route index element={<Dashboard />} />
+          <Route path="tugas" element={<Tasks />} />
           <Route path="transaksi" element={<Transactions />} />
           <Route path="struk" element={<Struk />} />
           <Route path="import" element={<Import />} />
           <Route path="stok" element={<Stok />} />
+          <Route path="po" element={<PurchaseOrders />} />
+          <Route path="opname" element={<Opname />} />
           <Route path="supplier" element={<Supplier />} />
+          <Route path="karyawan" element={<Employees />} />
+          <Route path="absensi" element={<Attendance />} />
+          <Route path="gaji" element={<Payroll />} />
           <Route path="rekonsiliasi" element={<Reconciliation />} />
+          <Route path="piutang" element={<Receivables />} />
           <Route path="radar" element={<Radar />} />
           <Route path="hpp" element={<Hpp />} />
           <Route path="reveal" element={<Reveal />} />
           <Route path="laporan" element={<Reports />} />
           <Route path="feedback" element={<Feedback />} />
+          <Route path="pengguna" element={<Team />} />
+          <Route path="audit" element={<Audit />} />
           <Route path="pengaturan" element={<Settings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

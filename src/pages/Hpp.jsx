@@ -179,7 +179,7 @@ export default function Hpp() {
             {product && (
               <div className="field">
                 <label>Harga jual saat ini</label>
-                <div className="input" style={{ display: 'flex', alignItems: 'center', background: '#f8fafc' }}>
+                <div className="input" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)' }}>
                   {price > 0 ? rupiah(price) : 'belum diisi (atur di Stok Produk)'}
                 </div>
               </div>
@@ -225,42 +225,55 @@ export default function Hpp() {
               {rows.length > 0 && (
                 <>
                   <div className="table-wrap" style={{ margin: '10px 0' }}>
-                    <table className="tbl">
+                    <table className="tbl tbl-hpp">
                       <thead><tr>
-                        <th>Komponen</th><th>Tipe</th><th style={{ textAlign: 'right' }}>Jumlah</th><th>Satuan</th>
-                        <th style={{ textAlign: 'right' }}>Harga/satuan (Rp)</th><th>Komoditas (Radar)</th><th>Impor</th>
-                        <th style={{ textAlign: 'right' }}>Simulasi naik %</th><th></th>
+                        <th style={{ minWidth: 150 }}>Komponen</th>
+                        <th style={{ minWidth: 120 }}>Tipe biaya</th>
+                        <th style={{ textAlign: 'right', minWidth: 90 }}>Jumlah</th>
+                        <th style={{ minWidth: 80 }}>Satuan</th>
+                        <th style={{ textAlign: 'right', minWidth: 120 }}>Harga/satuan (Rp)</th>
+                        <th style={{ minWidth: 160 }}>Komoditas (Radar)</th>
+                        <th style={{ minWidth: 140 }}>Ketergantungan impor</th>
+                        <th style={{ textAlign: 'right', minWidth: 110 }}>Simulasi naik %</th>
+                        <th style={{ width: 40 }}></th>
                       </tr></thead>
                       <tbody>
                         {rows.map((r, i) => (
                           <tr key={i} className={r.is_ai_estimated ? 'row-ai' : ''}>
-                            <td><input className="input" value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="cth: Tepung terigu" style={{ minWidth: 120 }} /></td>
+                            <td><input className="input" value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="cth: Tepung terigu" style={{ minWidth: 140 }} /></td>
                             <td>
-                              <select className="input" value={r.type} onChange={(e) => setRow(i, { type: e.target.value })}>
-                                {['bahan', 'kemasan', 'energi', 'tenaga', 'lainnya'].map((t) => <option key={t} value={t}>{t}</option>)}
+                              <select className="input" value={r.type} onChange={(e) => setRow(i, { type: e.target.value })} style={{ minWidth: 112 }}>
+                                <option value="bahan">Bahan baku</option>
+                                <option value="kemasan">Kemasan</option>
+                                <option value="energi">Energi (listrik/gas)</option>
+                                <option value="tenaga">Tenaga kerja</option>
+                                <option value="lainnya">Lainnya</option>
                               </select>
                             </td>
-                            <td><input className="input" type="number" min="0" step="any" value={r.qty_per_unit} onChange={(e) => setRow(i, { qty_per_unit: e.target.value })} style={{ width: 76, textAlign: 'right' }} /></td>
-                            <td><input className="input" value={r.unit} onChange={(e) => setRow(i, { unit: e.target.value })} style={{ width: 70 }} /></td>
-                            <td><input className="input" type="number" min="0" step="any" value={r.price_per_unit} onChange={(e) => setRow(i, { price_per_unit: e.target.value })} style={{ width: 100, textAlign: 'right' }} /></td>
+                            <td><input className="input" type="number" min="0" step="any" value={r.qty_per_unit} onChange={(e) => setRow(i, { qty_per_unit: e.target.value })} style={{ width: 84, textAlign: 'right' }} /></td>
+                            <td><input className="input" value={r.unit} onChange={(e) => setRow(i, { unit: e.target.value })} style={{ width: 74 }} /></td>
+                            <td><input className="input" type="number" min="0" step="any" value={r.price_per_unit} onChange={(e) => setRow(i, { price_per_unit: e.target.value })} style={{ width: 112, textAlign: 'right' }} /></td>
                             <td>
-                              <select className="input" value={r.commodity_key} onChange={(e) => setRow(i, { commodity_key: e.target.value })} style={{ minWidth: 130 }}>
+                              <select className="input" value={r.commodity_key} onChange={(e) => setRow(i, { commodity_key: e.target.value })} style={{ minWidth: 150 }}>
                                 <option value="">(tidak terkait)</option>
                                 {COMMODITIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                               </select>
                             </td>
                             <td>
-                              <select className="input" value={r.import_exposure} onChange={(e) => setRow(i, { import_exposure: e.target.value })}>
-                                {['rendah', 'sedang', 'tinggi'].map((x) => <option key={x} value={x}>{x}</option>)}
+                              <select className="input" value={r.import_exposure} onChange={(e) => setRow(i, { import_exposure: e.target.value })} style={{ minWidth: 128 }}>
+                                <option value="rendah">Rendah (lokal)</option>
+                                <option value="sedang">Sedang</option>
+                                <option value="tinggi">Tinggi (impor)</option>
                               </select>
                             </td>
-                            <td><input className="input" type="number" step="any" value={r.simPct} onChange={(e) => setRow(i, { simPct: e.target.value })} placeholder="auto" style={{ width: 76, textAlign: 'right' }} title="Kosongkan untuk memakai sinyal Radar otomatis" /></td>
+                            <td><input className="input" type="number" step="any" value={r.simPct} onChange={(e) => setRow(i, { simPct: e.target.value })} placeholder="auto" style={{ width: 92, textAlign: 'right' }} title="Kosongkan untuk memakai sinyal Radar otomatis" /></td>
                             <td><button type="button" className="icon-btn danger" onClick={() => removeRow(i)} title="Hapus"><Trash2 size={15} /></button></td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  <p className="muted-sm" style={{ marginTop: -4 }}>Geser tabel ke samping bila ada kolom yang belum terlihat. "Tipe biaya" = jenis komponen; "Ketergantungan impor" = seberapa terpengaruh kurs dolar.</p>
                   <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
                     <div className="flex gap">
                       <button type="button" className="btn btn-ghost" onClick={addRow}><Plus size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />Tambah komponen</button>
@@ -297,7 +310,7 @@ export default function Hpp() {
             </div>
             <div className="scen-card">
               <div className="muted-sm">HPP skenario (30 hari)</div>
-              <div className="scen-v" style={{ color: hppChanged ? '#dc2626' : 'inherit' }}>
+              <div className="scen-v" style={{ color: hppChanged ? 'var(--red)' : 'inherit' }}>
                 {hppChanged ? `${rupiah(scenario.min)} – ${rupiah(scenario.max)}` : rupiah(hppBase)}
               </div>
               <div className="muted-sm">
@@ -308,7 +321,7 @@ export default function Hpp() {
             </div>
             <div className="scen-card">
               <div className="muted-sm">Margin skenario</div>
-              <div className="scen-v" style={{ color: price > 0 && mMin < mNow - 0.5 ? '#dc2626' : 'inherit' }}>
+              <div className="scen-v" style={{ color: price > 0 && mMin < mNow - 0.5 ? 'var(--red)' : 'inherit' }}>
                 {price > 0 ? `${mMin.toFixed(0)}% – ${mMax.toFixed(0)}%` : '-'}
               </div>
               <div className="muted-sm">pada harga jual tetap {price > 0 ? rupiah(price) : ''}</div>

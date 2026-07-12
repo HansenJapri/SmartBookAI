@@ -73,7 +73,7 @@ export function trendDaily(transactions, days = 14) {
 // Distribusi per channel (pemasukan)
 export function channelMix(transactions) {
   const palette = {
-    qris: '#4f46e5', bank: '#0ea5e9', marketplace: '#f97316', wa: '#16a34a',
+    qris: '#1c36ee', bank: '#07bbd2', marketplace: '#f97316', wa: '#16a34a',
     email: '#a855f7', struk: '#eab308', manual: '#64748b',
     shopee: '#f97316', tokopedia: '#16a34a', tiktok: '#0f172a', lazada: '#2563eb', blibli: '#f59e0b',
   }

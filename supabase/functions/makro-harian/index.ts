@@ -1,41 +1,54 @@
 // ============================================================
-// Supabase Edge Function: makro-harian
-// Pipeline makroekonomi BERSAMA untuk seluruh platform (bukan per user):
-//   1) Tarik kurs USD/IDR dari API gratis -> tabel exchange_rates.
-//   2) Tarik judul berita Bing News RSS per komoditas (gratis, hanya
-//      judul+link dari feed, tanpa scraping artikel). Catatan: Google News
-//      TIDAK dipakai karena memblokir IP datacenter edge (terverifikasi 503).
-//   3) SATU panggilan Gemini 2.5 Flash menilai arah & estimasi kenaikan 30 hari
-//      per komoditas -> tabel macro_signals.
-// Dipicu "lazy": pengguna pertama yang membuka Radar Harga hari itu memicu
-// fungsi ini; hasil di-cache untuk SEMUA pengguna (kunci efisiensi biaya UMKM).
-// Kunci ganda (lock) lewat tabel macro_runs agar tidak jalan dobel.
+// Supabase Edge Function: makro-harian (v3)
+// Pipeline makro BERSAMA untuk seluruh platform, berjalan 1x per "hari data":
+//   1) HARGA RESMI bahan pokok dari PIHPS Bank Indonesia (endpoint publik
+//      resmi tanpa kunci) -> tabel commodity_prices.
+//   2) Kurs USD/IDR (open.er-api.com, backfill frankfurter/ECB)
+//      -> tabel exchange_rates.
+//   3) Judul berita Bing News RSS per komoditas -> 1 panggilan Gemini
+//      -> tabel macro_signals. (Google News tidak dipakai: blokir IP
+//      datacenter, terverifikasi 503.)
 //
-// Deploy: nama function "makro-harian".
+// BATAS HARI = 06.00 WIB: dijadwalkan pg_cron pukul 23.00 UTC (06.00 WIB).
+// Sebelum jam 6 pagi, kunci hari jatuh ke kemarin sehingga data yang tampil
+// selalu "hasil tarikan jam 6 pagi terbaru". Pemicu dari aplikasi (lazy)
+// hanya cadangan bila cron terlewat.
+//
+// KEAMANAN: fungsi ini boleh dipicu TANPA login (untuk cron pg_net) karena:
+//   - idempoten — kunci macro_runs memastikan kerja berat maksimal 1x/hari;
+//   - tidak membaca/menulis data milik pengguna mana pun;
+//   - hanya menulis data agregat publik via service role;
+//   - respons hanya berisi jumlah baris.
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
 const MODEL = 'gemini-2.5-flash'
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 
-// Keranjang komoditas platform — WAJIB sinkron dengan ai-hpp-draft & src/lib/hpp.js
+// Keranjang komoditas — WAJIB sinkron dengan ai-hpp-draft & src/lib/hpp.js.
+// Kelompok pangan mengikuti daftar bahan pokok (Perpres 71/2015) + panel PIHPS;
+// sisanya bahan strategis lintas sektor UMKM.
 const COMMODITIES: { key: string; label: string; q: string; qEn?: string }[] = [
   { key: 'beras', label: 'Beras', q: 'harga beras' },
-  { key: 'terigu', label: 'Terigu/Gandum', q: 'harga terigu OR gandum', qEn: 'wheat price global' },
-  { key: 'gula', label: 'Gula', q: 'harga gula pasir' },
-  { key: 'telur', label: 'Telur Ayam', q: 'harga telur ayam' },
-  { key: 'ayam', label: 'Daging Ayam', q: 'harga ayam potong OR daging ayam' },
-  { key: 'daging_sapi', label: 'Daging Sapi', q: 'harga daging sapi' },
-  { key: 'cabai', label: 'Cabai', q: 'harga cabai' },
+  { key: 'jagung', label: 'Jagung', q: 'harga jagung pipilan' },
+  { key: 'kedelai', label: 'Kedelai', q: 'harga kedelai impor' },
+  { key: 'gula', label: 'Gula Pasir', q: 'harga gula pasir' },
+  { key: 'minyak_goreng', label: 'Minyak Goreng/CPO', q: 'harga minyak goreng OR CPO', qEn: 'crude palm oil price' },
+  { key: 'terigu', label: 'Tepung Terigu/Gandum', q: 'harga terigu OR gandum', qEn: 'wheat price global' },
+  { key: 'cabai_merah', label: 'Cabai Merah', q: 'harga cabai merah' },
+  { key: 'cabai_rawit', label: 'Cabai Rawit', q: 'harga cabai rawit' },
   { key: 'bawang_merah', label: 'Bawang Merah', q: 'harga bawang merah' },
   { key: 'bawang_putih', label: 'Bawang Putih', q: 'harga bawang putih impor' },
-  { key: 'minyak_goreng', label: 'Minyak Goreng/CPO', q: 'harga minyak goreng OR CPO', qEn: 'crude palm oil price' },
-  { key: 'kedelai', label: 'Kedelai', q: 'harga kedelai impor' },
+  { key: 'daging_sapi', label: 'Daging Sapi', q: 'harga daging sapi' },
+  { key: 'ayam', label: 'Daging Ayam', q: 'harga ayam potong OR daging ayam' },
+  { key: 'telur', label: 'Telur Ayam', q: 'harga telur ayam' },
+  { key: 'ikan', label: 'Ikan Segar', q: 'harga ikan bandeng OR kembung OR tongkol' },
+  { key: 'garam', label: 'Garam', q: 'harga garam konsumsi' },
   { key: 'susu', label: 'Susu', q: 'harga susu' },
   { key: 'kakao', label: 'Kakao/Cokelat', q: 'harga kakao OR cokelat', qEn: 'cocoa price' },
   { key: 'kopi', label: 'Kopi', q: 'harga kopi robusta arabika' },
@@ -47,6 +60,21 @@ const COMMODITIES: { key: string; label: string; q: string; qEn?: string }[] = [
   { key: 'plastik', label: 'Plastik/Kemasan', q: 'harga plastik kemasan resin' },
   { key: 'kurs', label: 'Kurs USD/IDR', q: 'nilai tukar rupiah dolar', qEn: 'rupiah exchange rate' },
 ]
+
+// Pemetaan kelompok PIHPS -> commodity_key kita.
+const PIHPS_GROUP: Record<string, string> = {
+  'Beras': 'beras',
+  'Daging Ayam': 'ayam',
+  'Daging Sapi': 'daging_sapi',
+  'Telur Ayam': 'telur',
+  'Bawang Merah': 'bawang_merah',
+  'Bawang Putih': 'bawang_putih',
+  'Cabai Merah': 'cabai_merah',
+  'Cabai Rawit': 'cabai_rawit',
+  'Minyak Goreng': 'minyak_goreng',
+  'Gula Pasir': 'gula',
+}
+const PIHPS_UNIT: Record<string, string> = { minyak_goreng: 'Rp/liter' } // sisanya Rp/kg
 
 const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
 function corsHeaders(origin: string | null) {
@@ -60,18 +88,19 @@ function corsHeaders(origin: string | null) {
 }
 
 const todayWIB = () => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10)
+// Kunci "hari data": batas hari pukul 06.00 WIB (sebelum jam 6 = hari kemarin).
+const runKeyWIB = () => new Date(Date.now() + (7 - 6) * 3600 * 1000).toISOString().slice(0, 10)
 
 function decodeEntities(s: string): string {
   return s.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
 }
 
-// Ambil judul+link dari feed RSS (regex sederhana — cukup untuk Google News).
 async function fetchRss(url: string, max = 4): Promise<{ title: string; link: string }[]> {
   try {
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 8000)
-    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36' } })
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA } })
     clearTimeout(t)
     if (!res.ok) return []
     const xml = await res.text()
@@ -86,6 +115,54 @@ async function fetchRss(url: string, max = 4): Promise<{ title: string; link: st
   } catch { return [] }
 }
 
+// ---------- HARGA RESMI: PIHPS Bank Indonesia ----------
+// Endpoint publik resmi (JSON, tanpa kunci) — URL yang sama disimpan sebagai
+// referensi yang bisa dibuka pengguna.
+async function fetchPihps(runKey: string) {
+  const start = new Date(new Date(runKey + 'T00:00:00Z').getTime() - 6 * 86400000).toISOString().slice(0, 10)
+  const url = 'https://www.bi.go.id/hargapangan/WebSite/TabelHarga/GetGridDataDaerah'
+    + `?price_type_id=1&comcat_id=&province_id=&regency_id=&market_id=&tipe_laporan=1&start_date=${start}&end_date=${runKey}`
+  try {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 15000)
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA, 'Accept': 'application/json' } })
+    clearTimeout(t)
+    if (!res.ok) return { url, rows: [] as any[] }
+    const j = await res.json()
+    const out: any[] = []
+    let groupKey = ''
+    for (const row of j?.data || []) {
+      const name = String(row.name || '').trim()
+      const isGroup = row.level === 1
+      if (isGroup) groupKey = PIHPS_GROUP[name] || ''
+      if (!groupKey || !name) continue
+      // Ambil kolom tanggal dd/mm/yyyy, urutkan, pilih nilai terisi terbaru + sebelumnya.
+      const dates = Object.keys(row)
+        .filter((k) => /^\d{2}\/\d{2}\/\d{4}$/.test(k))
+        .map((k) => ({ k, d: k.slice(6) + '-' + k.slice(3, 5) + '-' + k.slice(0, 2) }))
+        .sort((a, b) => (a.d < b.d ? -1 : 1))
+      let price = 0, prev = 0, priceDate = ''
+      for (const { k, d } of dates) {
+        const v = Number(String(row[k] ?? '').replace(/[^\d]/g, ''))
+        if (v > 0) { prev = price || v; price = v; priceDate = d }
+      }
+      if (price <= 0) continue
+      out.push({
+        commodity_key: groupKey,
+        variant_name: name,
+        is_group: isGroup,
+        price,
+        prev_price: prev && prev !== price ? prev : null,
+        price_date: priceDate || null,
+        unit: PIHPS_UNIT[groupKey] || 'Rp/kg',
+        source_name: 'PIHPS Bank Indonesia',
+        source_url: url,
+      })
+    }
+    return { url, rows: out }
+  } catch { return { url, rows: [] as any[] } }
+}
+
 serve(async (req) => {
   const origin = req.headers.get('Origin')
   const cors = corsHeaders(origin)
@@ -94,47 +171,43 @@ serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
   try {
-    // Wajib login — semua pengguna boleh MEMICU, tapi kerja & hasil dibagi bersama.
-    const authHeader = req.headers.get('Authorization') || ''
-    if (!authHeader.startsWith('Bearer ')) return json({ error: 'Harus masuk (login).' }, 401)
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }, auth: { persistSession: false },
-    })
-    const { data: userData } = await userClient.auth.getUser()
-    if (!userData?.user) return json({ error: 'Sesi tidak valid.' }, 401)
-
-    // Klien service-role: menulis tabel makro bersama (RLS dilewati, aman karena
-    // fungsi ini tidak menerima data bebas dari klien untuk ditulis).
     const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
-    const today = todayWIB()
+    const runKey = runKeyWIB()
 
-    // ---------- LOCK: hanya satu proses per hari ----------
-    const { error: lockErr } = await svc.from('macro_runs').insert({ run_date: today, status: 'running' })
+    // ---------- LOCK: hanya satu proses per hari-data ----------
+    const { error: lockErr } = await svc.from('macro_runs').insert({ run_date: runKey, status: 'running' })
     if (lockErr) {
-      // Sudah ada baris hari ini: selesai, sedang jalan, atau macet (>10 menit).
-      const { data: run } = await svc.from('macro_runs').select('*').eq('run_date', today).maybeSingle()
+      const { data: run } = await svc.from('macro_runs').select('*').eq('run_date', runKey).maybeSingle()
       if (run?.status === 'done') return json({ ok: true, already: true })
       const stale = run?.started_at && (Date.now() - new Date(run.started_at).getTime() > 10 * 60 * 1000)
       if (!stale) return json({ ok: true, running: true })
-      await svc.from('macro_runs').update({ status: 'running', started_at: new Date().toISOString() }).eq('run_date', today)
+      await svc.from('macro_runs').update({ status: 'running', started_at: new Date().toISOString() }).eq('run_date', runKey)
     }
 
-    // ---------- 1) KURS USD/IDR ----------
+    // ---------- 1) HARGA RESMI (PIHPS BI) ----------
+    const pihps = await fetchPihps(runKey)
+    if (pihps.rows.length) {
+      await svc.from('commodity_prices').upsert(
+        pihps.rows.map((r) => ({ ...r, run_date: runKey })),
+        { onConflict: 'run_date,variant_name' },
+      )
+    }
+
+    // ---------- 2) KURS USD/IDR ----------
     let kursNote = ''
     try {
       const r = await fetch('https://open.er-api.com/v6/latest/USD')
       const j = await r.json()
       const idr = Number(j?.rates?.IDR)
       if (idr > 0) {
-        await svc.from('exchange_rates').upsert({ rate_date: today, usd_idr: idr, source: 'open.er-api.com' })
-        kursNote = `USD/IDR hari ini: ${Math.round(idr)}`
+        await svc.from('exchange_rates').upsert({ rate_date: todayWIB(), usd_idr: idr, source: 'open.er-api.com' })
+        kursNote = `USD/IDR: ${Math.round(idr)}`
       }
-    } catch { /* kurs gagal — lanjut */ }
-    // Isi mundur (backfill) riwayat kurs sekali di awal, agar grafik tren langsung hidup.
+    } catch { /* lanjut */ }
     try {
       const { count } = await svc.from('exchange_rates').select('rate_date', { count: 'exact', head: true })
       if ((count || 0) < 30) {
-        const end = today
+        const end = todayWIB()
         const start = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)
         const r = await fetch(`https://api.frankfurter.dev/v1/${start}..${end}?base=USD&symbols=IDR`)
         if (r.ok) {
@@ -147,7 +220,7 @@ serve(async (req) => {
       }
     } catch { /* backfill opsional */ }
 
-    // ---------- 2) BERITA (Bing News RSS — gratis, ramah IP datacenter) ----------
+    // ---------- 3) BERITA (Bing News RSS) ----------
     const feeds = await Promise.all(COMMODITIES.map(async (c) => {
       const urlId = `https://www.bing.com/news/search?q=${encodeURIComponent(c.q)}&format=RSS&setmkt=id-ID&qft=interval%3d%227%22`
       let items = await fetchRss(urlId, 4)
@@ -155,13 +228,12 @@ serve(async (req) => {
         const urlEn = `https://www.bing.com/news/search?q=${encodeURIComponent(c.qEn)}&format=RSS&setmkt=en-US&qft=interval%3d%227%22`
         items = items.concat(await fetchRss(urlEn, 2))
       }
-      // Dedup judul.
       const seen = new Set<string>()
       items = items.filter((it) => { const k = it.title.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true })
       return { key: c.key, label: c.label, headlines: items.slice(0, 5) }
     }))
 
-    // ---------- 3) SATU panggilan Gemini untuk semua komoditas ----------
+    // ---------- 4) SATU panggilan Gemini untuk semua komoditas ----------
     let signals: any[] = []
     if (GEMINI_API_KEY) {
       const input = feeds.map((f) => ({ key: f.key, label: f.label, judul_berita: f.headlines.map((h) => h.title) }))
@@ -174,12 +246,12 @@ ${JSON.stringify(input)}
 Balas HANYA JSON array, satu objek per komoditas (SEMUA key harus ada):
 [
   {
-    "key": string,                    // sama persis dengan key input
+    "key": string,
     "direction": "naik" | "turun" | "stabil",
-    "est_pct_min": number,            // perkiraan perubahan 30 hari, persen, batas bawah (boleh negatif)
-    "est_pct_max": number,            // batas atas
+    "est_pct_min": number,
+    "est_pct_max": number,
     "confidence": "rendah" | "sedang" | "tinggi",
-    "drivers": [string]               // maksimal 3 frasa singkat penyebab, HARUS bersumber dari judul yang diberikan
+    "drivers": [string]
   }
 ]
 
@@ -196,7 +268,7 @@ ATURAN KERAS:
             headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-              generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 4096 },
+              generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 8192 },
             }),
           },
         )
@@ -208,7 +280,6 @@ ATURAN KERAS:
       } catch { signals = [] }
     }
 
-    // ---------- Validasi deterministik + simpan ----------
     const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
     const half = (n: number) => Math.round(n * 2) / 2
     const byKey: Record<string, any> = {}
@@ -222,7 +293,7 @@ ATURAN KERAS:
       if (min > max) { const t = min; min = max; max = t }
       const direction = ['naik', 'turun', 'stabil'].includes(s.direction) ? s.direction : 'stabil'
       return {
-        run_date: today,
+        run_date: runKey,
         commodity_key: c.key,
         commodity_label: c.label,
         direction,
@@ -237,10 +308,10 @@ ATURAN KERAS:
 
     await svc.from('macro_runs').update({
       status: 'done', finished_at: new Date().toISOString(),
-      detail: `${rows.length} sinyal; ${kursNote || 'kurs gagal diambil'}`,
-    }).eq('run_date', today)
+      detail: `${rows.length} sinyal; ${pihps.rows.length} harga PIHPS; ${kursNote || 'kurs gagal'}`,
+    }).eq('run_date', runKey)
 
-    return json({ ok: true, signals: rows.length })
+    return json({ ok: true, signals: rows.length, prices: pihps.rows.length })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan pipeline makro.', detail: String(e).slice(0, 300) }, 500)
   }

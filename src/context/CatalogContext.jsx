@@ -6,14 +6,14 @@ const CatalogCtx = createContext(null)
 // Channel bawaan (fallback warna/label bila data belum dimuat)
 const BUILTIN_CH = {
   manual: { label: 'Manual', color: '#64748b' },
-  qris: { label: 'QRIS', color: '#4f46e5' },
+  qris: { label: 'QRIS', color: '#1c36ee' },
   bank: { label: 'Bank', color: '#0ea5e9' },
   wa: { label: 'WhatsApp', color: '#16a34a' },
   marketplace: { label: 'Marketplace', color: '#f97316' },
   email: { label: 'Email', color: '#a855f7' },
   struk: { label: 'Struk', color: '#eab308' },
 }
-const PALETTE = ['#4f46e5', '#0ea5e9', '#16a34a', '#f97316', '#a855f7', '#eab308', '#ec4899', '#14b8a6', '#ef4444']
+const PALETTE = ['#1c36ee', '#07bbd2', '#16a34a', '#f97316', '#a855f7', '#eab308', '#ec4899', '#00fed9', '#ef4444']
 function colorFor(value) {
   let h = 0
   for (let i = 0; i < value.length; i++) h = (h * 31 + value.charCodeAt(i)) % PALETTE.length

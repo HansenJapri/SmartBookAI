@@ -1,49 +1,58 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Minus, RefreshCw, ExternalLink } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, RefreshCw, ExternalLink, BadgeCheck } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { fetchMacroSignals, fetchExchangeRates, fetchMacroConfigLatest, fetchIngredients } from '../lib/api'
+import {
+  fetchMacroSignals, fetchCommodityPrices, fetchExchangeRates,
+  fetchMacroConfigLatest, fetchIngredients,
+} from '../lib/api'
 import { makroRefresh } from '../lib/ai'
-import { fmtDate } from '../lib/format'
+import { rupiah, fmtDate } from '../lib/format'
+import { COMMODITIES } from '../lib/hpp'
 import AIDisclaimer from '../components/AIDisclaimer'
 
 const DIR = {
-  naik: { icon: TrendingUp, color: '#dc2626', bg: '#fee2e2', label: 'NAIK' },
-  turun: { icon: TrendingDown, color: '#16a34a', bg: '#dcfce7', label: 'TURUN' },
-  stabil: { icon: Minus, color: '#64748b', bg: '#f1f5f9', label: 'STABIL' },
+  naik: { icon: TrendingUp, color: 'var(--red)', bg: 'var(--red-50)', label: 'NAIK' },
+  turun: { icon: TrendingDown, color: 'var(--green)', bg: 'var(--green-50)', label: 'TURUN' },
+  stabil: { icon: Minus, color: 'var(--accent-2)', bg: 'var(--indigo-50)', label: 'STABIL' },
 }
-const CONF = { rendah: '#94a3b8', sedang: '#f59e0b', tinggi: '#16a34a' }
+const CONF = { rendah: 'var(--muted)', sedang: 'var(--warn-ink)', tinggi: 'var(--green)' }
 
-const todayStr = () => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+// Urutan tampil mengikuti daftar komoditas standar; kurs paling akhir.
+const ORDER = Object.fromEntries([...COMMODITIES.map((c, i) => [c.key, i]), ['kurs', 999]])
+
+// Kunci "hari data" — batas hari pukul 06.00 WIB, HARUS sama dengan Edge
+// Function makro-harian: sebelum jam 6 pagi, data terbaru = tarikan kemarin.
+const expectedRunKey = () => new Date(Date.now() + (7 - 6) * 3600 * 1000).toISOString().slice(0, 10)
 
 export default function Radar() {
   const [signals, setSignals] = useState([])
   const [runDate, setRunDate] = useState(null)
+  const [prices, setPrices] = useState([])
   const [rates, setRates] = useState([])
   const [config, setConfig] = useState(null)
   const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [tried, setTried] = useState(false)
-  const [onlyMine, setOnlyMine] = useState(true)
+  const [onlyMine, setOnlyMine] = useState(false)
   const [err, setErr] = useState('')
 
   const load = async () => {
-    const [sig, rts, cfg, ing] = await Promise.allSettled([
-      fetchMacroSignals(), fetchExchangeRates(90), fetchMacroConfigLatest(), fetchIngredients(),
+    const [sig, prc, rts, cfg, ing] = await Promise.allSettled([
+      fetchMacroSignals(), fetchCommodityPrices(), fetchExchangeRates(90),
+      fetchMacroConfigLatest(), fetchIngredients(),
     ])
     if (sig.status === 'fulfilled') { setSignals(sig.value.signals); setRunDate(sig.value.runDate) }
+    if (prc.status === 'fulfilled') setPrices(prc.value.prices)
     if (rts.status === 'fulfilled') setRates(rts.value)
     if (cfg.status === 'fulfilled') setConfig(cfg.value)
     if (ing.status === 'fulfilled') setIngredients(ing.value)
     return sig.status === 'fulfilled' ? sig.value.runDate : null
   }
 
-  // Pemicu "lazy": pengguna pertama hari ini menjalankan pipeline untuk SEMUA
-  // pengguna; selanjutnya semua orang membaca cache (nol biaya AI tambahan).
+  // Pipeline dijadwalkan tiap 06.00 WIB (pg_cron). Pemicu dari sini hanya
+  // CADANGAN bila jadwal terlewat; hasil di-cache untuk semua pengguna.
   const refresh = async () => {
     setRefreshing(true); setErr('')
     try {
@@ -60,7 +69,7 @@ export default function Radar() {
     (async () => {
       const rd = await load()
       setLoading(false)
-      if (rd !== todayStr() && !tried) {
+      if (rd !== expectedRunKey() && !tried) {
         setTried(true)
         refresh()
       }
@@ -72,9 +81,22 @@ export default function Radar() {
     [ingredients],
   )
   const shown = useMemo(() => {
-    if (!onlyMine || relevantKeys.size === 0) return signals
-    return signals.filter((s) => relevantKeys.has(s.commodity_key) || s.commodity_key === 'kurs')
+    const list = onlyMine && relevantKeys.size > 0
+      ? signals.filter((s) => relevantKeys.has(s.commodity_key) || s.commodity_key === 'kurs')
+      : signals
+    return [...list].sort((a, b) => (ORDER[a.commodity_key] ?? 500) - (ORDER[b.commodity_key] ?? 500))
   }, [signals, onlyMine, relevantKeys])
+
+  // Harga resmi per kelompok: baris is_group = angka utama; sisanya varian.
+  const pricesByKey = useMemo(() => {
+    const map = {}
+    for (const p of prices) {
+      if (!map[p.commodity_key]) map[p.commodity_key] = { group: null, variants: [] }
+      if (p.is_group) map[p.commodity_key].group = p
+      else map[p.commodity_key].variants.push(p)
+    }
+    return map
+  }, [prices])
 
   const kurs = useMemo(() => {
     if (!rates.length) return null
@@ -92,12 +114,12 @@ export default function Radar() {
     <div style={{ maxWidth: 1040 }}>
       <div className="alert alert-info" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <span>
-          <b>Radar Harga Bahan.</b> Sinyal arah harga dari berita ekonomi & geopolitik (Bing News), diperbarui 1x/hari untuk semua pengguna.
+          <b>Radar Harga Bahan.</b> Harga resmi PIHPS Bank Indonesia + sinyal berita (Bing News), ditarik otomatis <b>setiap pukul 06.00 WIB</b>.
           {runDate ? ` Data: ${fmtDate(runDate)}.` : ' Belum ada data.'}
         </span>
         <button className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
           <RefreshCw size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} className={refreshing ? 'spin' : ''} />
-          {refreshing ? 'Memuat berita hari ini (±30-60 dtk)...' : 'Perbarui'}
+          {refreshing ? 'Menarik data (±30-60 dtk)...' : 'Perbarui'}
         </button>
       </div>
       {err && <div className="alert alert-err" style={{ marginBottom: 16 }}>{err}</div>}
@@ -111,7 +133,7 @@ export default function Radar() {
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 26, fontWeight: 700 }}>Rp {Math.round(Number(kurs.last.usd_idr)).toLocaleString('id-ID')}</span>
-                <span style={{ color: kurs.pct30 > 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                <span style={{ color: kurs.pct30 > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>
                   {kurs.pct30 > 0 ? '+' : ''}{kurs.pct30.toFixed(1)}% / 30 hari {kurs.pct30 > 0 ? '(rupiah melemah)' : '(rupiah menguat)'}
                 </span>
               </div>
@@ -121,9 +143,14 @@ export default function Radar() {
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} minTickGap={30} />
                   <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} width={52} />
                   <Tooltip formatter={(v) => 'Rp ' + Number(v).toLocaleString('id-ID')} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} />
-                  <Area type="monotone" dataKey="kurs" stroke="#4f46e5" strokeWidth={2} fill="#eef2ff" />
+                  <Area type="monotone" dataKey="kurs" stroke="#137be7" strokeWidth={2} fill="rgba(19, 123, 231, 0.12)" />
                 </AreaChart>
               </ResponsiveContainer>
+              <div className="sig-sources" style={{ marginTop: 4 }}>
+                <a href="https://open.er-api.com/v6/latest/USD" target="_blank" rel="noreferrer noopener">
+                  <ExternalLink size={11} /> Sumber: open.er-api.com (endpoint terbuka)
+                </a>
+              </div>
             </>
           )}
         </div>
@@ -150,12 +177,14 @@ export default function Radar() {
         </div>
       </div>
 
-      {/* SINYAL KOMODITAS */}
+      {/* HARGA & SINYAL PER KOMODITAS */}
       <div className="card card-pad">
         <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
           <div>
-            <h3 className="card-title">Sinyal Harga Bahan Pokok (30 hari ke depan)</h3>
-            <div className="card-sub">Berdasarkan sentimen judul berita 7 hari terakhir — bukan kepastian harga</div>
+            <h3 className="card-title">Harga Bahan Pokok Terkini & Sinyal 30 Hari</h3>
+            <div className="card-sub">
+              Harga: rata-rata nasional resmi <b>PIHPS Bank Indonesia</b> (tarikan 06.00 WIB) · Arah: sentimen berita 7 hari
+            </div>
           </div>
           {relevantKeys.size > 0 && (
             <label className="muted-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
@@ -164,11 +193,11 @@ export default function Radar() {
             </label>
           )}
         </div>
-        <AIDisclaimer text="Prediksi AI dari berita — bisa keliru. Verifikasi harga aktual di pasar/supplier Anda sebelum mengambil keputusan." />
+        <AIDisclaimer text="Sinyal arah dibuat AI dari berita — bisa keliru. Harga PIHPS adalah rata-rata nasional; harga di pasar Anda bisa berbeda." />
 
         {!shown.length ? (
           <p className="muted-sm" style={{ marginTop: 12 }}>
-            {signals.length ? 'Tidak ada sinyal untuk bahan Anda. Matikan filter untuk melihat semua komoditas.' : 'Belum ada sinyal. Tekan tombol Perbarui di atas.'}
+            {signals.length ? 'Tidak ada sinyal untuk bahan Anda. Matikan filter untuk melihat semua komoditas.' : 'Belum ada data. Tekan tombol Perbarui di atas.'}
           </p>
         ) : (
           <div className="sig-grid" style={{ marginTop: 12 }}>
@@ -176,6 +205,11 @@ export default function Radar() {
               const d = DIR[s.direction] || DIR.stabil
               const Icon = d.icon
               const mine = relevantKeys.has(s.commodity_key)
+              const pr = pricesByKey[s.commodity_key]
+              const headline = pr?.group || pr?.variants?.[0] || null
+              const delta = headline?.prev_price
+                ? ((Number(headline.price) - Number(headline.prev_price)) / Number(headline.prev_price)) * 100
+                : null
               const range = Number(s.est_pct_min) === 0 && Number(s.est_pct_max) === 0
                 ? '±0%'
                 : `${Number(s.est_pct_min) > 0 ? '+' : ''}${Number(s.est_pct_min)}% s.d. ${Number(s.est_pct_max) > 0 ? '+' : ''}${Number(s.est_pct_max)}%`
@@ -189,7 +223,44 @@ export default function Radar() {
                       <Icon size={13} /> {d.label}
                     </span>
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 700, margin: '4px 0' }}>{range} <span className="muted-sm" style={{ fontWeight: 400 }}>/ 30 hari</span></div>
+
+                  {/* HARGA RESMI SAAT INI */}
+                  {headline ? (
+                    <div style={{ margin: '6px 0' }}>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {rupiah(headline.price)} <span className="muted-sm" style={{ fontWeight: 400 }}>/{String(headline.unit).replace('Rp/', '')}</span>
+                        {delta !== null && Math.abs(delta) >= 0.05 && (
+                          <span style={{ fontSize: 12.5, fontWeight: 600, marginLeft: 8, color: delta > 0 ? 'var(--red)' : 'var(--green)' }}>
+                            {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="muted-sm">rata-rata nasional{headline.price_date ? `, ${fmtDate(headline.price_date)}` : ''}</div>
+                      {pr.variants.length > 0 && (
+                        <details className="sig-variants">
+                          <summary>{pr.variants.length} varian harga</summary>
+                          <ul>
+                            {pr.variants.map((v) => (
+                              <li key={v.variant_name}><span>{v.variant_name}</span><b>{rupiah(v.price)}</b></li>
+                            ))}
+                          </ul>
+                        </details>
+                      )}
+                      <a className="sig-official" href={headline.source_url} target="_blank" rel="noreferrer noopener"
+                        title="Buka endpoint data resmi (JSON) yang dipakai aplikasi ini">
+                        <BadgeCheck size={12} /> Sumber resmi: {headline.source_name} (buka endpoint)
+                      </a>
+                    </div>
+                  ) : s.commodity_key !== 'kurs' && (
+                    <div className="muted-sm" style={{ margin: '6px 0' }}>
+                      Harga resmi PIHPS belum mencakup komoditas ini — hanya sinyal berita.
+                    </div>
+                  )}
+
+                  {/* SINYAL 30 HARI */}
+                  <div style={{ fontSize: 15, fontWeight: 600, margin: '4px 0 2px' }}>
+                    Perkiraan 30 hari: {range}
+                  </div>
                   <div className="muted-sm" style={{ marginBottom: 6 }}>
                     Keyakinan: <b style={{ color: CONF[s.confidence] || '#94a3b8' }}>{s.confidence}</b>
                     {mine && <span className="pill pill-cat" style={{ marginLeft: 8 }}>dipakai usaha Anda</span>}

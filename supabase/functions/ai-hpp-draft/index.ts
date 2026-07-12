@@ -18,9 +18,10 @@ const MODEL = 'gemini-2.5-flash'
 
 // Kunci komoditas — WAJIB sinkron dengan daftar di makro-harian & src/lib/hpp.js
 const COMMODITY_KEYS = [
-  'beras', 'terigu', 'gula', 'telur', 'ayam', 'daging_sapi', 'cabai', 'bawang_merah',
-  'bawang_putih', 'minyak_goreng', 'kedelai', 'susu', 'kakao', 'kopi', 'lpg', 'bbm',
-  'tekstil', 'kertas', 'deterjen', 'plastik',
+  'beras', 'jagung', 'kedelai', 'gula', 'minyak_goreng', 'terigu', 'cabai_merah',
+  'cabai_rawit', 'bawang_merah', 'bawang_putih', 'daging_sapi', 'ayam', 'telur',
+  'ikan', 'garam', 'susu', 'kakao', 'kopi', 'lpg', 'bbm', 'tekstil', 'kertas',
+  'deterjen', 'plastik',
 ]
 
 const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
