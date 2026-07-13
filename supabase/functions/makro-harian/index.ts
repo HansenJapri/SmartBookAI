@@ -96,7 +96,46 @@ function decodeEntities(s: string): string {
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
 }
 
-async function fetchRss(url: string, max = 4): Promise<{ title: string; link: string }[]> {
+// ---------- SUMBER TEPERCAYA TERPUSAT (RAG) ----------
+// Hanya berita dari domain di bawah yang boleh masuk pipeline & jadi referensi.
+// Menambah/mengurangi sumber cukup di daftar ini (satu titik kendali).
+const TRUSTED_DOMAINS = [
+  // Resmi pemerintah / lembaga
+  'bi.go.id', 'bps.go.id', 'badanpangan.go.id', 'kemendag.go.id', 'esdm.go.id',
+  'kementan.go.id', 'setkab.go.id', 'antaranews.com',
+  // Media ekonomi-bisnis arus utama Indonesia
+  'kontan.co.id', 'bisnis.com', 'cnbcindonesia.com', 'katadata.co.id',
+  'kompas.com', 'kompas.id', 'detik.com', 'tempo.co', 'cnnindonesia.com',
+  'liputan6.com', 'republika.co.id', 'idxchannel.com', 'investor.id',
+  'medcom.id', 'sindonews.com', 'tribunnews.com', 'merdeka.com', 'suara.com',
+  'okezone.com', 'viva.co.id', 'inews.id', 'kumparan.com', 'tirto.id',
+  // Global (untuk komoditas dunia: CPO, gandum, kakao, kurs)
+  'reuters.com', 'bloomberg.com', 'investing.com', 'tradingeconomics.com',
+  'nasdaq.com', 'barchart.com', 'agweb.com', 'spglobal.com', 'apnews.com',
+]
+
+function domainOf(link: string): string {
+  try { return new URL(link).hostname.replace(/^www\./, '').toLowerCase() } catch { return '' }
+}
+function isTrusted(domain: string): boolean {
+  return TRUSTED_DOMAINS.some((d) => domain === d || domain.endsWith('.' + d))
+}
+
+// Bing News RSS memberi link redirect (bing.com/news/apiclick.aspx?...&url=<asli>).
+// Kita simpan HANYA URL AKHIR artikel — bisa langsung dibuka & divalidasi pembaca.
+function finalUrl(link: string): string {
+  try {
+    const u = new URL(link)
+    if (u.hostname.endsWith('bing.com')) {
+      const real = u.searchParams.get('url')
+      if (real) return decodeURIComponent(real)
+      return '' // link bing tanpa URL asli tidak dipakai
+    }
+    return link
+  } catch { return '' }
+}
+
+async function fetchRss(url: string, max = 4): Promise<{ title: string; link: string; domain: string }[]> {
   try {
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 8000)
@@ -104,12 +143,17 @@ async function fetchRss(url: string, max = 4): Promise<{ title: string; link: st
     clearTimeout(t)
     if (!res.ok) return []
     const xml = await res.text()
-    const items: { title: string; link: string }[] = []
+    const items: { title: string; link: string; domain: string }[] = []
     const blocks = xml.match(/<item>[\s\S]*?<\/item>/g) || []
-    for (const b of blocks.slice(0, max)) {
+    for (const b of blocks) {
+      if (items.length >= max) break
       const title = decodeEntities((b.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)?.[1] || '').trim())
-      const link = (b.match(/<link>([\s\S]*?)<\/link>/)?.[1] || '').trim()
-      if (title) items.push({ title: title.slice(0, 200), link: link.slice(0, 400) })
+      const raw = decodeEntities((b.match(/<link>([\s\S]*?)<\/link>/)?.[1] || '').trim())
+      const link = finalUrl(raw)
+      const domain = domainOf(link)
+      // Saring: wajib judul + link akhir https dari sumber tepercaya.
+      if (!title || !link.startsWith('http') || !isTrusted(domain)) continue
+      items.push({ title: title.slice(0, 200), link: link.slice(0, 400), domain })
     }
     return items
   } catch { return [] }
@@ -220,30 +264,37 @@ serve(async (req) => {
       }
     } catch { /* backfill opsional */ }
 
-    // ---------- 3) BERITA (Bing News RSS) ----------
+    // ---------- 3) BERITA (Bing News RSS -> link akhir, sumber tepercaya saja) ----------
     const feeds = await Promise.all(COMMODITIES.map(async (c) => {
       const urlId = `https://www.bing.com/news/search?q=${encodeURIComponent(c.q)}&format=RSS&setmkt=id-ID&qft=interval%3d%227%22`
-      let items = await fetchRss(urlId, 4)
+      let items = await fetchRss(urlId, 5)
       if (c.qEn) {
         const urlEn = `https://www.bing.com/news/search?q=${encodeURIComponent(c.qEn)}&format=RSS&setmkt=en-US&qft=interval%3d%227%22`
-        items = items.concat(await fetchRss(urlEn, 2))
+        items = items.concat(await fetchRss(urlEn, 3))
       }
       const seen = new Set<string>()
-      items = items.filter((it) => { const k = it.title.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true })
+      items = items.filter((it) => {
+        const k = it.title.toLowerCase(); const l = it.link.toLowerCase()
+        if (seen.has(k) || seen.has(l)) return false
+        seen.add(k); seen.add(l); return true
+      })
       return { key: c.key, label: c.label, headlines: items.slice(0, 5) }
     }))
 
     // ---------- 4) SATU panggilan Gemini untuk semua komoditas ----------
     let signals: any[] = []
     if (GEMINI_API_KEY) {
-      const input = feeds.map((f) => ({ key: f.key, label: f.label, judul_berita: f.headlines.map((h) => h.title) }))
+      const input = feeds.map((f) => ({
+        key: f.key, label: f.label,
+        berita: f.headlines.map((h) => ({ judul: h.title, sumber: h.domain })),
+      }))
       const PROMPT = `Kamu analis harga komoditas untuk UMKM Indonesia.
-Berdasarkan JUDUL BERITA 7 hari terakhir di bawah, nilai arah harga tiap komoditas di pasar Indonesia untuk 30 hari ke depan.
+Berdasarkan JUDUL BERITA 7 hari terakhir di bawah (hanya dari media tepercaya yang sudah disaring), nilai arah harga tiap komoditas di pasar Indonesia untuk 30 hari ke depan.
 
-DATA JUDUL BERITA PER KOMODITAS:
+DATA JUDUL BERITA PER KOMODITAS (satu-satunya sumber informasimu):
 ${JSON.stringify(input)}
 
-Balas HANYA JSON array, satu objek per komoditas (SEMUA key harus ada):
+Balas HANYA JSON array, satu objek per komoditas (SEMUA key dari DATA harus ada, tanpa key tambahan):
 [
   {
     "key": string,
@@ -255,9 +306,11 @@ Balas HANYA JSON array, satu objek per komoditas (SEMUA key harus ada):
   }
 ]
 
-ATURAN KERAS:
-- Simpulkan HANYA dari judul berita yang diberikan. Dilarang memakai pengetahuan lain untuk mengarang kejadian.
-- Bila judul untuk suatu komoditas sedikit/tidak jelas arah: direction "stabil", confidence "rendah", est 0 sampai 0.
+ATURAN KERAS (pelanggaran = jawaban tidak dipakai):
+- Simpulkan HANYA dari judul berita di DATA. DILARANG memakai pengetahuan lain, mengarang kejadian, atau menyebut peristiwa yang tidak ada di judul.
+- Setiap butir "drivers" WAJIB merujuk isi judul yang ada di DATA (parafrase singkat) dan akhiri dengan nama sumbernya dalam kurung, contoh: "Stok beras Bulog menipis jelang paceklik (kontan.co.id)". Maksimal 3 butir. Tanpa dasar judul = jangan tulis.
+- Bila berita untuk suatu komoditas kosong/sedikit/tidak jelas arah: direction "stabil", confidence "rendah", est 0 sampai 0, drivers [].
+- confidence "tinggi" HANYA bila minimal 2 judul dari sumber berbeda searah.
 - Estimasi KONSERVATIF, kelipatan 0.5, rentang wajar (umumnya -10 sampai +10; ekstrem hanya bila berita sangat kuat).
 - Untuk key "kurs": arah "naik" artinya rupiah MELEMAH (USD/IDR naik).`
       try {
@@ -268,16 +321,30 @@ ATURAN KERAS:
             headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-              generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 8192 },
+              generationConfig: {
+                temperature: 0.2,
+                responseMimeType: 'application/json',
+                maxOutputTokens: 16384,
+                // Matikan mode "thinking" 2.5 Flash: token berpikir ikut memakan
+                // maxOutputTokens sehingga JSON bisa terpotong tanpa error.
+                thinkingConfig: { thinkingBudget: 0 },
+              },
             }),
           },
         )
         if (geminiRes.ok) {
           const data = await geminiRes.json()
+          const finish = data?.candidates?.[0]?.finishReason
           const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '[]'
-          try { signals = JSON.parse(text.match(/\[[\s\S]*\]/)?.[0] ?? '[]') } catch { signals = [] }
+          try { signals = JSON.parse(text.match(/\[[\s\S]*\]/)?.[0] ?? '[]') } catch {
+            signals = []
+            console.error(`gemini parse gagal (finish=${finish}): ${String(text).slice(0, 200)}`)
+          }
+          if (!signals.length) console.error(`gemini 0 sinyal (finish=${finish}, len=${String(text).length})`)
+        } else {
+          console.error(`gemini HTTP ${geminiRes.status}: ${(await geminiRes.text()).slice(0, 300)}`)
         }
-      } catch { signals = [] }
+      } catch (e) { signals = []; console.error(`gemini exception: ${String(e).slice(0, 200)}`) }
     }
 
     const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -301,7 +368,7 @@ ATURAN KERAS:
         est_pct_max: max,
         confidence: ['rendah', 'sedang', 'tinggi'].includes(s.confidence) ? s.confidence : 'rendah',
         drivers: Array.isArray(s.drivers) ? s.drivers.slice(0, 3).map((d: any) => String(d).slice(0, 140)) : [],
-        sources: (f?.headlines || []).map((h) => ({ title: h.title, link: h.link })),
+        sources: (f?.headlines || []).map((h) => ({ title: h.title, link: h.link, domain: h.domain })),
       }
     })
     await svc.from('macro_signals').upsert(rows, { onConflict: 'run_date,commodity_key' })
