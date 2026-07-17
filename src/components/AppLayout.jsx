@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Wallet, Upload, ScanLine, Package, Truck,
   ArrowLeftRight, TrendingDown, FileText, MessageSquare, Settings, Menu,
   Newspaper, Calculator, Plus, ClipboardList, ClipboardCheck, HandCoins,
-  Users, ScrollText, User, CalendarDays, Banknote, ListTodo,
+  Users, ScrollText, User, CalendarDays, Banknote, ListTodo, Gauge,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -42,6 +42,7 @@ const NAV = [
   { sec: 'hr', items: [
     { to: '/app/karyawan', icon: User, key: 'karyawan' },
     { to: '/app/absensi', icon: CalendarDays, key: 'absensi' },
+    { to: '/app/kpi', icon: Gauge, key: 'kpi' },
     { to: '/app/gaji', icon: Banknote, key: 'gaji' },
   ] },
   { sec: 'analisis', items: [
@@ -60,7 +61,7 @@ const NAV = [
 const TITLE_KEY = {
   '/app': 'dashboard', '/app/tugas': 'tugas', '/app/transaksi': 'transaksi', '/app/import': 'import',
   '/app/rekonsiliasi': 'rekonsiliasi', '/app/piutang': 'piutang', '/app/stok': 'stok', '/app/po': 'po', '/app/opname': 'opname', '/app/supplier': 'pemasok',
-  '/app/karyawan': 'karyawan', '/app/absensi': 'absensi', '/app/gaji': 'gaji',
+  '/app/karyawan': 'karyawan', '/app/absensi': 'absensi', '/app/kpi': 'kpi', '/app/gaji': 'gaji',
   '/app/hpp': 'hpp', '/app/radar': 'radar',
   '/app/reveal': 'reveal', '/app/laporan': 'laporan', '/app/feedback': 'feedback',
   '/app/pengguna': 'pengguna', '/app/audit': 'audit', '/app/pengaturan': 'pengaturan',

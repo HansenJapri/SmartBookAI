@@ -15,6 +15,8 @@ const TABLE_LABEL = {
   employees: 'Karyawan',
   payrolls: 'Penggajian',
   tasks: 'Tugas Operasional',
+  attendance_rules: 'Aturan Absensi',
+  kpi_bonus_rules: 'Jenjang KPI',
 }
 const ACTION_LABEL = {
   INSERT: { label: 'Tambah', cls: 'badge-green' },

@@ -34,6 +34,7 @@ const Tasks = lazy(() => import('./pages/Tasks'))
 const Employees = lazy(() => import('./pages/Employees'))
 const Attendance = lazy(() => import('./pages/Attendance'))
 const Payroll = lazy(() => import('./pages/Payroll'))
+const Kpi = lazy(() => import('./pages/Kpi'))
 
 const Loader = () => <div className="full-center"><div className="spinner" /></div>
 
@@ -85,6 +86,7 @@ export default function App() {
           <Route path="supplier" element={<Supplier />} />
           <Route path="karyawan" element={<Employees />} />
           <Route path="absensi" element={<Attendance />} />
+          <Route path="kpi" element={<Kpi />} />
           <Route path="gaji" element={<Payroll />} />
           <Route path="rekonsiliasi" element={<Reconciliation />} />
           <Route path="piutang" element={<Receivables />} />

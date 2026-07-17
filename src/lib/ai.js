@@ -40,7 +40,7 @@ async function invokeFn(name, body, fallbackErr) {
 // konteks dalam sesi; tidak disimpan di server maupun database.
 export async function askAI(message, history = []) {
   const data = await invokeFn(AI_FUNCTION, { message, history, device: deviceKind() },
-    'Asisten AI belum aktif atau gagal dihubungi. Pastikan Edge Function sudah di-deploy.')
+    'Asisten AI sedang tidak dapat dihubungi. Coba beberapa saat lagi.')
   return cleanReply(data?.reply || '')
 }
 
@@ -48,27 +48,27 @@ export async function askAI(message, history = []) {
 // pengguna WAJIB meninjau & menekan Simpan dulu).
 export async function catatAI(message) {
   return invokeFn('ai-catat', { message },
-    'Fitur catat via asisten belum aktif. Pastikan Edge Function "ai-catat" sudah di-deploy.')
+    'Fitur catat via asisten sedang tidak dapat dihubungi. Coba beberapa saat lagi, atau catat manual di menu Transaksi.')
 }
 
 // Insight harian Dashboard. force=true memaksa buat ulang (kena kuota harian).
 export async function narasiAI(force = false) {
   return invokeFn('ai-narasi', { force },
-    'Fitur insight belum aktif. Pastikan Edge Function "ai-narasi" sudah di-deploy.')
+    'Insight harian sedang tidak dapat dimuat. Coba beberapa saat lagi.')
 }
 
 // Draf komposisi biaya (BoM) untuk 1 produk — hasilnya HANYA draf,
 // dikoreksi & disimpan pengguna sendiri.
 export async function hppDraftAI({ productName, businessType, unit, sellPrice }) {
   return invokeFn('ai-hpp-draft', { productName, businessType, unit, sellPrice },
-    'Fitur draf HPP belum aktif. Pastikan Edge Function "ai-hpp-draft" sudah di-deploy.')
+    'Draf HPP sedang tidak dapat dibuat. Coba beberapa saat lagi, atau isi komposisi manual.')
 }
 
 // Memicu pipeline makro harian (berjalan sekali per hari untuk SEMUA pengguna;
 // pemanggilan berikutnya di hari yang sama langsung kembali tanpa biaya AI).
 export async function makroRefresh() {
   return invokeFn('makro-harian', {},
-    'Pipeline makro belum aktif. Pastikan Edge Function "makro-harian" sudah di-deploy.')
+    'Data harga sedang tidak dapat diperbarui. Coba beberapa saat lagi.')
 }
 
 // Mengubah File jadi base64 (tanpa prefix data URL) untuk dikirim ke AI.
@@ -91,7 +91,7 @@ export async function readReceipt(file) {
   if (error) {
     let detail = ''
     try { detail = (await error.context?.json())?.error } catch { /* abaikan */ }
-    throw new Error(detail || 'Fitur baca struk belum aktif. Pastikan Edge Function "BukuPencatatanStruk" sudah di-deploy.')
+    throw new Error(detail || 'Fitur baca struk sedang tidak dapat dihubungi. Coba beberapa saat lagi.')
   }
   if (data?.error) throw new Error(data.error)
   return data

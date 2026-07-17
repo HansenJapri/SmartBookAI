@@ -8,7 +8,7 @@ export const MODULES = [
   { key: 'operasional', label: 'Operasional', desc: 'Papan tugas harian & jadwal produksi/layanan' },
   { key: 'transaksi', label: 'Transaksi & Keuangan', desc: 'Transaksi, import, struk, rekonsiliasi, piutang & utang' },
   { key: 'produk', label: 'Gudang & Produk', desc: 'Stok, Purchase Order, opname, HPP, pemasok' },
-  { key: 'hr', label: 'HR & Karyawan', desc: 'Data karyawan, absensi & cuti, penggajian' },
+  { key: 'hr', label: 'HR & Karyawan', desc: 'Data karyawan, absensi & cuti, KPI, penggajian' },
   { key: 'analisis', label: 'Analisis & Laporan', desc: 'Radar harga, kebocoran, laporan, target' },
 ]
 

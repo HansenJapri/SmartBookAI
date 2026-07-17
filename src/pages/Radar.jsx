@@ -114,7 +114,7 @@ export default function Radar() {
     <div style={{ maxWidth: 1040 }}>
       <div className="alert alert-info" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <span>
-          <b>Radar Harga Bahan.</b> Harga resmi PIHPS Bank Indonesia + sinyal berita (Bing News), ditarik otomatis <b>setiap pukul 06.00 WIB</b>.
+          <b>Radar Harga Bahan.</b> Harga dari sumber resmi &amp; media tepercaya, diperbarui otomatis <b>setiap pagi pukul 06.00 WIB</b>.
           {runDate ? ` Data: ${fmtDate(runDate)}.` : ' Belum ada data.'}
         </span>
         <button className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
@@ -148,7 +148,7 @@ export default function Radar() {
               </ResponsiveContainer>
               <div className="sig-sources" style={{ marginTop: 4 }}>
                 <a href="https://open.er-api.com/v6/latest/USD" target="_blank" rel="noreferrer noopener">
-                  <ExternalLink size={11} /> Sumber: open.er-api.com (endpoint terbuka)
+                  <ExternalLink size={11} /> Sumber: kurs pasar (ER-API, terbuka)
                 </a>
               </div>
             </>
@@ -181,9 +181,9 @@ export default function Radar() {
       <div className="card card-pad">
         <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
           <div>
-            <h3 className="card-title">Harga Bahan Pokok Terkini & Sinyal 30 Hari</h3>
+            <h3 className="card-title">Harga Bahan Terkini & Perkiraan 30 Hari</h3>
             <div className="card-sub">
-              Harga: rata-rata nasional resmi <b>PIHPS Bank Indonesia</b> (tarikan 06.00 WIB) · Arah: sentimen berita 7 hari
+              Harga: sumber resmi (PIHPS Bank Indonesia) &amp; harga terpantau media tepercaya · Arah: berita sepekan terakhir
             </div>
           </div>
           {relevantKeys.size > 0 && (
@@ -224,36 +224,45 @@ export default function Radar() {
                     </span>
                   </div>
 
-                  {/* HARGA RESMI SAAT INI */}
-                  {headline ? (
-                    <div style={{ margin: '6px 0' }}>
-                      <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {rupiah(headline.price)} <span className="muted-sm" style={{ fontWeight: 400 }}>/{String(headline.unit).replace('Rp/', '')}</span>
-                        {delta !== null && Math.abs(delta) >= 0.05 && (
-                          <span style={{ fontSize: 12.5, fontWeight: 600, marginLeft: 8, color: delta > 0 ? 'var(--red)' : 'var(--green)' }}>
-                            {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
-                          </span>
+                  {/* HARGA TERKINI (resmi PIHPS atau terpantau media tepercaya) */}
+                  {headline ? (() => {
+                    const resmi = String(headline.source_name).includes('PIHPS')
+                    // Harga resmi: arahkan ke halaman publik PIHPS yang ramah
+                    // dibaca; harga dari media: langsung ke artikelnya.
+                    const srcHref = resmi ? 'https://www.bi.go.id/hargapangan' : headline.source_url
+                    return (
+                      <div style={{ margin: '6px 0' }}>
+                        <div style={{ fontSize: 20, fontWeight: 700 }}>
+                          {rupiah(headline.price)} <span className="muted-sm" style={{ fontWeight: 400 }}>/{String(headline.unit).replace('Rp/', '')}</span>
+                          {delta !== null && Math.abs(delta) >= 0.05 && (
+                            <span style={{ fontSize: 12.5, fontWeight: 600, marginLeft: 8, color: delta > 0 ? 'var(--red)' : 'var(--green)' }}>
+                              {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                        <div className="muted-sm">
+                          {resmi ? 'rata-rata nasional' : 'harga terpantau dari berita'}
+                          {headline.price_date ? `, ${fmtDate(headline.price_date)}` : ''}
+                        </div>
+                        {pr.variants.length > 0 && (
+                          <details className="sig-variants">
+                            <summary>{pr.variants.length} varian harga</summary>
+                            <ul>
+                              {pr.variants.map((v) => (
+                                <li key={v.variant_name}><span>{v.variant_name}</span><b>{rupiah(v.price)}</b></li>
+                              ))}
+                            </ul>
+                          </details>
                         )}
+                        <a className="sig-official" href={srcHref} target="_blank" rel="noreferrer noopener"
+                          title="Buka sumber harga ini">
+                          <BadgeCheck size={12} /> Sumber: {resmi ? 'PIHPS Bank Indonesia' : headline.source_name}
+                        </a>
                       </div>
-                      <div className="muted-sm">rata-rata nasional{headline.price_date ? `, ${fmtDate(headline.price_date)}` : ''}</div>
-                      {pr.variants.length > 0 && (
-                        <details className="sig-variants">
-                          <summary>{pr.variants.length} varian harga</summary>
-                          <ul>
-                            {pr.variants.map((v) => (
-                              <li key={v.variant_name}><span>{v.variant_name}</span><b>{rupiah(v.price)}</b></li>
-                            ))}
-                          </ul>
-                        </details>
-                      )}
-                      <a className="sig-official" href={headline.source_url} target="_blank" rel="noreferrer noopener"
-                        title="Buka endpoint data resmi (JSON) yang dipakai aplikasi ini">
-                        <BadgeCheck size={12} /> Sumber resmi: {headline.source_name} (buka endpoint)
-                      </a>
-                    </div>
-                  ) : s.commodity_key !== 'kurs' && (
+                    )
+                  })() : s.commodity_key !== 'kurs' && (
                     <div className="muted-sm" style={{ margin: '6px 0' }}>
-                      Harga resmi PIHPS belum mencakup komoditas ini — hanya sinyal berita.
+                      Harga belum tersedia dari sumber tepercaya — akan terisi otomatis begitu ada publikasi harga terbaru.
                     </div>
                   )}
 

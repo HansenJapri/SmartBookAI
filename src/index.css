@@ -1009,6 +1009,23 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .kb-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 12px; }
 .kb-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
 
+/* Absensi: segmented mode + grid karyawan x tanggal */
+.seg-btn {
+  padding: 8px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
+  color: var(--muted); background: transparent; border: none; cursor: pointer;
+}
+.seg-btn.active { background: var(--card); color: var(--ink); box-shadow: var(--shadow-sm); }
+.att-grid th.att-day { text-align: center; padding: 6px 4px; line-height: 1.15; }
+.att-grid td.att-cell { text-align: center; padding: 4px 2px; }
+.att-grid .att-today { background: var(--indigo-50); }
+.att-dot {
+  width: 30px; height: 30px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  background: transparent; border: 1px dashed var(--line); color: var(--muted);
+}
+.att-dot:disabled { opacity: 0.35; cursor: not-allowed; }
+.att-dot.badge-green, .att-dot.badge-indigo, .att-dot.badge-amber, .att-dot.badge-red { border-style: solid; border-color: transparent; }
+
 /* Grafik (Recharts) mengikuti tema gelap: grid, label sumbu, tooltip */
 [data-theme="dark"] .recharts-cartesian-grid line { stroke: rgba(255, 255, 255, 0.10); }
 [data-theme="dark"] .recharts-cartesian-axis-tick text { fill: var(--muted); }

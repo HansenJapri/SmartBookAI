@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Banknote } from 'lucide-react'
 import {
   fetchEmployees, fetchPayrolls, addPayroll, updatePayroll, deletePayroll, payPayroll,
-  fetchAttendanceRange,
+  fetchAttendanceRange, fetchAttendanceRules, fetchKpiCriteria, fetchKpiScores, fetchKpiBonusRules,
 } from '../lib/api'
 import {
   currentPeriod, periodLabel, periodRange, countHadir, buildPayrollBase, payrollTotal, PAYROLL_STATUS,
 } from '../lib/hr'
+import { attendanceAdjustments, recapAttendance, weightedTotal, applyBonusTier } from '../lib/kpi'
 import { rupiah, fmtDate } from '../lib/format'
 import { useCatalog } from '../context/CatalogContext'
 
@@ -33,27 +34,52 @@ export default function Payroll() {
   const activeEmps = useMemo(() => (employees || []).filter((e) => e.status === 'aktif'), [employees])
 
   // Buat draf untuk karyawan aktif yang belum punya baris di periode ini.
+  // Bonus/potongan awal dihitung otomatis dari aturan absensi + hasil KPI
+  // tersimpan — tetap bisa diubah manual selama masih draf.
   const generate = async () => {
     setErr(''); setMsg(''); setBusy(true)
     try {
       const { from, to } = periodRange(period)
-      const att = await fetchAttendanceRange(from, to)
+      const [att, attRules, kpiCriteria, kpiScores, kpiRules] = await Promise.all([
+        fetchAttendanceRange(from, to),
+        fetchAttendanceRules().catch(() => []),
+        fetchKpiCriteria().catch(() => []),
+        fetchKpiScores(period).catch(() => []),
+        fetchKpiBonusRules().catch(() => []),
+      ])
       const existing = new Set((rows || []).map((r) => r.employee_id))
       const created = []
       for (const emp of activeEmps) {
         if (existing.has(emp.id)) continue
         const hadir = countHadir(att, emp.id)
         const base = buildPayrollBase(emp, hadir)
+
+        // Efek aturan absensi (per hari x jumlah hari status tsb).
+        const adj = attendanceAdjustments(recapAttendance(att, emp.id), attRules)
+
+        // Efek KPI: pakai skor TERSIMPAN periode ini (dari menu KPI Karyawan).
+        const scoreByCrit = {}
+        for (const s of kpiScores) if (s.employee_id === emp.id) scoreByCrit[s.criteria_id] = Number(s.score)
+        const kpiTotal = weightedTotal(kpiCriteria.filter((c) => c.active !== false), scoreByCrit)
+        const tier = applyBonusTier(kpiRules, kpiTotal)
+
+        const bonus = adj.bonus + (tier?.bonus || 0)
+        const deduction = adj.deduction + (tier?.deduction || 0)
+        const noteParts = []
+        if (emp.salary_type === 'harian') noteParts.push(`${hadir} hari hadir x ${rupiah(emp.salary_amount)}`)
+        if (adj.detail.length) noteParts.push(adj.detail.join(', '))
+        if (tier) noteParts.push(`KPI ${kpiTotal}${tier.rule.label ? ` (${tier.rule.label})` : ''}`)
+
         const row = await addPayroll({
-          employee_id: emp.id, period, base_amount: base, bonus: 0, deduction: 0,
-          total: payrollTotal({ base_amount: base }),
-          note: emp.salary_type === 'harian' ? `${hadir} hari hadir x ${rupiah(emp.salary_amount)}` : null,
+          employee_id: emp.id, period, base_amount: base, bonus, deduction,
+          total: payrollTotal({ base_amount: base, bonus, deduction }),
+          note: noteParts.length ? noteParts.join(' · ') : null,
         })
         created.push(row)
       }
       if (created.length) {
         setRows((prev) => [...(prev || []), ...created])
-        setMsg(`${created.length} draf gaji ${periodLabel(period)} dibuat. Periksa, sesuaikan bonus/potongan, lalu bayar.`)
+        setMsg(`${created.length} draf gaji ${periodLabel(period)} dibuat — bonus/potongan awal dihitung dari aturan absensi & skor KPI, silakan sesuaikan bila perlu.`)
       } else {
         setMsg(activeEmps.length === 0
           ? 'Belum ada karyawan aktif. Tambahkan dulu di menu Data Karyawan.'

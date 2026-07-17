@@ -672,16 +672,103 @@ export async function fetchAttendanceRange(from, to) {
   return data || []
 }
 // Set status absensi karyawan pada tanggal tertentu (upsert: sekali klik ganti status).
-export async function setAttendance(employeeId, date, status) {
+export async function setAttendance(employeeId, date, status, note) {
+  const row = { user_id: await effectiveOwnerId(), employee_id: employeeId, date, status }
+  if (note !== undefined) row.note = note || null
   const { data, error } = await supabase
     .from('attendance')
+    .upsert(row, { onConflict: 'employee_id,date' })
+    .select().single()
+  if (error) throw error
+  return data
+}
+// Kosongkan absensi (salah input): hapus baris karyawan+tanggal tsb.
+export async function deleteAttendance(employeeId, date) {
+  const { error } = await supabase
+    .from('attendance').delete().eq('employee_id', employeeId).eq('date', date)
+  if (error) throw error
+}
+
+// ---------- ATURAN BONUS/POTONGAN PER STATUS ABSENSI ----------
+export async function fetchAttendanceRules() {
+  const { data, error } = await supabase.from('attendance_rules').select('*')
+  if (error) throw error
+  return data || []
+}
+export async function upsertAttendanceRule(status, patch) {
+  const { data, error } = await supabase
+    .from('attendance_rules')
     .upsert(
-      { user_id: await effectiveOwnerId(), employee_id: employeeId, date, status },
-      { onConflict: 'employee_id,date' },
+      { user_id: await effectiveOwnerId(), status, ...patch },
+      { onConflict: 'user_id,status' },
     )
     .select().single()
   if (error) throw error
   return data
+}
+
+// ---------- KPI KARYAWAN ----------
+export async function fetchKpiCriteria() {
+  const { data, error } = await supabase
+    .from('kpi_criteria').select('*').order('created_at')
+  if (error) throw error
+  return data || []
+}
+export async function addKpiCriteria(row) {
+  const { data, error } = await supabase
+    .from('kpi_criteria').insert({ ...row, user_id: await effectiveOwnerId() }).select().single()
+  if (error) throw error
+  return data
+}
+export async function updateKpiCriteria(id, patch) {
+  const { data, error } = await supabase
+    .from('kpi_criteria').update(patch).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+export async function deleteKpiCriteria(id) {
+  const { error } = await supabase.from('kpi_criteria').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function fetchKpiScores(period) {
+  const { data, error } = await supabase.from('kpi_scores').select('*').eq('period', period)
+  if (error) throw error
+  return data || []
+}
+// Simpan banyak skor sekaligus (upsert per karyawan+kriteria+periode).
+export async function saveKpiScores(rows) {
+  if (!rows?.length) return []
+  const uid = await effectiveOwnerId()
+  const { data, error } = await supabase
+    .from('kpi_scores')
+    .upsert(rows.map((r) => ({ ...r, user_id: uid })), { onConflict: 'employee_id,criteria_id,period' })
+    .select()
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchKpiBonusRules() {
+  const { data, error } = await supabase
+    .from('kpi_bonus_rules').select('*').order('min_score', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+export async function addKpiBonusRule(row) {
+  const { data, error } = await supabase
+    .from('kpi_bonus_rules').insert({ ...row, user_id: await effectiveOwnerId() }).select().single()
+  if (error) throw error
+  return data
+}
+export async function updateKpiBonusRule(id, patch) {
+  const { data, error } = await supabase
+    .from('kpi_bonus_rules').update(patch).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+export async function deleteKpiBonusRule(id) {
+  const { error } = await supabase.from('kpi_bonus_rules').delete().eq('id', id)
+  if (error) throw error
 }
 
 // Penggajian per periode 'YYYY-MM'.
@@ -940,7 +1027,7 @@ export async function fetchCommodityPrices() {
   const { data, error } = await supabase
     .from('commodity_prices').select('*')
     .order('run_date', { ascending: false })
-    .limit(80) // 2 hari x ~35 baris (kelompok + varian)
+    .limit(160) // 2-3 hari x ~50 baris (kelompok + varian + harga RAG)
   if (error) throw error
   const rows = data || []
   if (!rows.length) return { runDate: null, prices: [] }

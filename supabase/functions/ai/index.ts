@@ -90,10 +90,11 @@ Produk:
 - Pemasok: kelola data pemasok.
 Karyawan (HR):
 - Data Karyawan: daftar karyawan, gaji bulanan atau harian, status aktif.
-- Absensi & Cuti: klik status per karyawan per tanggal (Hadir/Izin/Sakit/Cuti/Alpa); rekap bulanan otomatis.
-- Penggajian: buat draf gaji per bulan (harian = tarif x hari hadir), isi bonus/potongan, tombol Bayar mencatat pengeluaran gaji otomatis.
+- Absensi & Cuti: tampilan Harian/Mingguan/Bulanan/Rentang; klik status atau sel tanggal untuk mengisi, memperbaiki, memberi catatan, atau MENGOSONGKAN salah input; ada pengaturan Aturan Bonus & Potongan per status (per hari) yang otomatis dipakai Penggajian.
+- KPI Karyawan: skor kinerja per periode — otomatis dari kehadiran & papan tugas, plus kriteria manual berbobot yang bisa diatur sendiri; jenjang skor menentukan usulan bonus/potongan gaji.
+- Penggajian: buat draf gaji per bulan (harian = tarif x hari hadir); bonus/potongan awal terisi otomatis dari aturan absensi & skor KPI, tetap bisa diubah manual; tombol Bayar mencatat pengeluaran gaji otomatis.
 Analisis:
-- Radar Harga: harga resmi bahan pokok (PIHPS Bank Indonesia), sinyal arah harga dari berita ekonomi (diperbarui harian jam 6 pagi), kurs USD/IDR, dan info inflasi.
+- Radar Harga: harga bahan terkini dari sumber resmi (PIHPS Bank Indonesia) & harga terpantau media tepercaya dengan link sumbernya, perkiraan arah 30 hari dari berita, kurs USD/IDR, dan info inflasi; diperbarui otomatis tiap pagi.
 - Reveal Kebocoran: melihat biaya dan potongan marketplace.
 - Laporan: unduh laporan laba/rugi (PDF dan Excel) serta rekap pajak.
 Lainnya:
@@ -154,10 +155,17 @@ ALUR UMUM (ikuti persis, sebutkan langkah bernomor):
 - Stock opname:
 1. Buka menu Stock Opname, buat draf, isi hasil hitung fisik tiap produk.
 2. Tekan Posting — stok sistem disamakan dengan hasil hitung.
+- Memperbaiki absensi yang salah klik:
+1. Buka menu Absensi & Cuti, cari karyawan dan tanggalnya (pakai tampilan Harian atau Bulanan).
+2. Klik status lain untuk mengganti, atau klik ikon pensil/sel tanggal lalu tekan Kosongkan untuk menghapus.
+- Menilai KPI dan menentukan bonus/potongan:
+1. Buka menu KPI Karyawan, pilih periode bulan.
+2. Skor Kehadiran dan Tugas terisi otomatis; isi kriteria Manual bila ada.
+3. Atur Jenjang Bonus & Potongan KPI di bawah, lalu tekan Simpan Skor Periode Ini.
 - Menggaji karyawan:
 1. Pastikan karyawan terdaftar di Data Karyawan dan absensinya terisi di Absensi & Cuti.
-2. Buka menu Penggajian, pilih bulan, tekan Buat Draf Gaji.
-3. Isi bonus atau potongan bila ada, lalu tekan Bayar — pengeluaran gaji tercatat otomatis.
+2. Buka menu Penggajian, pilih bulan, tekan Buat Draf Gaji — bonus/potongan awal terisi otomatis dari aturan absensi & skor KPI.
+3. Sesuaikan angkanya bila perlu, lalu tekan Bayar — pengeluaran gaji tercatat otomatis.
 - Mengelola tugas harian tim:
 1. Buka menu Papan Tugas.
 2. Tekan + Tambah Tugas, isi judul, prioritas, jadwal, dan petugas.
