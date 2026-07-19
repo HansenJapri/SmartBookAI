@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Minus, RefreshCw, ExternalLink, BadgeCheck } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
@@ -6,9 +6,10 @@ import {
   fetchMacroSignals, fetchCommodityPrices, fetchExchangeRates,
   fetchMacroConfigLatest, fetchIngredients,
 } from '../lib/api'
-import { makroRefresh } from '../lib/ai'
+import { makroRefresh, hargaDaerah } from '../lib/ai'
 import { rupiah, fmtDate } from '../lib/format'
 import { COMMODITIES } from '../lib/hpp'
+import { PROVINCES, PROVINCE_NAME } from '../lib/provinces'
 import AIDisclaimer from '../components/AIDisclaimer'
 
 const DIR = {
@@ -37,6 +38,30 @@ export default function Radar() {
   const [tried, setTried] = useState(false)
   const [onlyMine, setOnlyMine] = useState(false)
   const [err, setErr] = useState('')
+  const [provId, setProvId] = useState(0)          // 0 = nasional
+  const [provPrices, setProvPrices] = useState([]) // harga PIHPS provinsi terpilih
+  const [provLoading, setProvLoading] = useState(false)
+  const provReq = useRef(0) // penjaga urutan: hanya respons terakhir yang dipakai
+
+  // Ganti provinsi: ambil harga resmi PIHPS provinsi tsb (server meng-cache
+  // per provinsi per hari). Bahan non-PIHPS tetap memakai harga nasional.
+  const changeProvince = async (id) => {
+    const token = ++provReq.current
+    setProvId(id)
+    setProvPrices([])
+    if (id === 0) return
+    setProvLoading(true); setErr('')
+    try {
+      const res = await hargaDaerah(id)
+      if (token !== provReq.current) return // pengguna sudah pindah provinsi lain
+      setProvPrices(res?.prices || [])
+      if (!(res?.prices || []).length) setErr(`Harga untuk ${PROVINCE_NAME[id]} belum tersedia hari ini — menampilkan rata-rata nasional.`)
+    } catch (e) {
+      if (token === provReq.current) setErr(e.message)
+    } finally {
+      if (token === provReq.current) setProvLoading(false)
+    }
+  }
 
   const load = async () => {
     const [sig, prc, rts, cfg, ing] = await Promise.allSettled([
@@ -88,15 +113,21 @@ export default function Radar() {
   }, [signals, onlyMine, relevantKeys])
 
   // Harga resmi per kelompok: baris is_group = angka utama; sisanya varian.
+  // Saat provinsi dipilih, baris PIHPS provinsi menggantikan baris nasional
+  // untuk komoditas yang tercakup; sisanya tetap nasional (berlabel).
   const pricesByKey = useMemo(() => {
+    const provKeys = new Set(provPrices.map((p) => p.commodity_key))
+    const effective = provId !== 0 && provPrices.length
+      ? [...provPrices, ...prices.filter((p) => !provKeys.has(p.commodity_key))]
+      : prices
     const map = {}
-    for (const p of prices) {
+    for (const p of effective) {
       if (!map[p.commodity_key]) map[p.commodity_key] = { group: null, variants: [] }
       if (p.is_group) map[p.commodity_key].group = p
       else map[p.commodity_key].variants.push(p)
     }
     return map
-  }, [prices])
+  }, [prices, provPrices, provId])
 
   const kurs = useMemo(() => {
     if (!rates.length) return null
@@ -137,6 +168,10 @@ export default function Radar() {
                   {kurs.pct30 > 0 ? '+' : ''}{kurs.pct30.toFixed(1)}% / 30 hari {kurs.pct30 > 0 ? '(rupiah melemah)' : '(rupiah menguat)'}
                 </span>
               </div>
+              <div className="muted-sm">
+                Kurs acuan gabungan beberapa sumber pasar, data {fmtDate(kurs.last.rate_date)}. Angka di situs lain bisa
+                sedikit berbeda karena beda jam pengambilan.
+              </div>
               <ResponsiveContainer width="100%" height={140}>
                 <AreaChart data={kurs.chart} margin={{ left: -14, right: 6, top: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" vertical={false} />
@@ -158,7 +193,7 @@ export default function Radar() {
         {/* INFLASI */}
         <div className="card card-pad">
           <h3 className="card-title">Inflasi (BPS)</h3>
-          <div className="card-sub">Diisi manual tiap bulan dari rilis resmi BPS — stabil & akurat</div>
+          <div className="card-sub">Data resmi BPS terbaru, diambil otomatis — bulan datanya tertera di bawah</div>
           {!config ? (
             <p className="muted-sm">Data inflasi bulan ini belum diisi admin. Setelah diisi, kenaikan biaya Anda akan dibandingkan dengan inflasi pangan nasional di sini.</p>
           ) : (
@@ -186,12 +221,23 @@ export default function Radar() {
               Harga: sumber resmi (PIHPS Bank Indonesia) &amp; harga terpantau media tepercaya · Arah: berita sepekan terakhir
             </div>
           </div>
-          {relevantKeys.size > 0 && (
-            <label className="muted-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-              <input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} />
-              Hanya bahan usaha saya ({relevantKeys.size})
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <label className="muted-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              Provinsi:
+              <select className="input" style={{ maxWidth: 210 }} value={provId}
+                disabled={provLoading}
+                onChange={(e) => changeProvince(Number(e.target.value))}>
+                {PROVINCES.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              {provLoading && <span className="spinner" style={{ width: 16, height: 16 }} />}
             </label>
-          )}
+            {relevantKeys.size > 0 && (
+              <label className="muted-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} />
+                Hanya bahan usaha saya ({relevantKeys.size})
+              </label>
+            )}
+          </div>
         </div>
         <AIDisclaimer text="Sinyal arah dibuat AI dari berita — bisa keliru. Harga PIHPS adalah rata-rata nasional; harga di pasar Anda bisa berbeda." />
 
@@ -241,7 +287,9 @@ export default function Radar() {
                           )}
                         </div>
                         <div className="muted-sm">
-                          {resmi ? 'rata-rata nasional' : 'harga terpantau dari berita'}
+                          {resmi
+                            ? (Number(headline.province_id) > 0 ? `rata-rata ${PROVINCE_NAME[headline.province_id] || 'provinsi'}` : 'rata-rata nasional')
+                            : 'harga terpantau dari berita'}
                           {headline.price_date ? `, ${fmtDate(headline.price_date)}` : ''}
                         </div>
                         {pr.variants.length > 0 && (

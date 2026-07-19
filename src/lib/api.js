@@ -815,6 +815,30 @@ export async function payPayroll(p, { employeeName = '', category = 'Gaji Karyaw
   return { payroll: data, txn }
 }
 
+// ---------- PENGINGAT (notifikasi Dashboard sampai ditutup pengguna) ----------
+export async function fetchReminders() {
+  const { data, error } = await supabase
+    .from('reminders').select('*').eq('status', 'aktif').order('remind_at')
+  if (error) throw error
+  return data || []
+}
+export async function addReminder(row) {
+  const { data, error } = await supabase
+    .from('reminders').insert({ ...row, user_id: await effectiveOwnerId() }).select().single()
+  if (error) throw error
+  return data
+}
+export async function updateReminder(id, patch) {
+  const { data, error } = await supabase
+    .from('reminders').update(patch).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+export async function deleteReminder(id) {
+  const { error } = await supabase.from('reminders').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ---------- SATUAN PRODUK (CRUD) ----------
 export async function fetchUnits() {
   const { data, error } = await supabase.from('units').select('*').order('name')
@@ -1026,6 +1050,7 @@ export async function fetchMacroSignals() {
 export async function fetchCommodityPrices() {
   const { data, error } = await supabase
     .from('commodity_prices').select('*')
+    .eq('province_id', 0) // tampilan bawaan = rata-rata nasional
     .order('run_date', { ascending: false })
     .limit(160) // 2-3 hari x ~50 baris (kelompok + varian + harga RAG)
   if (error) throw error

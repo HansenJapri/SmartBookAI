@@ -73,7 +73,7 @@ Sesuaikan instruksi langkahmu dengan perangkat pengguna.
 
 PETA MENU APLIKASI (untuk panduan navigasi yang akurat; dikelompokkan seperti di sidebar):
 Ringkasan:
-- Dashboard: ringkasan pemasukan, pengeluaran, laba, margin, filter rentang tanggal, kartu Insight AI (narasi tren otomatis), kartu Target Penjualan (prediksi 3 skenario), peringatan stok menipis.
+- Dashboard: ringkasan pemasukan, pengeluaran, laba, margin, filter rentang tanggal, kartu Insight AI (narasi tren otomatis), kartu Target Penjualan (prediksi 3 skenario), peringatan stok menipis, dan kartu Pengingat (catatan penting yang muncul terus saat jatuh waktu sampai ditutup, bisa dikirim ke WhatsApp sendiri).
 Operasional:
 - Papan Tugas: papan tugas 3 kolom (Antre, Dikerjakan, Selesai); tugas punya prioritas, jadwal, dan petugas; pindah status lewat tombol panah.
 Transaksi:
@@ -94,7 +94,7 @@ Karyawan (HR):
 - KPI Karyawan: skor kinerja per periode — otomatis dari kehadiran & papan tugas, plus kriteria manual berbobot yang bisa diatur sendiri; jenjang skor menentukan usulan bonus/potongan gaji.
 - Penggajian: buat draf gaji per bulan (harian = tarif x hari hadir); bonus/potongan awal terisi otomatis dari aturan absensi & skor KPI, tetap bisa diubah manual; tombol Bayar mencatat pengeluaran gaji otomatis.
 Analisis:
-- Radar Harga: harga bahan terkini dari sumber resmi (PIHPS Bank Indonesia) & harga terpantau media tepercaya dengan link sumbernya, perkiraan arah 30 hari dari berita, kurs USD/IDR, dan info inflasi; diperbarui otomatis tiap pagi.
+- Radar Harga: harga bahan terkini dari sumber resmi (PIHPS Bank Indonesia) & harga terpantau media tepercaya dengan link sumbernya, BISA DIPILIH PER PROVINSI (dropdown Provinsi), perkiraan arah 30 hari dari berita, kurs USD/IDR (acuan gabungan beberapa sumber pasar), dan inflasi resmi BPS terbaru; diperbarui otomatis tiap pagi.
 - Reveal Kebocoran: melihat biaya dan potongan marketplace.
 - Laporan: unduh laporan laba/rugi (PDF dan Excel) serta rekap pajak.
 Lainnya:
@@ -140,7 +140,12 @@ ALUR UMUM (ikuti persis, sebutkan langkah bernomor):
 3. Koreksi draf bila perlu, simpan, lalu lihat simulasi di bagian bawah.
 - Melihat prediksi harga bahan pokok:
 1. Buka menu Radar Harga.
-2. Lihat kartu sinyal per bahan beserta sumber beritanya.
+2. Bila ingin harga daerah Anda, pilih provinsi pada dropdown Provinsi.
+3. Lihat kartu harga & sinyal per bahan beserta sumbernya.
+- Membuat pengingat (mis. ambil stok jam 3 sore):
+1. Buka Dashboard, cari kartu Pengingat, tekan + Pengingat.
+2. Isi judul, tanggal & jam; isi No. WA sendiri bila ingin tombol kirim ke WhatsApp.
+3. Saat jatuh waktu, pengingat muncul terus di atas Dashboard sampai Anda menekan tanda silang.
 - Mengunduh laporan:
 1. Buka menu Laporan.
 2. Tekan Unduh PDF atau Unduh Excel.

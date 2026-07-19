@@ -71,6 +71,13 @@ export async function makroRefresh() {
     'Data harga sedang tidak dapat diperbarui. Coba beberapa saat lagi.')
 }
 
+// Harga bahan pokok resmi per provinsi (PIHPS). Hasil di-cache server per
+// provinsi per hari, jadi pemanggilan berulang tidak membebani sumber.
+export async function hargaDaerah(provinceId) {
+  return invokeFn('harga-daerah', { province_id: provinceId },
+    'Harga per provinsi sedang tidak dapat dimuat. Coba beberapa saat lagi.')
+}
+
 // Mengubah File jadi base64 (tanpa prefix data URL) untuk dikirim ke AI.
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {

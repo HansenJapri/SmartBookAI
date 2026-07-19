@@ -14,6 +14,7 @@ import { summarize, trendDaily, channelMix, expenseByCategory, findDuplicateGrou
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
 import AIDisclaimer from '../components/AIDisclaimer'
+import Reminders from '../components/Reminders'
 
 const PRESET_KEYS = ['today', 'week', 'month', 'quarter', 'semester', 'year', 'all', 'custom']
 
@@ -90,6 +91,8 @@ export default function Dashboard() {
 
   return (
     <>
+      <Reminders />
+
       {lowStock.length > 0 && (
         <div className="alert alert-err" style={{ marginBottom: 16 }}>
           <b>{d.lowStock1}</b> {lowStock.length} {d.lowStock2a}

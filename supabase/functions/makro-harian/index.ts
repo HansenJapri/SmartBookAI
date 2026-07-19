@@ -381,6 +381,44 @@ serve(async (req) => {
     try { const b = await req.json(); debug = b?.debug === true } catch { /* body kosong */ }
     const diag: any = { excerpts: {}, extract: null, rejects: [] }
 
+    // ---------- 0) KURS USD/IDR — DIPERBARUI SETIAP PEMANGGILAN ----------
+    // Median dari beberapa sumber pasar terbuka agar tidak bergantung pada
+    // satu snapshot; tanggal data tampil di UI. (Selisih kecil antar situs
+    // kurs adalah normal — beda jam pengambilan & jenis kurs.)
+    let kursNote = ''
+    try {
+      const vals: number[] = []
+      const srcs: string[] = []
+      await Promise.all([
+        (async () => {
+          try {
+            const j = await (await fetch('https://open.er-api.com/v6/latest/USD')).json()
+            const v = Number(j?.rates?.IDR); if (v > 0) { vals.push(v); srcs.push('er-api') }
+          } catch { /* satu sumber gagal tak apa */ }
+        })(),
+        (async () => {
+          try {
+            const j = await (await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json')).json()
+            const v = Number(j?.usd?.idr); if (v > 0) { vals.push(v); srcs.push('currency-api') }
+          } catch { /* lanjut */ }
+        })(),
+        (async () => {
+          try {
+            const j = await (await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=IDR')).json()
+            const v = Number(j?.rates?.IDR); if (v > 0) { vals.push(v); srcs.push('ECB') }
+          } catch { /* lanjut */ }
+        })(),
+      ])
+      if (vals.length) {
+        vals.sort((a, b) => a - b)
+        const mid = vals.length % 2 ? vals[(vals.length - 1) / 2] : (vals[vals.length / 2 - 1] + vals[vals.length / 2]) / 2
+        await svc.from('exchange_rates').upsert({
+          rate_date: todayWIB(), usd_idr: Math.round(mid * 100) / 100, source: `median(${srcs.join(',')})`,
+        })
+        kursNote = `USD/IDR: ${Math.round(mid)}`
+      }
+    } catch { /* kurs gagal tidak menghentikan pipeline */ }
+
     // ---------- LOCK: hanya satu proses per hari-data ----------
     const { error: lockErr } = await svc.from('macro_runs').insert({ run_date: runKey, status: 'running' })
     if (lockErr) {
@@ -396,21 +434,11 @@ serve(async (req) => {
     if (pihps.rows.length) {
       await svc.from('commodity_prices').upsert(
         pihps.rows.map((r) => ({ ...r, run_date: runKey })),
-        { onConflict: 'run_date,variant_name' },
+        { onConflict: 'run_date,variant_name,province_id' },
       )
     }
 
-    // ---------- 2) KURS USD/IDR ----------
-    let kursNote = ''
-    try {
-      const r = await fetch('https://open.er-api.com/v6/latest/USD')
-      const j = await r.json()
-      const idr = Number(j?.rates?.IDR)
-      if (idr > 0) {
-        await svc.from('exchange_rates').upsert({ rate_date: todayWIB(), usd_idr: idr, source: 'open.er-api.com' })
-        kursNote = `USD/IDR: ${Math.round(idr)}`
-      }
-    } catch { /* lanjut */ }
+    // ---------- 2) BACKFILL HISTORI KURS (sekali saja saat data < 30 hari) ----------
     try {
       const { count } = await svc.from('exchange_rates').select('rate_date', { count: 'exact', head: true })
       if ((count || 0) < 30) {
@@ -426,6 +454,33 @@ serve(async (req) => {
         }
       }
     } catch { /* backfill opsional */ }
+
+    // ---------- 2b) INFLASI RESMI (BPS, via halaman statistik Bank Indonesia) ----------
+    // Tabel di halaman ini adalah data inflasi IHK resmi BPS; baris teratas =
+    // bulan terbaru. Disimpan beserta label bulan datanya.
+    try {
+      const r = await fetch('https://www.bi.go.id/id/statistik/indikator/data-inflasi.aspx', {
+        headers: { 'User-Agent': UA },
+      })
+      if (r.ok) {
+        const html = (await r.text()).replace(/\s+/g, ' ')
+        const m = html.match(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s*(20\d\d)\s*<\/td>\s*<td[^>]*>\s*([\d.,]+)\s*%/)
+        if (m) {
+          const MONTH_NO: Record<string, string> = {
+            Januari: '01', Februari: '02', Maret: '03', April: '04', Mei: '05', Juni: '06',
+            Juli: '07', Agustus: '08', September: '09', Oktober: '10', November: '11', Desember: '12',
+          }
+          const yoy = Number(m[3].replace(',', '.'))
+          if (Number.isFinite(yoy) && yoy > -5 && yoy < 50) {
+            await svc.from('macro_config').upsert({
+              month: `${m[2]}-${MONTH_NO[m[1]]}`,
+              inflation_yoy: yoy,
+              note: `Inflasi umum (YoY) data ${m[1]} ${m[2]} — sumber resmi BPS (via bi.go.id), diperbarui otomatis.`,
+            }, { onConflict: 'month' })
+          }
+        }
+      }
+    } catch { /* inflasi opsional */ }
 
     // ---------- 3) BERITA (Bing News RSS -> link akhir, sumber tepercaya saja) ----------
     const feeds = await Promise.all(COMMODITIES.map(async (c) => {
@@ -450,7 +505,8 @@ serve(async (req) => {
     try {
       const since = new Date(Date.parse(runKey) - 60 * 86400000).toISOString().slice(0, 10)
       const { data: prevRows } = await svc.from('commodity_prices').select('*')
-        .in('commodity_key', RAG_KEYS).gte('run_date', since).lt('run_date', runKey)
+        .in('commodity_key', RAG_KEYS).eq('province_id', 0)
+        .gte('run_date', since).lt('run_date', runKey)
         .order('run_date', { ascending: false }).limit(200)
       for (const r of prevRows || []) if (!prevByKey[r.commodity_key]) prevByKey[r.commodity_key] = r
     } catch { /* tanpa histori tetap jalan */ }
@@ -577,7 +633,7 @@ Balas HANYA JSON array: [ { "key": string, "sah": true | false } ]`
         })
       }
       if (ragRows.length) {
-        await svc.from('commodity_prices').upsert(ragRows, { onConflict: 'run_date,variant_name' })
+        await svc.from('commodity_prices').upsert(ragRows, { onConflict: 'run_date,variant_name,province_id' })
         ragSaved = ragRows.length
       }
     }
@@ -586,7 +642,7 @@ Balas HANYA JSON array: [ { "key": string, "sah": true | false } ]`
     // dengan harga TERSUMBER terakhir (tanggal & link sumber aslinya dibawa).
     try {
       const { data: todayRows } = await svc.from('commodity_prices')
-        .select('commodity_key').eq('run_date', runKey).in('commodity_key', RAG_KEYS)
+        .select('commodity_key').eq('run_date', runKey).eq('province_id', 0).in('commodity_key', RAG_KEYS)
       const have = new Set((todayRows || []).map((r: any) => r.commodity_key))
       const carries = RAG_KEYS
         .filter((k) => !have.has(k) && prevByKey[k])
@@ -594,7 +650,7 @@ Balas HANYA JSON array: [ { "key": string, "sah": true | false } ]`
           const { id: _id, created_at: _ca, ...rest } = prevByKey[k]
           return { ...rest, run_date: runKey }
         })
-      if (carries.length) await svc.from('commodity_prices').upsert(carries, { onConflict: 'run_date,variant_name' })
+      if (carries.length) await svc.from('commodity_prices').upsert(carries, { onConflict: 'run_date,variant_name,province_id' })
     } catch { /* opsional */ }
 
     // ---------- 4) SATU panggilan Gemini untuk semua komoditas ----------
