@@ -17,7 +17,21 @@ export default defineConfig({
     headless: true,
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Login sekali, sesinya dipakai ulang oleh proyek ter-login di bawah.
+    { name: 'setup', testMatch: /auth\.setup\.js/ },
+    // Test publik: TANPA sesi (menguji guard rute saat belum masuk).
+    {
+      name: 'chromium',
+      testIgnore: /authenticated\.spec\.js/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // Test ter-login: memakai sesi hasil setup.
+    {
+      name: 'chromium-auth',
+      testMatch: /authenticated\.spec\.js/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
+    },
   ],
   webServer: {
     command: 'npm run build && npm run preview -- --port 5173 --strictPort',

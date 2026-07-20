@@ -11,3 +11,5 @@ supabase/.env
 test-results
 playwright-report
 /playwright/.cache
+# Sesi login hasil auth.setup.js — berisi token asli, JANGAN di-commit
+e2e/.auth
