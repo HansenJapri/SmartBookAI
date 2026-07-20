@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Banknote } from 'lucide-react'
+import Modal from '../components/Modal'
 import {
   fetchEmployees, fetchPayrolls, addPayroll, updatePayroll, deletePayroll, payPayroll,
   fetchAttendanceRange, fetchAttendanceRules, fetchKpiCriteria, fetchKpiScores, fetchKpiBonusRules,
@@ -216,11 +217,10 @@ export default function Payroll() {
 
       {/* Konfirmasi bayar (dialog berujung tuntas — HCI rule 4) */}
       {payTarget && (
-        <div className="modal-backdrop" onClick={() => setPayTarget(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setPayTarget(null)} labelledBy="payModalTitle">
             <div className="modal-head">
-              <h3>Bayar Gaji {empOf(payTarget.employee_id)?.name}</h3>
-              <button type="button" className="icon-btn" onClick={() => setPayTarget(null)}>✕</button>
+              <h3 id="payModalTitle">Bayar Gaji {empOf(payTarget.employee_id)?.name}</h3>
+              <button type="button" className="icon-btn" onClick={() => setPayTarget(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -247,8 +247,7 @@ export default function Payroll() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )

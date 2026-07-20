@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Users, Trash2, Pencil } from 'lucide-react'
+import Modal from '../components/Modal'
 import { fetchStaff, addStaff, updateStaff, deleteStaff, fetchMyMembership } from '../lib/api'
 import { MODULES, STAFF_STATUS } from '../lib/rbac'
 import { fmtDate } from '../lib/format'
@@ -151,11 +152,10 @@ export default function Team() {
       )}
 
       {form && (
-        <div className="modal-backdrop" onClick={() => setForm(null)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+        <Modal onClose={() => setForm(null)} onSubmit={save} labelledBy="teamModalTitle">
             <div className="modal-head">
-              <h3>{form.id ? 'Ubah Hak Akses' : 'Undang Staf'}</h3>
-              <button type="button" className="icon-btn" onClick={() => setForm(null)}>✕</button>
+              <h3 id="teamModalTitle">{form.id ? 'Ubah Hak Akses' : 'Undang Staf'}</h3>
+              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -183,8 +183,7 @@ export default function Team() {
                 <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Menyimpan...' : form.id ? 'Simpan' : 'Undang'}</button>
               </div>
             </div>
-          </form>
-        </div>
+        </Modal>
       )}
     </>
   )

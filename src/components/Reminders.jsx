@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Bell, Plus } from 'lucide-react'
+import Modal from './Modal'
 import { fetchReminders, addReminder, updateReminder, deleteReminder } from '../lib/api'
 import { normalizePhone } from '../lib/aging'
 import { fmtDateTime } from '../lib/format'
@@ -122,11 +123,10 @@ export default function Reminders() {
 
       {/* MODAL TAMBAH PENGINGAT */}
       {form && (
-        <div className="modal-backdrop" onClick={() => setForm(null)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+        <Modal onClose={() => setForm(null)} onSubmit={save} labelledBy="reminderModalTitle">
             <div className="modal-head">
-              <h3>Tambah Pengingat</h3>
-              <button type="button" className="icon-btn" onClick={() => setForm(null)}>✕</button>
+              <h3 id="reminderModalTitle">Tambah Pengingat</h3>
+              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -161,8 +161,7 @@ export default function Reminders() {
                 <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan'}</button>
               </div>
             </div>
-          </form>
-        </div>
+        </Modal>
       )}
     </>
   )

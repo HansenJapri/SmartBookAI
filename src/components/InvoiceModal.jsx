@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import Modal from './Modal'
 import {
   invoiceNo, invoicePdfBlob, invoicePngBlob, downloadBlob,
   shareInvoiceFile, invoiceCaption, whatsappLink, telegramLink, printNota,
@@ -35,10 +36,9 @@ export default function InvoiceModal({ tx, profile, onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} labelledBy="invModalTitle">
         <div className="modal-head">
-          <h3>Invoice {no}</h3>
+          <h3 id="invModalTitle">Invoice {no}</h3>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Tutup"><X size={18} /></button>
         </div>
         <div className="modal-body">
@@ -75,7 +75,6 @@ export default function InvoiceModal({ tx, profile, onClose }) {
             Tips: untuk mengirim file invoice (bukan hanya teks), pakai tombol <b>Bagikan</b> di atas, lalu pilih aplikasi tujuan.
           </p>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

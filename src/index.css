@@ -81,6 +81,18 @@ h1, h2, h3, h4 { font-family: var(--font-head); line-height: 1.15; letter-spacin
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* Skip-link: tersembunyi sampai difokus lewat Tab (pengguna keyboard),
+   lalu muncul di kiri-atas untuk melompat langsung ke konten utama. */
+.skip-link {
+  position: fixed; top: 8px; left: 8px; z-index: 200;
+  transform: translateY(-140%);
+  background: var(--primary); color: #fff; font-weight: 600; font-size: 14px;
+  padding: 10px 16px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+  transition: transform .15s ease;
+}
+.skip-link:focus { transform: translateY(0); outline: 2px solid var(--accent); outline-offset: 2px; }
+.page:focus { outline: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

@@ -102,6 +102,7 @@ export default function AppLayout() {
 
   return (
     <div className="app-shell">
+      <a href="#main-content" className="skip-link">Lewati ke konten utama</a>
       <DisclaimerGate />
       <AppLock />
       <Chatbot />
@@ -143,11 +144,11 @@ export default function AppLayout() {
             <LangToggle />
           </div>
         </header>
-        <div className="page">
+        <main id="main-content" className="page" tabIndex={-1}>
           <CatalogProvider>
             <Outlet />
           </CatalogProvider>
-        </div>
+        </main>
       </div>
 
       {/* Navigasi bawah — hanya tampil di layar sempit (mobile-first). */}

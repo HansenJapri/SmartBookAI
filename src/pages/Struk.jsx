@@ -7,6 +7,7 @@ import { readReceipt } from '../lib/ai'
 import { compressImage } from '../lib/imageCompress'
 import { toDateInput, rupiah } from '../lib/format'
 import AIDisclaimer from '../components/AIDisclaimer'
+import Modal from '../components/Modal'
 
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.heic,.pdf,image/*,application/pdf'
 const blankItem = () => ({ name: '', qty: 1, unit: 'pcs', total: '', productId: '', conv: 1 })
@@ -289,9 +290,8 @@ export default function Struk() {
 
       {/* Konfirmasi */}
       {confirming && (
-        <div className="modal-backdrop" onClick={() => setConfirming(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head"><h3>Konfirmasi</h3><button className="icon-btn" onClick={() => setConfirming(false)} aria-label="Tutup"><X size={16} /></button></div>
+        <Modal onClose={() => setConfirming(false)} labelledBy="strukConfirmModalTitle">
+            <div className="modal-head"><h3 id="strukConfirmModalTitle">Konfirmasi</h3><button className="icon-btn" onClick={() => setConfirming(false)} aria-label="Tutup"><X size={16} /></button></div>
             <div className="modal-body">
               {mismatchCount > 0 ? (
                 <div className="alert alert-err">Masih ada {mismatchCount} item yang konversi satuannya kosong. Tutup, lalu isi dulu.</div>
@@ -319,8 +319,7 @@ export default function Struk() {
                 <button className="btn btn-primary btn-block" disabled={mismatchCount > 0 || busy} onClick={doSave}>Ya, simpan</button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

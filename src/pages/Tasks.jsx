@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ListTodo, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import Modal from '../components/Modal'
 import { fetchTasks, addTask, updateTask, deleteTask, fetchEmployees } from '../lib/api'
 import {
   TASK_STATUSES, TASK_PRIORITIES, priorityOf, nextStatus, prevStatus, isTaskOverdue, sortTasks,
@@ -130,22 +131,22 @@ export default function Tasks() {
                     </div>
                     <div className="kb-actions">
                       <button className="icon-btn" disabled={!back} title={back ? `Kembalikan ke ${back}` : ''}
-                        aria-label="Mundurkan status" onClick={() => back && move(t, back)}>
+                        aria-label={back ? `Kembalikan tugas "${t.title}" ke ${back}` : 'Tidak bisa dimundurkan'} onClick={() => back && move(t, back)}>
                         <ChevronLeft size={15} />
                       </button>
                       <button className="icon-btn" disabled={!fwd} title={fwd ? `Pindah ke ${fwd}` : ''}
-                        aria-label="Majukan status" onClick={() => fwd && move(t, fwd)}>
+                        aria-label={fwd ? `Pindahkan tugas "${t.title}" ke ${fwd}` : 'Tidak bisa dimajukan'} onClick={() => fwd && move(t, fwd)}>
                         <ChevronRight size={15} />
                       </button>
                       <div style={{ flex: 1 }} />
-                      <button className="icon-btn" title="Ubah" aria-label="Ubah" onClick={() => {
+                      <button className="icon-btn" title="Ubah" aria-label={`Ubah tugas "${t.title}"`} onClick={() => {
                         setErr('')
                         setForm({
                           id: t.id, title: t.title, note: t.note || '', priority: t.priority,
                           due_date: t.due_date || '', assignee_id: t.assignee_id || '',
                         })
                       }}><Pencil size={14} /></button>
-                      <button className="icon-btn danger" title="Hapus" aria-label="Hapus" onClick={() => remove(t)}>
+                      <button className="icon-btn danger" title="Hapus" aria-label={`Hapus tugas "${t.title}"`} onClick={() => remove(t)}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -158,11 +159,10 @@ export default function Tasks() {
       )}
 
       {form && (
-        <div className="modal-backdrop" onClick={() => setForm(null)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+        <Modal onClose={() => setForm(null)} onSubmit={save} labelledBy="taskModalTitle">
             <div className="modal-head">
-              <h3>{form.id ? 'Ubah Tugas' : 'Tambah Tugas'}</h3>
-              <button type="button" className="icon-btn" onClick={() => setForm(null)}>✕</button>
+              <h3 id="taskModalTitle">{form.id ? 'Ubah Tugas' : 'Tambah Tugas'}</h3>
+              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -200,8 +200,7 @@ export default function Tasks() {
                 <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan'}</button>
               </div>
             </div>
-          </form>
-        </div>
+        </Modal>
       )}
     </>
   )

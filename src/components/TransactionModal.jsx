@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Minus, Trash2, PackagePlus } from 'lucide-react'
+import Modal from './Modal'
 import { categorize } from '../lib/categorize'
 import { toDateInput, rupiah } from '../lib/format'
 import { fetchProducts } from '../lib/api'
@@ -161,11 +162,10 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <form className="modal modal-lg" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+    <Modal onClose={onClose} onSubmit={submit} className="modal-lg" labelledBy="txModalTitle">
         <div className="modal-head">
-          <h3>{editing ? 'Edit Transaksi' : 'Tambah Transaksi'}</h3>
-          <button type="button" className="icon-btn" onClick={onClose}>✕</button>
+          <h3 id="txModalTitle">{editing ? 'Edit Transaksi' : 'Tambah Transaksi'}</h3>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Tutup">✕</button>
         </div>
         <div className="modal-body">
           {err && <div className="alert alert-err">{err}</div>}
@@ -325,7 +325,6 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
             </button>
           </div>
         </div>
-      </form>
-    </div>
+    </Modal>
   )
 }

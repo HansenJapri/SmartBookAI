@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ClipboardCheck, ArrowLeft, Trash2 } from 'lucide-react'
+import Modal from '../components/Modal'
 import {
   fetchOpnames, addOpname, updateOpname, deleteOpname, postOpname, fetchProducts,
 } from '../lib/api'
@@ -160,11 +161,10 @@ export default function Opname() {
 
         {/* Konfirmasi posting: tampilkan HANYA selisih agar keputusan jelas (HCI rule 4 & 5) */}
         {confirmPost && (
-          <div className="modal-backdrop" onClick={() => setConfirmPost(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <Modal onClose={() => setConfirmPost(false)} labelledBy="opnamePostModalTitle">
               <div className="modal-head">
-                <h3>Posting {detail.opname_number}?</h3>
-                <button type="button" className="icon-btn" onClick={() => setConfirmPost(false)}>✕</button>
+                <h3 id="opnamePostModalTitle">Posting {detail.opname_number}?</h3>
+                <button type="button" className="icon-btn" onClick={() => setConfirmPost(false)} aria-label="Tutup">✕</button>
               </div>
               <div className="modal-body">
                 {sum.diffs.length === 0 ? (
@@ -190,8 +190,7 @@ export default function Opname() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
+          </Modal>
         )}
       </>
     )

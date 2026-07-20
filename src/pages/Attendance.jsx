@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import Modal from '../components/Modal'
 import {
   fetchEmployees, fetchAttendanceRange, setAttendance, deleteAttendance,
   fetchAttendanceRules, upsertAttendanceRule,
@@ -299,6 +300,7 @@ export default function Attendance() {
                           <button type="button" disabled={future}
                             className={`att-dot ${st ? st.cls : ''}`}
                             title={`${emp.name} · ${fmtDate(d)}${st ? ` · ${st.label}` : ' · belum diisi'}${cur?.note ? ` · ${cur.note}` : ''}`}
+                            aria-label={`Ubah absensi ${emp.name} tanggal ${fmtDate(d)}${st ? `, status ${st.label}` : ', belum diisi'}`}
                             onClick={() => openEditor(emp, d)}>
                             {st ? LETTER[cur.status] : '·'}
                           </button>
@@ -364,11 +366,10 @@ export default function Attendance() {
 
       {/* ---------- EDITOR SEL: status + catatan + kosongkan ---------- */}
       {editor && (
-        <div className="modal-backdrop" onClick={() => setEditor(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setEditor(null)} labelledBy="attEditorModalTitle">
             <div className="modal-head">
-              <h3>{editor.empName} · {fmtDate(editor.date)}</h3>
-              <button type="button" className="icon-btn" onClick={() => setEditor(null)}>✕</button>
+              <h3 id="attEditorModalTitle">{editor.empName} · {fmtDate(editor.date)}</h3>
+              <button type="button" className="icon-btn" onClick={() => setEditor(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -405,8 +406,7 @@ export default function Attendance() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )

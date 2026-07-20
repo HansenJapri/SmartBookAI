@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Gauge, ChevronLeft, ChevronRight, Trash2, Plus } from 'lucide-react'
+import Modal from '../components/Modal'
 import {
   fetchEmployees, fetchAttendanceRange, fetchTasks,
   fetchKpiCriteria, addKpiCriteria, updateKpiCriteria, deleteKpiCriteria,
@@ -352,11 +353,10 @@ export default function Kpi() {
 
       {/* ---------- MODAL TAMBAH KRITERIA ---------- */}
       {newCrit && (
-        <div className="modal-backdrop" onClick={() => setNewCrit(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setNewCrit(null)} labelledBy="kpiCritModalTitle">
             <div className="modal-head">
-              <h3>Tambah Kriteria</h3>
-              <button type="button" className="icon-btn" onClick={() => setNewCrit(null)}>✕</button>
+              <h3 id="kpiCritModalTitle">Tambah Kriteria</h3>
+              <button type="button" className="icon-btn" onClick={() => setNewCrit(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               <div className="field">
@@ -382,17 +382,15 @@ export default function Kpi() {
                 <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={saveCrit}>Simpan</button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ---------- MODAL TAMBAH JENJANG ---------- */}
       {newRule && (
-        <div className="modal-backdrop" onClick={() => setNewRule(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setNewRule(null)} labelledBy="kpiRuleModalTitle">
             <div className="modal-head">
-              <h3>Tambah Jenjang</h3>
-              <button type="button" className="icon-btn" onClick={() => setNewRule(null)}>✕</button>
+              <h3 id="kpiRuleModalTitle">Tambah Jenjang</h3>
+              <button type="button" className="icon-btn" onClick={() => setNewRule(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               <div className="grid-2">
@@ -424,8 +422,7 @@ export default function Kpi() {
                 <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={saveRule}>Simpan</button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )

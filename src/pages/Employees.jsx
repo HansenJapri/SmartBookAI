@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { User, Pencil, Trash2 } from 'lucide-react'
+import Modal from '../components/Modal'
 import { fetchEmployees, addEmployee, updateEmployee, deleteEmployee } from '../lib/api'
 import { SALARY_TYPES } from '../lib/hr'
 import { rupiah, fmtDate } from '../lib/format'
@@ -139,11 +140,10 @@ export default function Employees() {
       )}
 
       {form && (
-        <div className="modal-backdrop" onClick={() => setForm(null)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+        <Modal onClose={() => setForm(null)} onSubmit={save} labelledBy="empModalTitle">
             <div className="modal-head">
-              <h3>{form.id ? 'Ubah Karyawan' : 'Tambah Karyawan'}</h3>
-              <button type="button" className="icon-btn" onClick={() => setForm(null)}>✕</button>
+              <h3 id="empModalTitle">{form.id ? 'Ubah Karyawan' : 'Tambah Karyawan'}</h3>
+              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -192,8 +192,7 @@ export default function Employees() {
                 <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan'}</button>
               </div>
             </div>
-          </form>
-        </div>
+        </Modal>
       )}
     </>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ClipboardList, CheckCircle2, PackageCheck, Trash2, XCircle, Pencil } from 'lucide-react'
+import Modal from '../components/Modal'
 import {
   fetchPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder,
   receivePurchaseOrder, fetchProducts, fetchSuppliers,
@@ -245,11 +246,10 @@ export default function PurchaseOrders() {
 
       {/* ---- Modal buat/edit draf PO ---- */}
       {form && (
-        <div className="modal-backdrop" onClick={() => setForm(null)}>
-          <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={saveForm}>
+        <Modal onClose={() => setForm(null)} onSubmit={saveForm} labelledBy="poFormModalTitle">
             <div className="modal-head">
-              <h3>{form.id ? 'Ubah Draf PO' : 'Buat Purchase Order'}</h3>
-              <button type="button" className="icon-btn" onClick={() => setForm(null)}>✕</button>
+              <h3 id="poFormModalTitle">{form.id ? 'Ubah Draf PO' : 'Buat Purchase Order'}</h3>
+              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -299,17 +299,15 @@ export default function PurchaseOrders() {
                 <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan Draf'}</button>
               </div>
             </div>
-          </form>
-        </div>
+        </Modal>
       )}
 
       {/* ---- Modal terima PO (layar penutup yang jelas — HCI rule 4) ---- */}
       {receiveTarget && (
-        <div className="modal-backdrop" onClick={() => setReceiveTarget(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setReceiveTarget(null)} labelledBy="poReceiveModalTitle">
             <div className="modal-head">
-              <h3>Terima {receiveTarget.po_number}</h3>
-              <button type="button" className="icon-btn" onClick={() => setReceiveTarget(null)}>✕</button>
+              <h3 id="poReceiveModalTitle">Terima {receiveTarget.po_number}</h3>
+              <button type="button" className="icon-btn" onClick={() => setReceiveTarget(null)} aria-label="Tutup">✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
@@ -353,8 +351,7 @@ export default function PurchaseOrders() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   )
