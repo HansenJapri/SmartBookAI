@@ -101,15 +101,15 @@ export default function Feedback() {
           </div>
 
           <div className="field">
-            <label>{f.category}</label>
-            <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <label htmlFor="fb-category">{f.category}</label>
+            <select id="fb-category" className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
               {CATS.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
             </select>
           </div>
 
           <div className="field">
-            <label>{f.message}</label>
-            <textarea className="input" rows={4} value={message} maxLength={4000}
+            <label htmlFor="fb-message">{f.message}</label>
+            <textarea id="fb-message" className="input" rows={4} value={message} maxLength={4000}
               onChange={(e) => setMessage(e.target.value)} placeholder={f.messagePh} />
           </div>
 

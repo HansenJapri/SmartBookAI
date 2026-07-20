@@ -167,30 +167,30 @@ export default function Tasks() {
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label>Judul tugas</label>
-                <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+                <label htmlFor="task-title">Judul tugas</label>
+                <input id="task-title" className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="cth: Produksi 50 bolu untuk pesanan Bu Sari" />
               </div>
               <div className="field">
-                <label>Catatan <span className="muted-sm">(opsional)</span></label>
-                <input className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+                <label htmlFor="task-note">Catatan <span className="muted-sm">(opsional)</span></label>
+                <input id="task-note" className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Prioritas</label>
-                  <select className="input" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+                  <label htmlFor="task-priority">Prioritas</label>
+                  <select id="task-priority" className="input" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
                     {TASK_PRIORITIES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Jadwal / tenggat <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" type="date" value={form.due_date}
+                  <label htmlFor="task-due-date">Jadwal / tenggat <span className="muted-sm">(opsional)</span></label>
+                  <input id="task-due-date" className="input" type="date" value={form.due_date}
                     onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
                 </div>
               </div>
               <div className="field">
-                <label>Ditugaskan ke <span className="muted-sm">(opsional, dari Data Karyawan)</span></label>
-                <select className="input" value={form.assignee_id} onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}>
+                <label htmlFor="task-assignee">Ditugaskan ke <span className="muted-sm">(opsional, dari Data Karyawan)</span></label>
+                <select id="task-assignee" className="input" value={form.assignee_id} onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}>
                   <option value="">— tanpa petugas —</option>
                   {activeEmps.map((e2) => <option key={e2.id} value={e2.id}>{e2.name}</option>)}
                 </select>

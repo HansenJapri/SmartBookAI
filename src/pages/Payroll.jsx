@@ -141,7 +141,7 @@ export default function Payroll() {
 
       <div className="toolbar">
         <label className="muted-sm" style={{ whiteSpace: 'nowrap' }}>Periode:</label>
-        <input className="input" type="month" style={{ maxWidth: 180 }} value={period}
+        <input className="input" type="month" style={{ maxWidth: 180 }} aria-label="Pilih bulan penggajian" value={period}
           onChange={(e) => setPeriod(e.target.value)} />
         <div style={{ flex: 1 }} />
         <button className="btn btn-primary" onClick={generate} disabled={busy}>
@@ -178,12 +178,14 @@ export default function Payroll() {
                       <td style={{ maxWidth: 120 }}>
                         {draft ? (
                           <input className="input" type="number" min="0" step="any" value={row.bonus}
+                            aria-label={`Bonus untuk ${empOf(row.employee_id)?.name || "karyawan"}`}
                             onChange={(e) => patchRow(row, { bonus: Number(e.target.value) || 0 })} />
                         ) : rupiah(row.bonus)}
                       </td>
                       <td style={{ maxWidth: 120 }}>
                         {draft ? (
                           <input className="input" type="number" min="0" step="any" value={row.deduction}
+                            aria-label={`Potongan untuk ${empOf(row.employee_id)?.name || "karyawan"}`}
                             onChange={(e) => patchRow(row, { deduction: Number(e.target.value) || 0 })} />
                         ) : rupiah(row.deduction)}
                       </td>
@@ -230,8 +232,8 @@ export default function Payroll() {
                 Akan tercatat sebagai transaksi pengeluaran.
               </p>
               <div className="field">
-                <label>Kategori pengeluaran</label>
-                <select className="input" value={payCategory} onChange={(e) => setPayCategory(e.target.value)}>
+                <label htmlFor="payroll-category">Kategori pengeluaran</label>
+                <select id="payroll-category" className="input" value={payCategory} onChange={(e) => setPayCategory(e.target.value)}>
                   {expenseCats.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 {!expenseCats.includes('Gaji Karyawan') && (

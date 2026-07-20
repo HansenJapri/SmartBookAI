@@ -40,7 +40,10 @@ export default function CrudList({ title, hint, items = [], placeholder, onAdd, 
       {hint && <div className="card-sub">{hint}</div>}
       {err && <div className="alert alert-err" style={{ marginBottom: 12 }}>{err}</div>}
       <form className="crud-add" onSubmit={add}>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={placeholder} />
+        {/* Tidak ada label kasatmata di sini (hanya placeholder), jadi nama
+            aksesibelnya diambil dari judul daftar agar pembaca layar jelas. */}
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)}
+          placeholder={placeholder} aria-label={title ? `Tambah ${title}` : 'Tambah item baru'} />
         <button className="btn btn-primary">+ Tambah</button>
       </form>
       <div className="crud-list">
@@ -50,6 +53,7 @@ export default function CrudList({ title, hint, items = [], placeholder, onAdd, 
             {editId === it.id ? (
               <>
                 <input className="input crud-input" value={editName} autoFocus
+                  aria-label={`Ubah nama "${it.name}"`}
                   onChange={(e) => setEditName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit() } if (e.key === 'Escape') cancelEdit() }} />
                 <button type="button" className="icon-btn ok" title="Simpan" aria-label="Simpan" onClick={saveEdit}><Check size={16} /></button>

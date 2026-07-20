@@ -193,15 +193,15 @@ export default function Attendance() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button className="icon-btn" onClick={() => shift(-1)} aria-label="Sebelumnya"><ChevronLeft size={16} /></button>
             {mode === 'hari' && (
-              <input className="input" type="date" style={{ maxWidth: 165 }} value={anchor}
+              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label="Pilih tanggal absensi" value={anchor}
                 max={today} onChange={(e) => e.target.value && setAnchor(e.target.value)} />
             )}
             {mode === 'minggu' && (
-              <input className="input" type="date" style={{ maxWidth: 165 }} value={anchor}
+              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label="Pilih tanggal dalam minggu" value={anchor}
                 max={today} onChange={(e) => e.target.value && setAnchor(e.target.value)} />
             )}
             {mode === 'bulan' && (
-              <input className="input" type="month" style={{ maxWidth: 165 }} value={month}
+              <input className="input" type="month" style={{ maxWidth: 165 }} aria-label="Pilih bulan absensi" value={month}
                 onChange={(e) => e.target.value && setMonth(e.target.value)} />
             )}
             <button className="icon-btn" onClick={() => shift(1)} aria-label="Berikutnya"><ChevronRight size={16} /></button>
@@ -209,10 +209,10 @@ export default function Attendance() {
         )}
         {mode === 'rentang' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <input className="input" type="date" style={{ maxWidth: 160 }} value={range.from}
+            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label="Tanggal mulai rentang" value={range.from}
               max={today} onChange={(e) => e.target.value && setRange((r) => ({ ...r, from: e.target.value }))} />
             <span className="muted-sm">s.d.</span>
-            <input className="input" type="date" style={{ maxWidth: 160 }} value={range.to}
+            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label="Tanggal akhir rentang" value={range.to}
               max={today} onChange={(e) => e.target.value && setRange((r) => ({ ...r, to: e.target.value }))} />
           </div>
         )}
@@ -346,10 +346,12 @@ export default function Attendance() {
                     <td><span className={`badge ${s.cls}`}>{s.label}</span></td>
                     <td style={{ maxWidth: 160 }}>
                       <input className="input" type="number" min="0" step="any" defaultValue={b || ''}
+                        aria-label={`Bonus per hari untuk status ${s.label}`}
                         placeholder="0" onBlur={(e) => patchRule(s.key, 'bonus_per_day', e.target.value)} />
                     </td>
                     <td style={{ maxWidth: 160 }}>
                       <input className="input" type="number" min="0" step="any" defaultValue={d || ''}
+                        aria-label={`Potongan per hari untuk status ${s.label}`}
                         placeholder="0" onBlur={(e) => patchRule(s.key, 'deduction_per_day', e.target.value)} />
                     </td>
                     <td className="muted-sm">
@@ -389,8 +391,8 @@ export default function Attendance() {
                 </div>
               </div>
               <div className="field">
-                <label>Catatan <span className="muted-sm">(opsional — mis. "izin acara keluarga")</span></label>
-                <input className="input" value={editor.note}
+                <label htmlFor="att-note">Catatan <span className="muted-sm">(opsional — mis. "izin acara keluarga")</span></label>
+                <input id="att-note" className="input" value={editor.note}
                   onChange={(e) => setEditor((ed) => ({ ...ed, note: e.target.value }))} />
               </div>
               <div className="modal-foot">

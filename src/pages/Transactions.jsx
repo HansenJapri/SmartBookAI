@@ -87,13 +87,13 @@ export default function Transactions() {
         </div>
       )}
       <div className="toolbar">
-        <input className="input" placeholder={T.searchPh} value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input" style={{ maxWidth: 180 }} value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <input className="input" placeholder={T.searchPh} value={q} onChange={(e) => setQ(e.target.value)} aria-label={T.searchPh} />
+        <select className="input" style={{ maxWidth: 180 }} value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Saring jenis transaksi">
           <option value="all">{T.allTx}</option>
           <option value="in">{T.income}</option>
           <option value="out">{T.expense}</option>
         </select>
-        <select className="input" style={{ maxWidth: 180 }} value={payFilter} onChange={(e) => setPayFilter(e.target.value)}>
+        <select className="input" style={{ maxWidth: 180 }} value={payFilter} onChange={(e) => setPayFilter(e.target.value)} aria-label="Saring status pembayaran">
           <option value="all">{T.allPay}</option>
           <option value="lunas">{T.lunas}</option>
           <option value="belum">{T.belum}</option>

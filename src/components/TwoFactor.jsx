@@ -75,8 +75,8 @@ export default function TwoFactor() {
           <p className="muted-sm" style={{ marginBottom: 4 }}>1. Pindai QR ini dengan Google Authenticator atau Authy. Tidak bisa pindai? Masukkan kode manual ini di aplikasi:</p>
           <div style={{ fontFamily: 'monospace', fontWeight: 700, wordBreak: 'break-all', marginBottom: 6 }}>{secret}</div>
           {qr && <img src={qr} alt="QR 2FA" style={{ width: 180, height: 180, display: 'block', margin: '10px 0 14px', border: '1px solid var(--line)', borderRadius: 10 }} />}
-          <div className="field"><label>2. Masukkan 6 digit kode dari aplikasi</label>
-            <input className="input" inputMode="numeric" maxLength={6} value={code}
+          <div className="field"><label htmlFor="tfa-code">2. Masukkan 6 digit kode dari aplikasi</label>
+            <input id="tfa-code" className="input" inputMode="numeric" maxLength={6} value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="123456" /></div>
           <div className="flex gap">
             <button className="btn btn-primary" disabled={busy || code.length < 6}>{busy ? 'Memverifikasi...' : 'Verifikasi & Aktifkan'}</button>

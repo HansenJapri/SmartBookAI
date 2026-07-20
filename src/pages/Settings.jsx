@@ -177,31 +177,31 @@ export default function Settings() {
         <h3 className="card-title">Profil Usaha</h3>
         <div className="card-sub">Dipakai pada kop laporan KUR & pajak.</div>
         {savedMsg && <div className={savedMsg.startsWith('⚠') ? 'alert alert-err' : 'alert alert-ok'}>{savedMsg}</div>}
-        <div className="field"><label>Nama usaha</label>
-          <input className="input" value={profile.business_name || ''} onChange={(e) => setProfile({ ...profile, business_name: e.target.value })} /></div>
-        <div className="field"><label>Nama pemilik</label>
-          <input className="input" value={profile.owner_name || ''} onChange={(e) => setProfile({ ...profile, owner_name: e.target.value })} /></div>
-        <div className="field"><label>Jenis usaha</label>
-          <input className="input" placeholder="cth: Warung kelontong" value={profile.business_type || ''} onChange={(e) => setProfile({ ...profile, business_type: e.target.value })} /></div>
-        <div className="field"><label>Alamat usaha <span className="muted-sm">(tampil pada invoice)</span></label>
-          <textarea className="input" rows={2} placeholder="cth: Jl. Merdeka No. 10, Bekasi" value={profile.business_address || ''} onChange={(e) => setProfile({ ...profile, business_address: e.target.value })} /></div>
+        <div className="field"><label htmlFor="set-business-name">Nama usaha</label>
+          <input id="set-business-name" className="input" value={profile.business_name || ''} onChange={(e) => setProfile({ ...profile, business_name: e.target.value })} /></div>
+        <div className="field"><label htmlFor="set-owner-name">Nama pemilik</label>
+          <input id="set-owner-name" className="input" value={profile.owner_name || ''} onChange={(e) => setProfile({ ...profile, owner_name: e.target.value })} /></div>
+        <div className="field"><label htmlFor="set-business-type">Jenis usaha</label>
+          <input id="set-business-type" className="input" placeholder="cth: Warung kelontong" value={profile.business_type || ''} onChange={(e) => setProfile({ ...profile, business_type: e.target.value })} /></div>
+        <div className="field"><label htmlFor="set-business-address">Alamat usaha <span className="muted-sm">(tampil pada invoice)</span></label>
+          <textarea id="set-business-address" className="input" rows={2} placeholder="cth: Jl. Merdeka No. 10, Bekasi" value={profile.business_address || ''} onChange={(e) => setProfile({ ...profile, business_address: e.target.value })} /></div>
         <div className="field">
-          <label>Jenis Wajib Pajak <span className="muted-sm">(memengaruhi perhitungan PPh)</span></label>
-          <select className="input" value={profile.taxpayer_type} onChange={(e) => setProfile({ ...profile, taxpayer_type: e.target.value })}>
+          <label htmlFor="set-taxpayer-type">Jenis Wajib Pajak <span className="muted-sm">(memengaruhi perhitungan PPh)</span></label>
+          <select id="set-taxpayer-type" className="input" value={profile.taxpayer_type} onChange={(e) => setProfile({ ...profile, taxpayer_type: e.target.value })}>
             <option value="pribadi">Orang Pribadi (dapat omzet bebas pajak Rp 500 jt/tahun)</option>
             <option value="badan">Badan (PT/CV/Koperasi) - tanpa batas Rp 500 jt</option>
           </select>
         </div>
-        <div className="field"><label>Nomor telepon (WhatsApp)</label>
+        <div className="field"><label htmlFor="set-phone">Nomor telepon (WhatsApp)</label>
           <div className="flex gap" style={{ alignItems: 'center' }}>
-            <input className="input" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="081234567890" />
+            <input id="set-phone" className="input" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="081234567890" />
             {profile.phone && (profile.phone_verified
               ? <span className="badge badge-green" style={{ whiteSpace: 'nowrap' }}>✓ Terverifikasi</span>
               : <span className="badge badge-amber" style={{ whiteSpace: 'nowrap' }}>Belum diverifikasi</span>)}
           </div>
         </div>
-        <div className="field"><label>Email <span className="badge badge-green" style={{ marginLeft: 6 }}>✓ Terverifikasi</span></label>
-          <input className="input" value={user?.email || ''} disabled style={{ background: 'var(--bg)', color: 'var(--muted)' }} /></div>
+        <div className="field"><label htmlFor="set-email">Email <span className="badge badge-green" style={{ marginLeft: 6 }}>✓ Terverifikasi</span></label>
+          <input id="set-email" className="input" value={user?.email || ''} disabled style={{ background: 'var(--bg)', color: 'var(--muted)' }} /></div>
         <button className="btn btn-primary">Simpan Profil</button>
       </form>
 
@@ -236,7 +236,7 @@ export default function Settings() {
           <b>Hapus semua data saya</b>
           <p className="muted-sm">Menghapus seluruh transaksi, produk, supplier, kategori, channel, dan aturan milik Anda secara permanen. Tindakan ini tidak dapat dibatalkan. Akun login Anda tetap ada; untuk menghapus akun sepenuhnya, hubungi pengelola.</p>
           <div className="flex gap" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <input className="input" style={{ maxWidth: 220 }} placeholder="Ketik HAPUS" value={delText} onChange={(e) => setDelText(e.target.value)} />
+            <input className="input" style={{ maxWidth: 220 }} placeholder="Ketik HAPUS" aria-label="Ketik HAPUS untuk konfirmasi penghapusan akun" value={delText} onChange={(e) => setDelText(e.target.value)} />
             <button type="button" className="btn btn-danger" disabled={delBusy || delText !== 'HAPUS'} onClick={doDeleteAll}>
               {delBusy ? 'Menghapus...' : 'Hapus semua data'}
             </button>
@@ -266,17 +266,17 @@ export default function Settings() {
         </label>
         {profile.invoice_show_server && (
           <div className="grid-2">
-            <div className="field"><label>Label</label>
-              <input className="input" value={profile.invoice_server_label || ''} onChange={(e) => setProfile((p) => ({ ...p, invoice_server_label: e.target.value }))} placeholder="cth: Kasir, atau Dilayani oleh" /></div>
-            <div className="field"><label>Nama</label>
-              <input className="input" value={profile.invoice_server_value || ''} onChange={(e) => setProfile((p) => ({ ...p, invoice_server_value: e.target.value }))} placeholder="cth: Budi" /></div>
+            <div className="field"><label htmlFor="set-server-label">Label</label>
+              <input id="set-server-label" className="input" value={profile.invoice_server_label || ''} onChange={(e) => setProfile((p) => ({ ...p, invoice_server_label: e.target.value }))} placeholder="cth: Kasir, atau Dilayani oleh" /></div>
+            <div className="field"><label htmlFor="set-server-value">Nama</label>
+              <input id="set-server-value" className="input" value={profile.invoice_server_value || ''} onChange={(e) => setProfile((p) => ({ ...p, invoice_server_value: e.target.value }))} placeholder="cth: Budi" /></div>
           </div>
         )}
         <div className="grid-2">
-          <div className="field"><label>PPN (%) <span className="muted-sm">(0 = tidak dipakai)</span></label>
-            <input className="input" type="number" min="0" max="100" step="0.1" value={profile.invoice_tax_percent ?? 0} onChange={(e) => setProfile((p) => ({ ...p, invoice_tax_percent: e.target.value }))} /></div>
-          <div className="field"><label>Biaya layanan (%) <span className="muted-sm">(0 = tidak dipakai)</span></label>
-            <input className="input" type="number" min="0" max="100" step="0.1" value={profile.invoice_service_percent ?? 0} onChange={(e) => setProfile((p) => ({ ...p, invoice_service_percent: e.target.value }))} /></div>
+          <div className="field"><label htmlFor="set-tax-percent">PPN (%) <span className="muted-sm">(0 = tidak dipakai)</span></label>
+            <input id="set-tax-percent" className="input" type="number" min="0" max="100" step="0.1" value={profile.invoice_tax_percent ?? 0} onChange={(e) => setProfile((p) => ({ ...p, invoice_tax_percent: e.target.value }))} /></div>
+          <div className="field"><label htmlFor="set-service-percent">Biaya layanan (%) <span className="muted-sm">(0 = tidak dipakai)</span></label>
+            <input id="set-service-percent" className="input" type="number" min="0" max="100" step="0.1" value={profile.invoice_service_percent ?? 0} onChange={(e) => setProfile((p) => ({ ...p, invoice_service_percent: e.target.value }))} /></div>
         </div>
         <p className="muted-sm" style={{ marginBottom: 12 }}>Jika PPN atau biaya layanan diisi lebih dari 0, nota menampilkan Subtotal, PPN, Biaya Layanan, dan Grand Total. Jika keduanya 0, hanya menampilkan Total.</p>
         <button className="btn btn-primary">Simpan Pengaturan Nota</button>
@@ -304,8 +304,9 @@ export default function Settings() {
         <div className="card-sub">Tambah sumber transaksi sendiri (mis. "Bank Jago", "Kasir Toko").</div>
         <form className="crud-add" onSubmit={createCh}>
           <input className="input" style={{ width: 64, flex: 'none', textAlign: 'center' }} value={newCh.icon} maxLength={2}
-            onChange={(e) => setNewCh({ ...newCh, icon: e.target.value })} title="Ikon (opsional)" />
-          <input className="input" value={newCh.label} onChange={(e) => setNewCh({ ...newCh, label: e.target.value })} placeholder="Nama channel, cth: Bank Jago" />
+            onChange={(e) => setNewCh({ ...newCh, icon: e.target.value })} title="Ikon (opsional)"
+            aria-label="Ikon channel (opsional)" />
+          <input className="input" value={newCh.label} onChange={(e) => setNewCh({ ...newCh, label: e.target.value })} placeholder="Nama channel, cth: Bank Jago" aria-label="Nama channel baru" />
           <button className="btn btn-primary">{editChId ? 'Simpan' : '+ Tambah'}</button>
           {editChId && <button type="button" className="btn btn-ghost" onClick={cancelEditCh}>Batal</button>}
         </form>
@@ -327,12 +328,12 @@ export default function Settings() {
         <div className="card-sub">Kata kunci pada deskripsi → otomatis jadi kategori tertentu. Diprioritaskan di atas aturan bawaan.</div>
         <form className="flex gap" onSubmit={createRule} style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
           <div className="field" style={{ flex: 1, minWidth: 150, marginBottom: 0 }}>
-            <label>Jika deskripsi mengandung...</label>
-            <input className="input" placeholder="cth: grab, sewa, tiktok" value={newRule.keyword} onChange={(e) => setNewRule({ ...newRule, keyword: e.target.value })} />
+            <label htmlFor="set-rule-keyword">Jika deskripsi mengandung...</label>
+            <input id="set-rule-keyword" className="input" placeholder="cth: grab, sewa, tiktok" value={newRule.keyword} onChange={(e) => setNewRule({ ...newRule, keyword: e.target.value })} />
           </div>
           <div className="field" style={{ minWidth: 170, marginBottom: 0 }}>
-            <label>Jadikan kategori</label>
-            <select className="input" value={newRule.category} onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}>
+            <label htmlFor="set-rule-category">Jadikan kategori</label>
+            <select id="set-rule-category" className="input" value={newRule.category} onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}>
               {allCats.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>

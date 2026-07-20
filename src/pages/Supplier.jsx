@@ -42,24 +42,24 @@ export default function Supplier() {
         <h3 className="card-title">{editId ? s.editTitle : s.addTitle}</h3>
         {err && <div className="alert alert-err" style={{ marginBottom: 10 }}>{err}</div>}
         <div className="grid-2">
-          <div className="field"><label>{s.name}</label>
-            <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={s.namePh} /></div>
-          <div className="field"><label>{s.phone}</label>
-            <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="08xxxxxxxxxx" /></div>
-          <div className="field"><label>{s.email}</label>
-            <input className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={s.optional} /></div>
-          <div className="field"><label>{s.address}</label>
-            <input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder={s.optional} /></div>
+          <div className="field"><label htmlFor="sup-name">{s.name}</label>
+            <input id="sup-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={s.namePh} /></div>
+          <div className="field"><label htmlFor="sup-phone">{s.phone}</label>
+            <input id="sup-phone" className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="08xxxxxxxxxx" /></div>
+          <div className="field"><label htmlFor="sup-email">{s.email}</label>
+            <input id="sup-email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={s.optional} /></div>
+          <div className="field"><label htmlFor="sup-address">{s.address}</label>
+            <input id="sup-address" className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder={s.optional} /></div>
         </div>
-        <div className="field"><label>{s.note}</label>
-          <input className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={s.notePh} /></div>
+        <div className="field"><label htmlFor="sup-note">{s.note}</label>
+          <input id="sup-note" className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={s.notePh} /></div>
         <div className="flex gap">
           <button className="btn btn-primary">{editId ? s.saveBtn : s.addBtn}</button>
           {editId && <button type="button" className="btn btn-ghost" onClick={cancel}>{s.cancel}</button>}
         </div>
       </form>
 
-      <div className="toolbar"><input className="input" placeholder={s.searchPh} value={q} onChange={(e) => setQ(e.target.value)} /></div>
+      <div className="toolbar"><input className="input" placeholder={s.searchPh} value={q} onChange={(e) => setQ(e.target.value)} aria-label={s.searchPh} /></div>
 
       {filtered.length === 0 ? (
         <div className="card"><div className="empty"><h3>{s.emptyTitle}</h3><p>{s.emptyDesc}</p></div></div>

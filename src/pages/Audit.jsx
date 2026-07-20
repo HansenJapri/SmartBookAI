@@ -74,11 +74,11 @@ export default function Audit() {
     <>
       {err && <div className="alert alert-err">{err}</div>}
       <div className="toolbar">
-        <select className="input" style={{ maxWidth: 200 }} value={table} onChange={(e) => setTable(e.target.value)}>
+        <select className="input" style={{ maxWidth: 200 }} value={table} onChange={(e) => setTable(e.target.value)} aria-label="Saring berdasarkan jenis data">
           <option value="">Semua data</option>
           {Object.entries(TABLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select className="input" style={{ maxWidth: 160 }} value={action} onChange={(e) => setAction(e.target.value)}>
+        <select className="input" style={{ maxWidth: 160 }} value={action} onChange={(e) => setAction(e.target.value)} aria-label="Saring berdasarkan aksi">
           <option value="">Semua aksi</option>
           {Object.entries(ACTION_LABEL).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>

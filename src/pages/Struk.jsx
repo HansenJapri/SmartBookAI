@@ -216,19 +216,19 @@ export default function Struk() {
               </div>
             </div>
             <div className="field">
-              <label>Kategori</label>
-              <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <label htmlFor="struk-category">Kategori</label>
+              <select id="struk-category" className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
                 {cats.length === 0 && <option value="">(belum ada kategori)</option>}
                 {cats.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="field">
-              <label>Tanggal & waktu</label>
-              <input className="input" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+              <label htmlFor="struk-occurred-at">Tanggal & waktu</label>
+              <input id="struk-occurred-at" className="input" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
             </div>
             <div className="field">
-              <label>Keterangan</label>
-              <input className="input" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="cth: Belanja stok di Pasar Induk" />
+              <label htmlFor="struk-note">Keterangan</label>
+              <input id="struk-note" className="input" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="cth: Belanja stok di Pasar Induk" />
             </div>
           </div>
 

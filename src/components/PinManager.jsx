@@ -40,8 +40,8 @@ export default function PinManager() {
           <form onSubmit={save}>
             <div className="card-sub" style={{ marginBottom: 8 }}>Ganti PIN</div>
             <div className="grid-2">
-              <div className="field"><label>PIN baru (4-8 angka)</label><input className="input" type="password" inputMode="numeric" value={p1} onChange={(e) => setP1(e.target.value)} /></div>
-              <div className="field"><label>Ulangi PIN</label><input className="input" type="password" inputMode="numeric" value={p2} onChange={(e) => setP2(e.target.value)} /></div>
+              <div className="field"><label htmlFor="pin-new">PIN baru (4-8 angka)</label><input id="pin-new" className="input" type="password" inputMode="numeric" value={p1} onChange={(e) => setP1(e.target.value)} /></div>
+              <div className="field"><label htmlFor="pin-new-repeat">Ulangi PIN</label><input id="pin-new-repeat" className="input" type="password" inputMode="numeric" value={p2} onChange={(e) => setP2(e.target.value)} /></div>
             </div>
             <button className="btn btn-primary">Simpan PIN baru</button>
           </form>
@@ -49,8 +49,8 @@ export default function PinManager() {
       ) : (
         <form onSubmit={save}>
           <div className="grid-2">
-            <div className="field"><label>Buat PIN (4-8 angka)</label><input className="input" type="password" inputMode="numeric" value={p1} onChange={(e) => setP1(e.target.value)} placeholder="cth: 1234" /></div>
-            <div className="field"><label>Ulangi PIN</label><input className="input" type="password" inputMode="numeric" value={p2} onChange={(e) => setP2(e.target.value)} /></div>
+            <div className="field"><label htmlFor="pin-create">Buat PIN (4-8 angka)</label><input id="pin-create" className="input" type="password" inputMode="numeric" value={p1} onChange={(e) => setP1(e.target.value)} placeholder="cth: 1234" /></div>
+            <div className="field"><label htmlFor="pin-create-repeat">Ulangi PIN</label><input id="pin-create-repeat" className="input" type="password" inputMode="numeric" value={p2} onChange={(e) => setP2(e.target.value)} /></div>
           </div>
           <button className="btn btn-primary">Aktifkan Kunci Layar</button>
         </form>

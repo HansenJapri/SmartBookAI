@@ -43,7 +43,7 @@ export default function Reconciliation() {
         <div className="card-sub">{r.sub}</div>
         <div className="flex gap" style={{ alignItems: 'center' }}>
           <label className="muted-sm">{r.tol}</label>
-          <select className="input" style={{ width: 'auto' }} value={tol} onChange={(e) => setTol(Number(e.target.value))}>
+          <select className="input" style={{ width: 'auto' }} value={tol} onChange={(e) => setTol(Number(e.target.value))} aria-label="Toleransi selisih waktu duplikat">
             <option value={1}>{r.h1}</option>
             <option value={6}>{r.h6}</option>
             <option value={24}>{r.d1}</option>

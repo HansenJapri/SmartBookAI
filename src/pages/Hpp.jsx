@@ -170,8 +170,8 @@ export default function Hpp() {
         ) : (
           <div className="grid-2">
             <div className="field">
-              <label>Produk</label>
-              <select className="input" value={productId} onChange={(e) => setProductId(e.target.value)}>
+              <label htmlFor="hpp-product">Produk</label>
+              <select id="hpp-product" className="input" value={productId} onChange={(e) => setProductId(e.target.value)}>
                 <option value="">-- pilih produk --</option>
                 {products.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
               </select>
@@ -201,8 +201,8 @@ export default function Hpp() {
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <b>Belum ada komposisi.</b> Biarkan AI membuat draf awal (Anda koreksi setelahnya), atau isi manual.
                     <div className="field" style={{ marginTop: 8 }}>
-                      <label>Jenis usaha (membantu akurasi draf)</label>
-                      <input className="input" value={businessType} onChange={(e) => setBusinessType(e.target.value)} placeholder="cth: toko kue, warung makan, laundry" />
+                      <label htmlFor="hpp-business-type">Jenis usaha (membantu akurasi draf)</label>
+                      <input id="hpp-business-type" className="input" value={businessType} onChange={(e) => setBusinessType(e.target.value)} placeholder="cth: toko kue, warung makan, laundry" />
                     </div>
                   </div>
                   <div className="flex gap" style={{ flexDirection: 'column' }}>
@@ -330,9 +330,9 @@ export default function Hpp() {
 
           <div className="grid-2" style={{ marginTop: 14 }}>
             <div className="field">
-              <label>Untuk mempertahankan margin (%)</label>
+              <label htmlFor="hpp-target-margin">Untuk mempertahankan margin (%)</label>
               <div className="flex gap" style={{ alignItems: 'center' }}>
-                <input className="input" type="number" min="0" max="95" value={targetMargin === '' ? tm : targetMargin}
+                <input id="hpp-target-margin" className="input" type="number" min="0" max="95" value={targetMargin === '' ? tm : targetMargin}
                   onChange={(e) => setTargetMargin(e.target.value)} style={{ width: 90 }} />
                 <span style={{ fontSize: 15 }}>
                   harga jual perlu <b>{rupiah(priceForMargin(scenario.max, tm))}</b>
@@ -343,9 +343,9 @@ export default function Hpp() {
               </div>
             </div>
             <div className="field">
-              <label>Jika rupiah melemah ... % (efek bahan impor)</label>
+              <label htmlFor="hpp-kurs-pct">Jika rupiah melemah ... % (efek bahan impor)</label>
               <div className="flex gap" style={{ alignItems: 'center' }}>
-                <input className="input" type="number" step="any" value={kursPct} onChange={(e) => setKursPct(e.target.value)} style={{ width: 90 }} placeholder="cth: 4" />
+                <input id="hpp-kurs-pct" className="input" type="number" step="any" value={kursPct} onChange={(e) => setKursPct(e.target.value)} style={{ width: 90 }} placeholder="cth: 4" />
                 {scenario.kurs && (
                   <span style={{ fontSize: 15 }}>
                     HPP menjadi <b>{rupiah(scenario.kurs.next)}</b>

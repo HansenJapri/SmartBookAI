@@ -247,7 +247,7 @@ export default function Reports() {
           </div>
           <div className="flex gap" style={{ alignItems: 'center' }}>
             <label className="muted-sm">Periode:</label>
-            <select className="input" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)}>
+            <select className="input" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Pilih periode laporan">
               <option value="all">Seluruh Periode</option>
               {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
             </select>

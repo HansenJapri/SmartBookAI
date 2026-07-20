@@ -122,7 +122,7 @@ export default function Dashboard() {
             <div className="card-sub">{d.periodLbl} {periodLabel}</div>
           </div>
           <div className="flex gap" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <select className="input" style={{ width: 'auto' }} value={preset} onChange={(e) => setPreset(e.target.value)}>
+            <select className="input" style={{ width: 'auto' }} value={preset} onChange={(e) => setPreset(e.target.value)} aria-label="Pilih rentang tanggal">
               {PRESET_KEYS.map((k) => <option key={k} value={k}>{d.presets[k]}</option>)}
             </select>
             {preset === 'custom' && (
@@ -358,16 +358,16 @@ function TargetCard({ tx }) {
       ) : !target ? (
         <form onSubmit={create} className="flex gap" style={{ flexWrap: 'wrap', marginTop: 8, alignItems: 'flex-end' }}>
           <div className="field" style={{ flex: 2, minWidth: 130 }}>
-            <label>Nama target</label>
-            <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Omzet Juli" />
+            <label htmlFor="target-name">Nama target</label>
+            <input id="target-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Omzet Juli" />
           </div>
           <div className="field" style={{ flex: 2, minWidth: 120 }}>
-            <label>Nominal (Rp)</label>
-            <input className="input" type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="10000000" />
+            <label htmlFor="target-amount">Nominal (Rp)</label>
+            <input id="target-amount" className="input" type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="10000000" />
           </div>
           <div className="field" style={{ flex: 1.5, minWidth: 130 }}>
-            <label>Dihitung sejak</label>
-            <input className="input" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+            <label htmlFor="target-start-date">Dihitung sejak</label>
+            <input id="target-start-date" className="input" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
           </div>
           <button className="btn btn-primary" disabled={busy}>{busy ? '...' : 'Buat Target'}</button>
         </form>

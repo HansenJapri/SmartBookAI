@@ -148,22 +148,22 @@ export default function Employees() {
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label>Nama</label>
-                <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Andi" />
+                <label htmlFor="emp-name">Nama</label>
+                <input id="emp-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Andi" />
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Jabatan <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="cth: Kasir" />
+                  <label htmlFor="emp-role">Jabatan <span className="muted-sm">(opsional)</span></label>
+                  <input id="emp-role" className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="cth: Kasir" />
                 </div>
                 <div className="field">
-                  <label>No. HP / WA <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="08xxxxxxxxxx" />
+                  <label htmlFor="emp-phone">No. HP / WA <span className="muted-sm">(opsional)</span></label>
+                  <input id="emp-phone" className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="08xxxxxxxxxx" />
                 </div>
               </div>
               <div className="field">
-                <label>Tipe gaji</label>
-                <select className="input" value={form.salary_type} onChange={(e) => setForm({ ...form, salary_type: e.target.value })}>
+                <label htmlFor="emp-salary-type">Tipe gaji</label>
+                <select id="emp-salary-type" className="input" value={form.salary_type} onChange={(e) => setForm({ ...form, salary_type: e.target.value })}>
                   {SALARY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
                 </select>
                 {form.salary_type === 'harian' && (
@@ -174,18 +174,18 @@ export default function Employees() {
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Nominal gaji (Rp)</label>
-                  <input className="input" type="number" min="0" step="any" value={form.salary_amount}
+                  <label htmlFor="emp-salary-amount">Nominal gaji (Rp)</label>
+                  <input id="emp-salary-amount" className="input" type="number" min="0" step="any" value={form.salary_amount}
                     onChange={(e) => setForm({ ...form, salary_amount: e.target.value })} placeholder={form.salary_type === 'harian' ? '100000' : '2500000'} />
                 </div>
                 <div className="field">
-                  <label>Tanggal bergabung <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
+                  <label htmlFor="emp-join-date">Tanggal bergabung <span className="muted-sm">(opsional)</span></label>
+                  <input id="emp-join-date" className="input" type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
                 </div>
               </div>
               <div className="field">
-                <label>Catatan <span className="muted-sm">(opsional)</span></label>
-                <input className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+                <label htmlFor="emp-note">Catatan <span className="muted-sm">(opsional)</span></label>
+                <input id="emp-note" className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="modal-foot">
                 <button type="button" className="btn btn-ghost btn-block" onClick={() => setForm(null)}>Batal</button>

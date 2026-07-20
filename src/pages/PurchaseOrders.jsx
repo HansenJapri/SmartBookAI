@@ -254,8 +254,8 @@ export default function PurchaseOrders() {
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label>Produk <span className="muted-sm">— satu produk per PO</span></label>
-                <select className="input" value={form.product_id} onChange={(e) => pickFormProduct(e.target.value)}>
+                <label htmlFor="po-product">Produk <span className="muted-sm">— satu produk per PO</span></label>
+                <select id="po-product" className="input" value={form.product_id} onChange={(e) => pickFormProduct(e.target.value)}>
                   <option value="">— pilih produk —</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} · stok {Number(p.stock)} {p.unit}</option>
@@ -264,32 +264,32 @@ export default function PurchaseOrders() {
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Jumlah {formProduct ? `(${formProduct.unit})` : ''}</label>
-                  <input className="input" type="number" min="0" step="any" value={form.qty}
+                  <label htmlFor="po-qty">Jumlah {formProduct ? `(${formProduct.unit})` : ''}</label>
+                  <input id="po-qty" className="input" type="number" min="0" step="any" value={form.qty}
                     onChange={(e) => setForm({ ...form, qty: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Harga satuan (Rp)</label>
-                  <input className="input" type="number" min="0" step="any" value={form.unit_price}
+                  <label htmlFor="po-unit-price">Harga satuan (Rp)</label>
+                  <input id="po-unit-price" className="input" type="number" min="0" step="any" value={form.unit_price}
                     onChange={(e) => setForm({ ...form, unit_price: e.target.value })} placeholder="0" />
                 </div>
               </div>
               <div className="field">
-                <label>Supplier <span className="muted-sm">(opsional)</span></label>
-                <select className="input" value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}>
+                <label htmlFor="po-supplier">Supplier <span className="muted-sm">(opsional)</span></label>
+                <select id="po-supplier" className="input" value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}>
                   <option value="">— tanpa supplier —</option>
                   {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Perkiraan tiba <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" type="date" value={form.expected_date}
+                  <label htmlFor="po-expected-date">Perkiraan tiba <span className="muted-sm">(opsional)</span></label>
+                  <input id="po-expected-date" className="input" type="date" value={form.expected_date}
                     onChange={(e) => setForm({ ...form, expected_date: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Catatan <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })}
+                  <label htmlFor="po-note">Catatan <span className="muted-sm">(opsional)</span></label>
+                  <input id="po-note" className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })}
                     placeholder="cth: minta yang fresh" />
                 </div>
               </div>
@@ -322,8 +322,8 @@ export default function PurchaseOrders() {
               {rcExpense && (
                 <>
                   <div className="field">
-                    <label>Kategori pengeluaran</label>
-                    <select className="input" value={rcCategory} onChange={(e) => setRcCategory(e.target.value)}>
+                    <label htmlFor="po-rc-category">Kategori pengeluaran</label>
+                    <select id="po-rc-category" className="input" value={rcCategory} onChange={(e) => setRcCategory(e.target.value)}>
                       {expenseCats.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
@@ -338,8 +338,8 @@ export default function PurchaseOrders() {
                   </div>
                   {rcPayment === 'belum' && (
                     <div className="field">
-                      <label>Jatuh tempo pembayaran <span className="muted-sm">(opsional)</span></label>
-                      <input className="input" type="date" value={rcDueDate} onChange={(e) => setRcDueDate(e.target.value)} />
+                      <label htmlFor="po-rc-due-date">Jatuh tempo pembayaran <span className="muted-sm">(opsional)</span></label>
+                      <input id="po-rc-due-date" className="input" type="date" value={rcDueDate} onChange={(e) => setRcDueDate(e.target.value)} />
                     </div>
                   )}
                 </>

@@ -160,8 +160,8 @@ export default function Team() {
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label>Email staf</label>
-                <input className="input" type="email" value={form.email} disabled={Boolean(form.id)}
+                <label htmlFor="team-email">Email staf</label>
+                <input id="team-email" className="input" type="email" value={form.email} disabled={Boolean(form.id)}
                   onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="staf@usaha.com" />
                 {!form.id && (
                   <p className="muted-sm" style={{ margin: '6px 0 0' }}>

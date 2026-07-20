@@ -52,7 +52,7 @@ export default function Reveal() {
           </div>
           <div className="flex gap" style={{ alignItems: 'center' }}>
             <label className="muted-sm">{rev.period}</label>
-            <select className="input" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)}>
+            <select className="input" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Pilih periode analisis">
               <option value="all">{t.common.allPeriods}</option>
               {months.map((m) => <option key={m} value={m}>{ml(m)}</option>)}
             </select>

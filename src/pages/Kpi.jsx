@@ -181,7 +181,7 @@ export default function Kpi() {
 
       <div className="toolbar">
         <button className="icon-btn" onClick={() => shiftPeriod(-1)} aria-label="Bulan sebelumnya"><ChevronLeft size={16} /></button>
-        <input className="input" type="month" style={{ maxWidth: 170 }} value={period}
+        <input className="input" type="month" style={{ maxWidth: 170 }} aria-label="Pilih periode KPI" value={period}
           onChange={(e) => e.target.value && setPeriod(e.target.value)} />
         <button className="icon-btn" onClick={() => shiftPeriod(1)} aria-label="Bulan berikutnya"><ChevronRight size={16} /></button>
         <div style={{ flex: 1 }} />
@@ -227,6 +227,7 @@ export default function Kpi() {
                             </span>
                           ) : (
                             <input className="input" type="number" min="0" max="100" placeholder="0-100"
+                              aria-label={`Nilai ${c.name} untuk ${emp.name}`}
                               value={manual[emp.id]?.[c.id] ?? (savedOf(emp.id, c.id)?.score ?? '')}
                               onChange={(e) => setManual((prev) => ({
                                 ...prev, [emp.id]: { ...prev[emp.id], [c.id]: e.target.value },
@@ -288,11 +289,13 @@ export default function Kpi() {
                     <td><b>{c.name}</b></td>
                     <td style={{ maxWidth: 90 }}>
                       <input className="input" type="number" min="0" max="100" defaultValue={Number(c.weight)}
+                        aria-label={`Bobot kriteria ${c.name} (%)`}
                         onBlur={(e) => { const w = Math.max(0, Math.min(100, Number(e.target.value) || 0)); if (w !== Number(c.weight)) patchCrit(c, { weight: w }) }} />
                     </td>
                     <td className="muted-sm">{srcLabel(c.source)}</td>
                     <td>
                       <input type="checkbox" checked={c.active !== false}
+                        aria-label={`Aktifkan kriteria ${c.name}`}
                         onChange={(e) => patchCrit(c, { active: e.target.checked })} />
                     </td>
                     <td><button className="icon-btn danger" aria-label="Hapus" onClick={() => removeCrit(c)}><Trash2 size={14} /></button></td>
@@ -327,14 +330,17 @@ export default function Kpi() {
                     <tr key={r.id}>
                       <td style={{ maxWidth: 90 }}>
                         <input className="input" type="number" min="0" max="100" defaultValue={Number(r.min_score)}
+                          aria-label="Skor minimal jenjang"
                           onBlur={(e) => patchRule(r, 'min_score', e.target.value)} />
                       </td>
                       <td style={{ maxWidth: 130 }}>
                         <input className="input" type="number" min="0" step="any" defaultValue={Number(r.bonus) || ''}
+                          aria-label={`Bonus untuk jenjang skor minimal ${r.min_score}`}
                           placeholder="0" onBlur={(e) => patchRule(r, 'bonus', e.target.value)} />
                       </td>
                       <td style={{ maxWidth: 130 }}>
                         <input className="input" type="number" min="0" step="any" defaultValue={Number(r.deduction) || ''}
+                          aria-label={`Potongan untuk jenjang skor minimal ${r.min_score}`}
                           placeholder="0" onBlur={(e) => patchRule(r, 'deduction', e.target.value)} />
                       </td>
                       <td style={{ maxWidth: 140 }}>
@@ -360,19 +366,19 @@ export default function Kpi() {
             </div>
             <div className="modal-body">
               <div className="field">
-                <label>Nama kriteria</label>
-                <input className="input" value={newCrit.name} placeholder="cth: Kedisiplinan / Target penjualan"
+                <label htmlFor="kpi-crit-name">Nama kriteria</label>
+                <input id="kpi-crit-name" className="input" value={newCrit.name} placeholder="cth: Kedisiplinan / Target penjualan"
                   onChange={(e) => setNewCrit({ ...newCrit, name: e.target.value })} />
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Bobot (%)</label>
-                  <input className="input" type="number" min="0" max="100" value={newCrit.weight}
+                  <label htmlFor="kpi-crit-weight">Bobot (%)</label>
+                  <input id="kpi-crit-weight" className="input" type="number" min="0" max="100" value={newCrit.weight}
                     onChange={(e) => setNewCrit({ ...newCrit, weight: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Sumber nilai</label>
-                  <select className="input" value={newCrit.source} onChange={(e) => setNewCrit({ ...newCrit, source: e.target.value })}>
+                  <label htmlFor="kpi-crit-source">Sumber nilai</label>
+                  <select id="kpi-crit-source" className="input" value={newCrit.source} onChange={(e) => setNewCrit({ ...newCrit, source: e.target.value })}>
                     {KPI_SOURCES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
                 </div>
@@ -395,25 +401,25 @@ export default function Kpi() {
             <div className="modal-body">
               <div className="grid-2">
                 <div className="field">
-                  <label>Skor minimal (0-100)</label>
-                  <input className="input" type="number" min="0" max="100" value={newRule.min_score}
+                  <label htmlFor="kpi-rule-min">Skor minimal (0-100)</label>
+                  <input id="kpi-rule-min" className="input" type="number" min="0" max="100" value={newRule.min_score}
                     onChange={(e) => setNewRule({ ...newRule, min_score: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Label <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" value={newRule.label} placeholder="cth: Sangat baik"
+                  <label htmlFor="kpi-rule-label">Label <span className="muted-sm">(opsional)</span></label>
+                  <input id="kpi-rule-label" className="input" value={newRule.label} placeholder="cth: Sangat baik"
                     onChange={(e) => setNewRule({ ...newRule, label: e.target.value })} />
                 </div>
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Bonus (Rp)</label>
-                  <input className="input" type="number" min="0" step="any" value={newRule.bonus}
+                  <label htmlFor="kpi-rule-bonus">Bonus (Rp)</label>
+                  <input id="kpi-rule-bonus" className="input" type="number" min="0" step="any" value={newRule.bonus}
                     onChange={(e) => setNewRule({ ...newRule, bonus: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label>Potongan (Rp)</label>
-                  <input className="input" type="number" min="0" step="any" value={newRule.deduction}
+                  <label htmlFor="kpi-rule-deduction">Potongan (Rp)</label>
+                  <input id="kpi-rule-deduction" className="input" type="number" min="0" step="any" value={newRule.deduction}
                     onChange={(e) => setNewRule({ ...newRule, deduction: e.target.value })} />
                 </div>
               </div>

@@ -96,28 +96,28 @@ export default function Stok() {
         <h3 className="card-title">{editId ? 'Ubah Produk' : 'Tambah Produk'}</h3>
         {err && <div className="alert alert-err" style={{ marginBottom: 10 }}>{err}</div>}
         <div className="grid-2">
-          <div className="field"><label>Nama produk</label>
-            <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Indomie Goreng" /></div>
-          <div className="field"><label>Kategori produk</label>
-            <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+          <div className="field"><label htmlFor="stok-name">Nama produk</label>
+            <input id="stok-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Indomie Goreng" /></div>
+          <div className="field"><label htmlFor="stok-category">Kategori produk</label>
+            <select id="stok-category" className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               <option value="">(tanpa kategori)</option>
               {cats.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select></div>
-          <div className="field"><label>Satuan</label>
-            <select className="input" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+          <div className="field"><label htmlFor="stok-unit">Satuan</label>
+            <select id="stok-unit" className="input" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
               {units.length === 0 && <option value="pcs">pcs</option>}
               {units.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
             </select></div>
-          <div className="field"><label>Harga jual (Rp)</label>
-            <input className="input" type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" /></div>
-          <div className="field"><label>Harga modal / HPP (Rp) <span className="muted-sm">(untuk hitung margin)</span></label>
-            <input className="input" type="number" min="0" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} placeholder="0" /></div>
-          <div className="field"><label>Stok saat ini</label>
-            <input className="input" type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="0" /></div>
-          <div className="field"><label>Stok minimum (untuk peringatan)</label>
-            <input className="input" type="number" min="0" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: e.target.value })} placeholder="0" /></div>
-          <div className="field"><label>Pemasok</label>
-            <select className="input" value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}>
+          <div className="field"><label htmlFor="stok-price">Harga jual (Rp)</label>
+            <input id="stok-price" className="input" type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" /></div>
+          <div className="field"><label htmlFor="stok-cost">Harga modal / HPP (Rp) <span className="muted-sm">(untuk hitung margin)</span></label>
+            <input id="stok-cost" className="input" type="number" min="0" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} placeholder="0" /></div>
+          <div className="field"><label htmlFor="stok-stock">Stok saat ini</label>
+            <input id="stok-stock" className="input" type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="0" /></div>
+          <div className="field"><label htmlFor="stok-min">Stok minimum (untuk peringatan)</label>
+            <input id="stok-min" className="input" type="number" min="0" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: e.target.value })} placeholder="0" /></div>
+          <div className="field"><label htmlFor="stok-supplier">Pemasok</label>
+            <select id="stok-supplier" className="input" value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}>
               <option value="">(tanpa pemasok)</option>
               {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select></div>
@@ -129,7 +129,7 @@ export default function Stok() {
       </form>
 
       <div className="toolbar">
-        <input className="input" placeholder="Cari produk..." value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="input" placeholder="Cari produk..." value={q} onChange={(e) => setQ(e.target.value)} aria-label="Cari produk" />
         <button className="btn btn-ghost" onClick={() => setShowManage((v) => !v)}>
           {showManage ? 'Tutup pengaturan' : 'Kelola satuan & kategori'}
         </button>

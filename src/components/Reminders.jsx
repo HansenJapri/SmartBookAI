@@ -131,24 +131,24 @@ export default function Reminders() {
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label>Judul</label>
-                <input className="input" value={form.title} placeholder="cth: Ambil stok di gudang"
+                <label htmlFor="rem-title">Judul</label>
+                <input id="rem-title" className="input" value={form.title} placeholder="cth: Ambil stok di gudang"
                   onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </div>
               <div className="field">
-                <label>Catatan <span className="muted-sm">(opsional)</span></label>
-                <input className="input" value={form.note} placeholder="cth: bawa mobil box"
+                <label htmlFor="rem-note">Catatan <span className="muted-sm">(opsional)</span></label>
+                <input id="rem-note" className="input" value={form.note} placeholder="cth: bawa mobil box"
                   onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label>Tanggal &amp; jam</label>
-                  <input className="input" type="datetime-local" value={form.remind_at}
+                  <label htmlFor="rem-remind-at">Tanggal &amp; jam</label>
+                  <input id="rem-remind-at" className="input" type="datetime-local" value={form.remind_at}
                     onChange={(e) => setForm({ ...form, remind_at: e.target.value })} />
                 </div>
                 <div className="field">
-                  <label>No. WA sendiri <span className="muted-sm">(opsional)</span></label>
-                  <input className="input" value={form.wa_number} placeholder="08xxxxxxxxxx"
+                  <label htmlFor="rem-wa">No. WA sendiri <span className="muted-sm">(opsional)</span></label>
+                  <input id="rem-wa" className="input" value={form.wa_number} placeholder="08xxxxxxxxxx"
                     onChange={(e) => setForm({ ...form, wa_number: e.target.value })} />
                 </div>
               </div>
