@@ -67,8 +67,8 @@ export default function ForgotPassword() {
             <p className="sub">{a.fgSub}</p>
             {err && <div className="alert alert-err">{err}</div>}
             <div className="field">
-              <label>{a.email}</label>
-              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={a.emailPh} />
+              <label htmlFor="fg-email">{a.email}</label>
+              <input id="fg-email" className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={a.emailPh} />
             </div>
             <button className="btn btn-primary btn-block btn-lg" disabled={busy}>{busy ? a.fgSending : a.fgSend}</button>
             <p className="auth-foot"><Link to="/masuk">{a.backToLogin}</Link></p>
@@ -87,13 +87,13 @@ export default function ForgotPassword() {
               </div>
             )}
             <div className="field">
-              <label>{a.newPwd}</label>
-              <input className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" />
+              <label htmlFor="fg-new-password">{a.newPwd}</label>
+              <input id="fg-new-password" className="input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" />
               <PasswordChecklist value={pw} />
             </div>
             <div className="field">
-              <label>{a.repeatPwd}</label>
-              <input className="input" type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="••••••••" />
+              <label htmlFor="fg-repeat-password">{a.repeatPwd}</label>
+              <input id="fg-repeat-password" className="input" type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="••••••••" />
             </div>
             <button className="btn btn-primary btn-block btn-lg" disabled={busy}>{busy ? a.saving : a.savePwd}</button>
             <p className="auth-foot"><Link to="/masuk">{a.backToLogin}</Link></p>

@@ -89,24 +89,24 @@ export default function Register() {
             <p className="sub">{a.regSub}</p>
             {err && <div className="alert alert-err">{err}</div>}
             <div className="field">
-              <label>{a.bizName}</label>
-              <input className="input" value={form.businessName} onChange={set('businessName')} placeholder={a.bizNamePh} />
+              <label htmlFor="reg-business-name">{a.bizName}</label>
+              <input id="reg-business-name" className="input" value={form.businessName} onChange={set('businessName')} placeholder={a.bizNamePh} />
             </div>
             <div className="field">
-              <label>{a.ownerName}</label>
-              <input className="input" value={form.ownerName} onChange={set('ownerName')} placeholder={a.ownerNamePh} />
+              <label htmlFor="reg-owner-name">{a.ownerName}</label>
+              <input id="reg-owner-name" className="input" value={form.ownerName} onChange={set('ownerName')} placeholder={a.ownerNamePh} />
             </div>
             <div className="field">
-              <label>{a.email}</label>
-              <input className="input" type="email" value={form.email} onChange={set('email')} placeholder={a.emailPh} />
+              <label htmlFor="reg-email">{a.email}</label>
+              <input id="reg-email" className="input" type="email" value={form.email} onChange={set('email')} placeholder={a.emailPh} />
             </div>
             <div className="field">
-              <label>{a.phone}</label>
-              <input className="input" value={form.phone} onChange={set('phone')} placeholder={a.phonePh} />
+              <label htmlFor="reg-phone">{a.phone}</label>
+              <input id="reg-phone" className="input" value={form.phone} onChange={set('phone')} placeholder={a.phonePh} />
             </div>
             <div className="field">
-              <label>{a.password}</label>
-              <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" />
+              <label htmlFor="reg-password">{a.password}</label>
+              <input id="reg-password" className="input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" />
               <PasswordChecklist value={form.password} />
             </div>
             <label className="agree">

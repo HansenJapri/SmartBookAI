@@ -38,16 +38,16 @@ export default function Login() {
           <p className="sub">{a.loginSub} 👋</p>
           {err && <div className="alert alert-err">{err}</div>}
           <div className="field">
-            <label>{a.email}</label>
-            <input className="input" type="email" required value={email}
+            <label htmlFor="login-email">{a.email}</label>
+            <input id="login-email" className="input" type="email" required value={email}
               onChange={(e) => setEmail(e.target.value)} placeholder={a.emailPh} />
           </div>
           <div className="field">
             <div className="flex between">
-              <label style={{ marginBottom: 0 }}>{a.password}</label>
+              <label htmlFor="login-password" style={{ marginBottom: 0 }}>{a.password}</label>
               <Link to="/lupa-password" className="linklike" style={{ fontSize: 13 }}>{a.forgot}</Link>
             </div>
-            <input className="input" type="password" required value={password} style={{ marginTop: 7 }}
+            <input id="login-password" className="input" type="password" required value={password} style={{ marginTop: 7 }}
               onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
           <button className="btn btn-primary btn-block btn-lg" disabled={busy}>

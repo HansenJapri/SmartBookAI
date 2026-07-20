@@ -250,37 +250,37 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
           )}
 
           <div className="field">
-            <label>Deskripsi</label>
-            <input className="input" value={description}
+            <label htmlFor="tx-description">Deskripsi</label>
+            <input id="tx-description" className="input" value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={linkedLines.length ? '(otomatis dari produk bila dikosongkan)' : 'cth: Transfer masuk dari Bu Sari / Belanja stok di pasar'} />
           </div>
           <div className="field">
-            <label>
+            <label htmlFor="tx-amount">
               Nominal (Rp)
               {linkedLines.length > 0 && <span className="muted-sm"> — otomatis dari produk, bisa diubah</span>}
             </label>
-            <input className="input" type="number" min="0" step="any" value={amount}
+            <input id="tx-amount" className="input" type="number" min="0" step="any" value={amount}
               onChange={(e) => setAmount(e.target.value)} placeholder="150000" />
           </div>
           <div className="field">
-            <label>Kategori</label>
-            <select className="input" value={category}
+            <label htmlFor="tx-category">Kategori</label>
+            <select id="tx-category" className="input" value={category}
               onChange={(e) => { setCategory(e.target.value); setTouchedCat(true) }}>
               {cats.length === 0 && <option value="">(belum ada kategori)</option>}
               {cats.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div className="field">
-            <label>Sumber / Channel</label>
-            <select className="input" value={channel} onChange={(e) => setChannel(e.target.value)}>
+            <label htmlFor="tx-channel">Sumber / Channel</label>
+            <select id="tx-channel" className="input" value={channel} onChange={(e) => setChannel(e.target.value)}>
               {channels.length === 0 && <option value="manual">Manual</option>}
               {channels.map((c) => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
             </select>
           </div>
           <div className="field">
-            <label>Tanggal & waktu</label>
-            <input className="input" type="datetime-local" value={occurredAt}
+            <label htmlFor="tx-occurred-at">Tanggal &amp; waktu</label>
+            <input id="tx-occurred-at" className="input" type="datetime-local" value={occurredAt}
               onChange={(e) => setOccurredAt(e.target.value)} />
           </div>
 
@@ -302,19 +302,19 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
           </div>
           {paymentStatus === 'belum' && (
             <div className="field">
-              <label>Jatuh tempo <span className="muted-sm">(opsional, untuk pengingat)</span></label>
-              <input className="input" type="date" value={dueDate}
+              <label htmlFor="tx-due-date">Jatuh tempo <span className="muted-sm">(opsional, untuk pengingat)</span></label>
+              <input id="tx-due-date" className="input" type="date" value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)} />
             </div>
           )}
           <div className="field">
-            <label>{direction === 'in' ? 'Nama pelanggan' : 'Nama pemasok/pihak'} <span className="muted-sm">(opsional{direction === 'in' ? ', untuk invoice' : ''})</span></label>
-            <input className="input" value={customerName}
+            <label htmlFor="tx-customer-name">{direction === 'in' ? 'Nama pelanggan' : 'Nama pemasok/pihak'} <span className="muted-sm">(opsional{direction === 'in' ? ', untuk invoice' : ''})</span></label>
+            <input id="tx-customer-name" className="input" value={customerName}
               onChange={(e) => setCustomerName(e.target.value)} placeholder={direction === 'in' ? 'cth: Bu Sari' : 'cth: Toko Grosir Jaya'} />
           </div>
           <div className="field">
-            <label>{direction === 'in' ? 'Kontak pelanggan / WhatsApp' : 'Kontak pemasok / WhatsApp'} <span className="muted-sm">(opsional)</span></label>
-            <input className="input" value={customerContact}
+            <label htmlFor="tx-customer-contact">{direction === 'in' ? 'Kontak pelanggan / WhatsApp' : 'Kontak pemasok / WhatsApp'} <span className="muted-sm">(opsional)</span></label>
+            <input id="tx-customer-contact" className="input" value={customerContact}
               onChange={(e) => setCustomerContact(e.target.value)} placeholder="08xxxxxxxxxx" />
           </div>
 
