@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   fetchTransactions, addTransaction, updateTransaction, deleteTransaction, fetchRules, getReceiptUrl, fetchProfile,
-  applyStockForLines,
+  addTransactionWithStock,
 } from '../lib/api'
 import { rupiah, fmtDateTime } from '../lib/format'
 import { Pencil, Trash2, Paperclip, Wallet } from 'lucide-react'
@@ -49,18 +49,17 @@ export default function Transactions() {
     if (modal?.id) {
       const updated = await updateTransaction(modal.id, payload)
       setTx((prev) => prev.map((t2) => (t2.id === updated.id ? updated : t2)))
+    } else if (meta.isNew && meta.lines?.length) {
+      // Transaksi + penyesuaian stok tersimpan atomik: dua-duanya berhasil
+      // atau dua-duanya batal — tidak ada lagi transaksi tanpa stok.
+      const { txn, changes } = await addTransactionWithStock(payload, meta.lines)
+      setTx((prev) => [txn, ...prev])
+      if (changes.length) {
+        setStockMsg('Stok diperbarui — ' + changes.map((c) => `${c.name}: ${c.before} → ${c.after} ${c.unit}`).join('; '))
+      }
     } else {
       const created = await addTransaction(payload)
       setTx((prev) => [created, ...prev])
-      // Sambungkan ke stok: baris produk otomatis mengurangi (jual) / menambah (beli) stok.
-      if (meta.isNew && meta.lines?.length) {
-        try {
-          const changes = await applyStockForLines(meta.lines, meta.direction)
-          if (changes.length) {
-            setStockMsg('Stok diperbarui — ' + changes.map((c) => `${c.name}: ${c.before} → ${c.after} ${c.unit}`).join('; '))
-          }
-        } catch { /* transaksi tetap tersimpan meski update stok gagal */ }
-      }
     }
   }
 

@@ -392,26 +392,19 @@ export async function deleteProduct(id) {
   if (error) throw error
 }
 
-// Menerapkan perubahan stok dari baris produk sebuah transaksi.
-// direction 'in' (penjualan) => stok BERKURANG; 'out' (pembelian) => stok BERTAMBAH.
-// Dipanggil hanya saat transaksi BARU dibuat (bukan saat edit) agar tidak dobel.
-// Mengembalikan ringkasan perubahan untuk ditampilkan ke pengguna.
-export async function applyStockForLines(lines, direction) {
-  const changes = []
-  for (const l of lines) {
-    if (!l.productId) continue
-    const qty = Number(l.qty) || 0
-    if (qty <= 0) continue
-    const { data: p } = await supabase.from('products').select('stock, name, unit').eq('id', l.productId).maybeSingle()
-    if (!p) continue
-    const before = Number(p.stock) || 0
-    const after = Math.max(0, before + (direction === 'out' ? qty : -qty))
-    await supabase.from('products')
-      .update({ stock: after, updated_at: new Date().toISOString() })
-      .eq('id', l.productId)
-    changes.push({ name: p.name, unit: p.unit, before, after })
-  }
-  return changes
+// Simpan transaksi BARU + sesuaikan stok baris produknya dalam SATU transaksi
+// database (RPC add_transaction_with_stock). Gagal di langkah mana pun =
+// seluruh operasi dibatalkan otomatis — tidak ada transaksi tanpa stok
+// atau stok tanpa transaksi. direction 'in' => stok berkurang; 'out' => bertambah.
+// Dipanggil hanya untuk transaksi BARU (edit tidak menyentuh stok agar tidak dobel).
+export async function addTransactionWithStock(tx, lines = []) {
+  const { data, error } = await supabase.rpc('add_transaction_with_stock', {
+    p_tx: tx,
+    p_lines: (lines || []).map((l) => ({ productId: l.productId, qty: l.qty })),
+  })
+  if (error) throw error
+  track('transaction_added', { channel: tx.channel, direction: tx.direction })
+  return { txn: data?.txn || null, changes: data?.changes || [] }
 }
 
 // ---------- PURCHASE ORDER (Gudang fase 1) ----------
@@ -445,47 +438,21 @@ export async function deletePurchaseOrder(id) {
   if (error) throw error
 }
 
-// Menerima PO (status approved -> received):
-// 1) stok produk BERTAMBAH sebesar qty PO;
-// 2) opsional: catat transaksi pengeluaran otomatis (kategori dipilih user);
-// 3) PO dikunci sebagai 'received' + menyimpan referensi transaksinya.
-// Stok ditambah di sini — BUKAN lewat applyStockForLines — agar tidak dobel.
+// Menerima PO (status approved -> received) dalam SATU transaksi database
+// (RPC receive_purchase_order): stok bertambah + opsional catat pengeluaran
+// ('belum' = beli kredit -> UTANG di menu Piutang & Utang) + PO dikunci
+// 'received'. Gagal di langkah mana pun = seluruhnya dibatalkan otomatis.
 export async function receivePurchaseOrder(po, { createExpense = true, category = '', paymentStatus = 'lunas', dueDate = null } = {}) {
-  const { data: p, error: pe } = await supabase
-    .from('products').select('stock, name, unit').eq('id', po.product_id).single()
-  if (pe) throw pe
-  const before = Number(p.stock) || 0
-  const qty = Number(po.qty) || 0
-  const after = before + qty
-  const { error: ue } = await supabase.from('products')
-    .update({ stock: after, updated_at: new Date().toISOString() })
-    .eq('id', po.product_id)
-  if (ue) throw ue
-
-  let txn = null
-  const total = Math.round(qty * (Number(po.unit_price) || 0))
-  if (createExpense && total > 0 && category) {
-    txn = await addTransaction({
-      description: `Pembelian: ${qty} ${p.unit} ${p.name} (${po.po_number})`,
-      amount: total,
-      direction: 'out',
-      category,
-      channel: 'manual',
-      occurred_at: new Date().toISOString(),
-      // 'belum' = beli kredit -> muncul sebagai UTANG di menu Piutang & Utang
-      payment_status: paymentStatus,
-      due_date: paymentStatus === 'belum' && dueDate ? dueDate : null,
-      product_id: po.product_id,
-      qty,
-    })
-  }
-
-  const { data, error } = await supabase.from('purchase_orders')
-    .update({ status: 'received', received_at: new Date().toISOString(), txn_id: txn?.id || null })
-    .eq('id', po.id).select().single()
+  const { data, error } = await supabase.rpc('receive_purchase_order', {
+    p_po_id: po.id,
+    p_create_expense: createExpense,
+    p_category: category,
+    p_payment_status: paymentStatus,
+    p_due_date: paymentStatus === 'belum' && dueDate ? dueDate : null,
+  })
   if (error) throw error
-  track('po_received', { with_expense: Boolean(txn) })
-  return { po: data, stock: { name: p.name, unit: p.unit, before, after }, txn }
+  track('po_received', { with_expense: Boolean(data?.txn) })
+  return { po: data?.po, stock: data?.stock, txn: data?.txn || null }
 }
 
 // ---------- STOCK OPNAME (Gudang fase 1) ----------
@@ -517,28 +484,19 @@ export async function deleteOpname(id) {
   if (error) throw error
 }
 
-// Posting opname: stok tiap produk DISET sama dengan hasil hitung fisik
-// (hitung fisik = kebenaran). Baris tanpa hasil hitung dilewati.
+// Posting opname dalam SATU transaksi database (RPC post_stock_opname):
+// stok tiap produk DISET sama dengan hasil hitung fisik (hitung fisik =
+// kebenaran; baris tanpa hasil hitung dilewati) + sesi dikunci 'posted'.
+// Gagal di langkah mana pun = seluruhnya dibatalkan otomatis.
 export async function postOpname(opname) {
-  const changes = []
-  for (const it of opname.items || []) {
-    const c = it.counted_qty
-    if (c === null || c === undefined || c === '') continue
-    const counted = Number(c)
-    const sys = Number(it.system_qty) || 0
-    if (counted === sys) continue
-    const { error } = await supabase.from('products')
-      .update({ stock: counted, updated_at: new Date().toISOString() })
-      .eq('id', it.product_id)
-    if (error) throw error
-    changes.push({ name: it.name, unit: it.unit, before: sys, after: counted })
-  }
-  const { data, error } = await supabase.from('stock_opnames')
-    .update({ status: 'posted', posted_at: new Date().toISOString(), items: opname.items })
-    .eq('id', opname.id).select().single()
+  const { data, error } = await supabase.rpc('post_stock_opname', {
+    p_opname_id: opname.id,
+    p_items: opname.items || [],
+  })
   if (error) throw error
+  const changes = data?.changes || []
   track('opname_posted', { changes: changes.length })
-  return { opname: data, changes }
+  return { opname: data?.opname, changes }
 }
 
 // ---------- RBAC: PENGGUNA & HAK AKSES (fase 3) ----------
