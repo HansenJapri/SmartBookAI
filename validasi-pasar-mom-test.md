@@ -163,147 +163,111 @@ Asisten bisnis ber-AI yang berjalan **100% lokal** di server/VPS milik pemilik u
 > 4. Yang valid hanya: kejadian nyata + dampak nyata + tindakan nyata
 > 5. Pujian ("wah bagus tuh") bukan validasi — abaikan
 
-**Format:** Interview 1-on-1, 25–35 menit  
+**Format:** Interview 1-on-1, **15–20 menit**  
 **Target responden:** Pemilik atau pengelola aktif UMKM (bukan karyawan biasa)  
-**Jumlah minimum:** 10 orang sebelum menarik kesimpulan
+**Jumlah minimum:** 10 orang sebelum menarik kesimpulan  
+**Total pertanyaan:** 16 (dipangkas dari 28 — semua indikator scoring tetap tercakup)
 
 ---
 
-### BAGIAN 0 — SCREENING (3 menit)
+### BAGIAN 0 — SCREENING (2–3 menit) · 4 pertanyaan
 
 Lakukan sebelum mulai. Kalau tidak lolos, hentikan dengan sopan.
 
 **S1.** Usahanya sudah jalan berapa lama?  
-*(Lanjut hanya jika ≥ 6 bulan — usaha baru belum cukup punya history pain)*
+*(Lanjut hanya jika ≥ 6 bulan)*
 
-**S2.** Sehari-hari Anda yang langsung pegang operasional dan keputusan bisnisnya, atau ada orang lain yang lebih tahu soal keuangan dan tools yang dipakai?  
-*(Lanjut hanya jika mereka sendiri yang pegang — kalau ada manajer/admin yang mengelola, pindah ke orang itu. Data WTP dari orang yang bukan pengambil keputusan tidak bisa dipegang.)*
+**S2.** Sehari-hari Anda yang langsung pegang keputusan soal keuangan dan tools yang dipakai di usaha ini?  
+*(Lanjut hanya jika ya — kalau ada manajer/admin yang lebih tahu, pindah ke orang itu)*
 
-**S3.** Produk atau layanannya apa, dan jualan di mana saja?  
-*(Catat: online/offline, channel apa saja. Ini penting untuk tahu relevansi produk mana)*
+**S3.** Usahanya apa, dan jualan di mana saja — online, offline, atau platform tertentu?  
+*(Catat semua channel. Ini menentukan apakah Blok B perlu dijalankan atau di-skip)*
 
-**S4.** Dalam sebulan, kira-kira ada berapa transaksi atau pesanan yang masuk?  
-*(Catat estimasi volume — ini sinyal seberapa parah pain mereka)*
+**S4.** Saat ini ada aplikasi atau tools yang Anda bayar untuk bantu jalankan usaha — kasir, pembukuan, apapun? Berapa per bulannya?  
+*(Sudah pernah bayar tools = indikator komitmen. Catat angkanya.)*
 
-**S5.** Saat ini ada aplikasi atau tools yang Anda bayar untuk bantu jalankan usaha — kasir, pembukuan, laporan, marketplace, apapun? Kalau ada, berapa per bulannya kira-kira?  
-*(Penting: UMKM yang belum pernah bayar tools apapun sangat unlikely jadi customer pertama. Kalau nol — wawancara tetap lanjut, tapi catat ini dan turunkan bobot kesimpulannya. Kalau sudah bayar sesuatu — ini sinyal kuat bahwa mereka mau invest untuk tools.)*
-
-> **Kriteria lolos screening:** Usaha ≥6 bulan, pengambil keputusan langsung, dan ada volume transaksi nyata.  
-> **Bonus poin:** Sudah pernah bayar tools/software apapun untuk bisnis mereka.
+> ✂️ **Dipangkas:** S4 lama (jumlah transaksi) — estimasinya sudah bisa dibaca dari S3.
 
 ---
 
-### BAGIAN 1 — WARM-UP: PAHAMI KONTEKS BISNIS (3–5 menit)
+### BAGIAN 1 — WARM-UP (2–3 menit) · 1 pertanyaan
 
-Tujuan: bangun rapport, biarkan mereka cerita bebas tentang bisnisnya.
+**W1.** Sehari-hari di bisnis ini, waktu dan energi Anda paling banyak habis ngapain — dan bagian mana yang paling bikin capek atau frustrasi?  
+*(Satu pertanyaan, dua informasi: prioritas waktu + sumber frustrasi. Dengarkan: apakah mereka spontan sebut "catat", "laporan", "rekap", "stok", "piutang"? Itu sinyal kuat — catat kata-katanya persis.)*
 
-**W1.** Kalau saya tanya, sehari-hari di bisnis ini waktu Anda habis paling banyak ngapain?
-
-**W2.** Dari semua hal yang Anda kerjakan setiap hari, bagian mana yang paling bikin capek atau frustrasi?
-
-> **Yang Anda cari:** Apakah mereka spontan sebut "catat", "laporan", "rekap", "buka aplikasi", "stok", "piutang"? Itu sinyal kuat.  
-> **Jangan arahkan** — biarkan kata-kata datang dari mereka.
+> ✂️ **Dipangkas:** W1 + W2 lama digabung jadi satu. Kedua informasi tetap tergali dari satu pertanyaan dengan probing natural.
 
 ---
 
-### BAGIAN 2 — GALI PAIN: KEUANGAN & PEMBUKUAN (SmartBookAI)
+### BAGIAN 2 — GALI PAIN: KEUANGAN & PEMBUKUAN · 3 pertanyaan
 
-> Tujuan: pahami seberapa parah masalah pencatatan keuangan mereka.  
-> **Skip logic:** Kalau di A1 mereka bilang sudah pakai software pembukuan berbayar dan puas → lewati A2–A6, langsung ke A7 lalu lanjut ke Blok B.
+> **Skip logic:** Kalau S3 hanya punya 1 channel dan tidak ada sinyal pain keuangan dari W1 → prioritaskan Blok B, Blok A jadi ringkas.
 
-**A1.** Gimana cara Anda sekarang mencatat pemasukan dan pengeluaran usaha — bisa ceritakan prosesnya dari awal sampai akhir?  
-*(Tujuan: pahami alur nyata mereka. Dengerin: buku tulis, Excel, aplikasi, atau tidak dicatat sama sekali? Siapa yang melakukan? Seberapa sering?)*
+**A1.** Gimana cara Anda sekarang mencatat pemasukan dan pengeluaran usaha — dari awal sampai akhir prosesnya?  
+*(Dengerin: buku tulis, Excel, aplikasi, atau tidak dicatat sama sekali? Siapa yang melakukan? Seberapa sering? Kalau pakai Excel/manual → follow-up: "Kapan terakhir kali Anda tahu persis untung berapa bulan itu?")*
 
-**A2.** Kapan terakhir kali Anda tahu persis berapa keuntungan bersih usaha Anda — bukan kira-kira, tapi angka yang Anda yakini?  
-*(Framing ini netral — tidak mensyaratkan mereka harus tahu. Kalau jawabannya "tidak pernah tahu" atau "sudah lama" → pain nyata. Kalau "setiap bulan" → gali lebih dalam: prosesnya gimana?)*
+**A2.** Ceritakan satu kejadian dalam 3 bulan terakhir di mana kondisi keuangan yang tidak jelas bikin Anda bingung, rugi, atau salah ambil keputusan — kejadiannya seperti apa?  
+*(Ini pertanyaan inti. Kalau ada kejadian konkret: apa dampaknya? Gimana perasaan Anda waktu itu?)*  
+*(Kalau tidak ada cerita konkret → pancing dengan: "Misalnya — pernah bank atau mitra minta laporan mendadak? Atau pernah tidak tahu usaha untung atau rugi sampai akhir bulan?" Kalau masih tidak ada → pain rendah, turunkan skor, jangan gali lebih dalam.)*
 
-**A3.** Ceritakan satu kejadian dalam 3 bulan terakhir di mana Anda bingung atau keteteran karena kondisi keuangan usaha tidak jelas — kejadiannya seperti apa?  
-*(Kalau ada kejadian: apa dampaknya — kehilangan uang, waktu, keputusan yang ternyata salah? Gimana perasaan Anda waktu itu? Tanyakan ini untuk menangkap emosi — itu sinyal urgency yang sesungguhnya.)*  
-*(Kalau tidak ada kejadian dalam 3 bulan → pain-nya rendah. Lanjut ke A4 tapi turunkan skor.)*
+**A3.** Untuk mengatasi masalah pencatatan ini — sekarang sudah keluarkan apa per bulan? Bayar admin, beli aplikasi, atau waktu Anda sendiri yang habis? Pernah coba tools lain sebelumnya tapi berhenti — kenapa?  
+*(Dua hal dalam satu: biaya masalah saat ini + riwayat workaround. Biaya masalah = anchor WTP. Riwayat workaround = barrier adopsi.)*
 
-**A4.** Kalau bank atau investor minta laporan keuangan usaha Anda besok pagi — Anda bisa siapin? Prosesnya gimana, dan berapa lama?  
-*(Pernah kejadian nyata seperti ini? Kalau pernah → cerita lebih detail. Ini salah satu trigger urgency terkuat.)*
+> ✂️ **Dipangkas:** A3 lama (laporan ke bank) → lipat jadi probe kondisional dalam A2, hanya ditanya kalau A2 tidak dapat cerita konkret.
 
-**A5.** Untuk mengatasi masalah pencatatan ini — sekarang Anda sudah keluarkan apa? Bayar admin? Beli aplikasi? Atau waktu Anda sendiri yang habis? Estimasi berapa per bulan?  
-*(Ini bukan WTP — ini biaya masalah saat ini. Tanpa tahu angka ini, WTP yang ditanya nanti tidak bisa dibandingkan.)*
-
-**A6.** *(Tanya hanya kalau relevan dari profil bisnis mereka)* Stok dan piutang Anda dikelola di mana? Pernah ada kejadian stok kosong saat ramai, atau tagihan yang tidak tertagih sampai lupa? Ceritakan.
-
-**A7.** Pernah coba tools — Excel, Google Sheets, atau aplikasi apapun — untuk bantu pencatatan keuangan? *(Kalau pernah)* Apa yang membuat Anda berhenti atau tidak puas?  
-*(Jawaban ini mengungkap barrier adopsi yang sesungguhnya — lebih berharga dari sekedar "pernah/tidak".)*
-
-> **Sinyal kuat pain ini nyata:**
-> - Menyebut kejadian konkret dalam 90 hari terakhir dengan dampak finansial
-> - Sudah punya workaround aktif yang diupayakan sendiri (tanda pain cukup parah untuk dicoba atasi)
-> - Ekspresi emosional — frustrasi, stres, malu — saat cerita kejadian
-> - Sudah keluarkan uang/waktu signifikan untuk workaround (A5)
+> **Sinyal kuat:**
+> - Kejadian konkret dalam 90 hari dengan dampak finansial
+> - Ekspresi emosional saat bercerita — frustrasi, stres, malu
+> - Sudah keluarkan uang/waktu nyata untuk workaround (A4)
 
 ---
 
-### BAGIAN 3 — GALI PAIN: DATA PENJUALAN MULTI-CHANNEL (LocalAgent)
+### BAGIAN 3 — GALI PAIN: DATA PENJUALAN MULTI-CHANNEL · 3 pertanyaan
 
-> Tujuan: pahami seberapa parah masalah data yang terpencar lintas platform.  
-> **Skip logic:** Kalau di S3 mereka hanya punya 1 channel penjualan → lewati seluruh Blok B, langsung ke Bagian 4.
+> **Skip logic:** Kalau S3 hanya 1 channel → lewati seluruh Blok B, langsung ke Bagian 4.
 
-**B1.** Anda jualan di berapa tempat atau platform berbeda? Sebutkan satu per satu.  
-*(Catat: kasir fisik, GoFood, GrabFood, Shopee, TikTok Shop, WhatsApp, dll. Kalau ≤2 platform → pain ini kemungkinan rendah, pertimbangkan skip ke Bagian 4.)*
+**B1.** Tadi Anda sebut jualan di [sebutkan dari S3] — setiap pagi, bagaimana Anda tahu kemarin total penjualan dari semua tempat itu berapa? Prosesnya langkah per langkah, berapa lama, dan ada satu tempat yang langsung gabungkan semuanya atau masih terpencar?  
+*(Tiga hal dalam satu pertanyaan: rutinitas rekap, durasi, dan apakah sudah ada solusi. Dengerin: buka banyak app satu per satu? Tulis manual? Tidak tahu sama sekali? Kalau bisa sebut angka menit → pain sangat nyata.)*
 
-**B2.** Saya mau tanya soal rutinitas harian Anda. Setiap pagi, bagaimana Anda tahu kemarin penjualan Anda berapa — total dari semua tempat jualan? Bisa ceritakan prosesnya langkah per langkah?  
-*(Apakah mereka buka beberapa aplikasi satu per satu? Berapa lama? Ada yang ditulis manual? Atau tidak ada rutinitas sama sekali?)*
+**B2.** Ceritakan satu kejadian di mana Anda salah ambil keputusan — stok, promo, jam buka — karena data yang Anda punya waktu itu tidak lengkap. Kejadiannya seperti apa, dampaknya apa?  
+*(Pertanyaan inti untuk LocalAgent. Harus ada kejadian konkret. Kalau tidak ada → pain-nya rendah.)*
 
-**B3.** Dari semua platform itu, ada tidak satu tempat yang langsung menggabungkan semua angkanya jadi satu? Kalau tidak ada — apa yang Anda lakukan sekarang kalau mau lihat total penjualan lintas semua channel?
+**B3.** Pernah coba cara lain untuk atasi masalah rekap dari banyak platform ini? Hasilnya gimana?  
+*(Workaround aktif + tidak puas = sinyal kuat. Kalau belum pernah coba apapun → pain belum cukup sakit untuk mendorong tindakan.)*
 
-**B4.** Ceritakan satu kejadian di mana Anda buat keputusan — soal stok, menu/produk, promo, atau jam operasional — yang ternyata salah atau tidak optimal karena waktu itu data yang Anda punya tidak lengkap.  
-*(Apa keputusannya? Apa dampaknya — kehilangan penjualan, stok mubazir, promo tidak tepat sasaran? Kapan terjadi? Gimana perasaan Anda waktu sadar itu salah keputusan?)*
+> ✂️ **Dipangkas:** B2 lama (ada yang gabungkan semua?) → lipat jadi bagian dari B1.
 
-**B5.** Dalam seminggu terakhir, kalau dijumlah, berapa lama total waktu yang Anda atau tim Anda habiskan hanya untuk rekap, lihat, atau laporan dari berbagai platform itu?  
-*(Kalau mereka tidak bisa estimasi → tanda masalah belum cukup sakit untuk dirasakan. Kalau langsung sebut angka konkret → pain sangat nyata.)*
-
-**B6.** Pernah kepikiran atau sudah coba cara lain untuk atasi masalah rekap dari banyak platform ini — apapun caranya? Hasilnya gimana?  
-*(Ini menggali workaround dan barrier adopsi. Jangan tanya "apa solusinya" — biarkan mereka cerita sendiri.)*
-
-> **⚠️ Pertanyaan yang DIHAPUS dari versi sebelumnya:**  
-> ~~"Apakah Anda khawatir kalau data bisa dilihat pihak lain?"~~ — ini pertanyaan LEADING. Kita menanam kekhawatiran yang mungkin tidak ada. Kalau privasi data memang jadi concern mereka, mereka akan menyebutnya sendiri saat B3 atau B6.
-
-> **Sinyal kuat pain ini nyata:**
-> - Sebut ≥3 platform/channel berbeda
-> - Bisa langsung estimasi berapa menit per hari habis untuk rekap
-> - Ada kejadian konkret salah keputusan dalam 60 hari terakhir
-> - Punya workaround aktif tapi merasa tidak puas dengan workaround itu
-> - Ekspresi frustrasi atau kelelahan spontan saat menjelaskan prosesnya
+> **Sinyal kuat:**
+> - ≥3 channel berbeda, tahu persis berapa menit per hari habis untuk rekap
+> - Kejadian konkret salah keputusan dalam 60 hari terakhir
+> - Sudah coba workaround tapi tidak puas
 
 ---
 
-### BAGIAN 4 — PRIORITAS & WILLINGNESS TO PAY
+### BAGIAN 4 — PRIORITAS & WILLINGNESS TO PAY · 4 pertanyaan (P1 gabungan = hemat 1)
 
-> Lakukan setelah Blok A dan B selesai. Jangan jelaskan produk Anda dulu.
+**P1.** Dari semua yang kita obrolin — kalau besok ada satu masalah yang bisa hilang selamanya, mana yang paling Anda mau? Dan untuk masalah itu, sekarang sudah keluarkan berapa per bulan — waktu atau uang — buat mengatasinya?  
+*(Dua hal dalam satu: masalah prioritas + biaya masalah saat ini. Diam setelah bagian pertama, tunggu jawaban mereka, baru tanya biaya. Kalau biaya masalah sudah dijawab di A3/B3 → lewati bagian kedua, lanjut ke P2.)*
 
-**P1.** Dari semua yang kita obrolin tadi — kalau besok ada satu masalah operasional yang bisa hilang selamanya, mana yang paling Anda mau?  
-*(Biarkan mereka pilih tanpa diberi pilihan. JANGAN sebut "keuangan" atau "data multi-channel" — itu membocorkan bahwa Anda punya dua produk. Diam dan tunggu jawaban mereka.)*
+**P2.** Kalau ada solusi yang benar-benar selesaikan itu — Anda mau bayar berapa per bulan?  
+*(Tunggu. Jangan kasih angka dulu. Kalau diam > 10 detik: "lebih dari Rp 50 ribu?" Naik bertahap.)*
 
-**P2.** Masalah yang Anda sebut tadi — seberapa sering itu muncul? Terakhir kali kapan terasa paling parah?  
-*(Pain yang terjadi minggu ini lebih urgent dari pain yang terjadi setahun lalu. Ini mengkalibrasi skala waktu.)*
+**P3.** Angka itu Anda pilih dibanding apa?  
+*(Referensi nyata — gaji admin, app lain, atau acak? Referensi nyata = WTP yang bisa dipegang.)*
 
-**P3.** Untuk masalah itu, sekarang Anda sudah keluarkan berapa per bulan — waktu atau uang — untuk mencoba mengatasinya? Ini bisa apa saja: gaji admin, beli aplikasi, waktu Anda sendiri setelah jam tutup, apapun.  
-*(Ini adalah pertanyaan biaya masalah — WAJIB ditanya sebelum WTP. Kalau masalah ini sudah "biaya" Rp 2 juta/bulan untuk mereka, membayar Rp 200 ribu untuk solusi adalah mudah. Kalau biaya masalahnya nol — WTP mereka akan rendah dan Anda tidak bisa bandingkan.)*
+**P4.** Saya ingin tunjukkan sesuatu yang mungkin relevan untuk ini. Kapan Anda punya 20 menit — minggu ini atau minggu depan?  
+*(Hari & jam spesifik = komitmen nyata. "Kapan aja bisa" = sinyal lemah.)*
 
-**P4.** Kalau ada solusi yang benar-benar menyelesaikan masalah itu — Anda mau bayar berapa per bulan?  
-*(Jangan kasih angka dulu. Tunggu. Kalau diam lebih dari 10 detik: "lebih dari Rp 50 ribu?" Kalau ya: "lebih dari Rp 100 ribu?" Naik bertahap — jangan langsung loncat ke angka tinggi.)*
-
-**P5.** Kenapa Anda pilih angka itu — dibanding apa?  
-*(Ini mengungkap referensi harga mereka. Apakah dibanding gaji admin? Aplikasi lain yang sudah dipakai? Atau angka acak? Referensi yang nyata = tanda WTP yang bisa dipercaya.)*
-
-**P6.** Saya ingin tunjukkan sesuatu yang mungkin relevan untuk masalah yang kita obrolin. Kapan waktu Anda punya 20 menit untuk lihat ini — minggu ini atau minggu depan?  
-*(Commitment nyata = mereka kasih hari & jam spesifik dalam 7 hari ke depan. "Nanti kalau sempat" atau "kapan aja bisa" = sinyal lemah, jangan hitung sebagai komitmen.)*
+> ✂️ **Dipangkas:** P2 lama (biaya masalah) → digabung ke P1 dalam satu kalimat.
 
 ---
 
-### BAGIAN 5 — PENUTUP (2 menit)
+### BAGIAN 5 — PENUTUP (30 detik) · 1 pertanyaan
 
-**C1.** Dari seluruh obrolan kita tadi, ada hal lain soal operasional bisnis yang terasa paling berat tapi belum kita bahas?
+**C1.** Boleh saya hubungi lagi kalau ada yang mau saya tanyakan lebih lanjut?  
+*(Ya = sinyal keterlibatan. Minta kontak kalau belum punya.)*
 
-**C2.** Kalau saya mau tanya lebih lanjut nanti, boleh saya hubungi lagi?  
-*(Kalau ya = sinyal keterlibatan tinggi)*
+> ✂️ **Dipangkas:** C1 lama ("ada hal lain yang belum dibahas?") — tidak berkontribusi ke indikator scoring manapun.
 
 > **Jangan lupa:** Setelah wawancara selesai, **langsung isi Template Catatan (Bagian 6)** sebelum memori kabur.
 
@@ -342,7 +306,7 @@ Jumlahkan poin dari setiap indikator di bawah:
 |---|---|
 | Mereka kasih hari & jam spesifik untuk followup dalam 7 hari ke depan | +1 |
 | Mereka punya workaround aktif tapi tidak puas — aktif cari alternatif | +1 |
-| Mereka sudah bayar tools/software apapun sebelumnya (dari S5) | +1 |
+| Mereka sudah bayar tools/software apapun sebelumnya (dari S4) | +1 |
 
 **Total Skor Urgency: __ / 10**
 
