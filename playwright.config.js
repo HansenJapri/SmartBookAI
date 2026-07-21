@@ -22,13 +22,13 @@ export default defineConfig({
     // Test publik: TANPA sesi (menguji guard rute saat belum masuk).
     {
       name: 'chromium',
-      testIgnore: /authenticated\.spec\.js/,
+      testIgnore: /(authenticated|mutation)\.spec\.js/,
       use: { ...devices['Desktop Chrome'] },
     },
     // Test ter-login: memakai sesi hasil setup.
     {
       name: 'chromium-auth',
-      testMatch: /authenticated\.spec\.js/,
+      testMatch: /(authenticated|mutation)\.spec\.js/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
     },

@@ -108,9 +108,16 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
     setCategory(cats.includes(suggested) ? suggested : (cats[0] || ''))
   }, [description, direction, touchedCat, rules]) // eslint-disable-line
 
+  // Pastikan kategori selalu terisi nilai yang sah. Bergantung juga pada daftar
+  // kategori: saat modal dibuka, katalog kerap belum termuat sehingga daftarnya
+  // masih kosong. Bila efek ini hanya bergantung pada `direction`, ia berhenti
+  // di situ dan kategori tertinggal kosong — dropdown TAMPAK terisi (browser
+  // jatuh ke opsi pertama karena nilai kosong tak punya padanan) padahal
+  // nilainya kosong, lalu Simpan ditolak "Pilih kategori dulu".
   useEffect(() => {
-    if (!cats.includes(category)) setCategory(cats[0] || '')
-  }, [direction]) // eslint-disable-line
+    if (!cats.length) return
+    if (!cats.includes(category)) setCategory(cats[0])
+  }, [direction, cats.join('|')]) // eslint-disable-line
 
   // Kelompokkan produk per kategori produk untuk dropdown yang rapi.
   const productGroups = products.reduce((acc, p) => {
