@@ -170,11 +170,15 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
         <div className="modal-body">
           {err && <div className="alert alert-err">{err}</div>}
           <div className="field">
-            <label>Jenis</label>
-            <div className="seg">
+            {/* Pilihan berupa tombol, bukan satu kontrol tunggal — jadi diberi
+                semantik grup + status tertekan, bukan label-for. */}
+            <label id="tx-direction-label">Jenis</label>
+            <div className="seg" role="group" aria-labelledby="tx-direction-label">
               <button type="button" className={direction === 'in' ? 'on-in' : ''}
+                aria-pressed={direction === 'in'}
                 onClick={() => { setDirection('in'); setTouchedCat(true) }}>↓ Pemasukan</button>
               <button type="button" className={direction === 'out' ? 'on-out' : ''}
+                aria-pressed={direction === 'out'}
                 onClick={() => { setDirection('out'); setTouchedCat(true) }}>↑ Pengeluaran</button>
             </div>
           </div>
@@ -285,11 +289,13 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
           </div>
 
           <div className="field">
-            <label>Status pembayaran</label>
-            <div className="seg">
+            <label id="tx-payment-label">Status pembayaran</label>
+            <div className="seg" role="group" aria-labelledby="tx-payment-label">
               <button type="button" className={paymentStatus === 'lunas' ? 'on-in' : ''}
+                aria-pressed={paymentStatus === 'lunas'}
                 onClick={() => setPaymentStatus('lunas')}>Lunas</button>
               <button type="button" className={paymentStatus === 'belum' ? 'on-out' : ''}
+                aria-pressed={paymentStatus === 'belum'}
                 onClick={() => setPaymentStatus('belum')}>Belum Lunas</button>
             </div>
             {paymentStatus === 'belum' && (

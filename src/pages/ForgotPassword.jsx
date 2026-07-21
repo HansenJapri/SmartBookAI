@@ -82,8 +82,10 @@ export default function ForgotPassword() {
             {err && <div className="alert alert-err">{err}</div>}
             {step === 'reset' && (
               <div className="field">
-                <label>{a.otpLabel}</label>
-                <OtpInput value={otp} onChange={setOtp} />
+                <label id="fg-otp-label">{a.otpLabel}</label>
+                <div role="group" aria-labelledby="fg-otp-label">
+                  <OtpInput value={otp} onChange={setOtp} />
+                </div>
               </div>
             )}
             <div className="field">

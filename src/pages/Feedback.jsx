@@ -86,15 +86,19 @@ export default function Feedback() {
 
           <div className="two-col" style={{ alignItems: 'start' }}>
             <div className="field">
-              <label>{f.qSat}</label>
-              <Stars value={rating} onChange={setRating} label={f.starLabel} />
+              <label id="fb-rating-label">{f.qSat}</label>
+              <div role="group" aria-labelledby="fb-rating-label">
+                <Stars value={rating} onChange={setRating} label={f.starLabel} />
+              </div>
             </div>
             <div className="field">
-              <label>{f.qHelp}</label>
-              <div className="seg" style={{ maxWidth: 280 }}>
+              <label id="fb-helped-label">{f.qHelp}</label>
+              <div className="seg" role="group" aria-labelledby="fb-helped-label" style={{ maxWidth: 280 }}>
                 <button type="button" className={helped === true ? 'on-in' : ''}
+                  aria-pressed={helped === true}
                   onClick={() => setHelped(helped === true ? null : true)}>{f.helpedYes}</button>
                 <button type="button" className={helped === false ? 'on-out' : ''}
+                  aria-pressed={helped === false}
                   onClick={() => setHelped(helped === false ? null : false)}>{f.helpedNo}</button>
               </div>
             </div>

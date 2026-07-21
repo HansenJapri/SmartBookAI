@@ -328,11 +328,13 @@ export default function PurchaseOrders() {
                     </select>
                   </div>
                   <div className="field">
-                    <label>Pembayaran ke supplier</label>
-                    <div className="seg">
+                    <label id="po-payment-label">Pembayaran ke supplier</label>
+                    <div className="seg" role="group" aria-labelledby="po-payment-label">
                       <button type="button" className={rcPayment === 'lunas' ? 'on-in' : ''}
+                        aria-pressed={rcPayment === 'lunas'}
                         onClick={() => setRcPayment('lunas')}>Lunas</button>
                       <button type="button" className={rcPayment === 'belum' ? 'on-out' : ''}
+                        aria-pressed={rcPayment === 'belum'}
                         onClick={() => setRcPayment('belum')}>Belum (kredit)</button>
                     </div>
                   </div>

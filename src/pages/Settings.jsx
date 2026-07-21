@@ -250,8 +250,8 @@ export default function Settings() {
         <div className="card-sub">Logo, baris "dilayani oleh", serta PPN dan biaya layanan yang tampil pada nota dan invoice.</div>
         {notaMsg && <div className={notaMsg.startsWith('⚠') ? 'alert alert-err' : 'alert alert-ok'}>{notaMsg}</div>}
         <div className="field">
-          <label>Logo usaha <span className="muted-sm">(tampil di nota dan invoice)</span></label>
-          <div className="flex gap" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <label id="set-logo-label">Logo usaha <span className="muted-sm">(tampil di nota dan invoice)</span></label>
+          <div className="flex gap" role="group" aria-labelledby="set-logo-label" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
             {profile.logo_url
               ? <img src={profile.logo_url} alt="logo" style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, border: '1px solid var(--line)' }} />
               : <div style={{ width: 56, height: 56, borderRadius: 10, border: '1px dashed var(--line)', display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 11 }}>Logo</div>}

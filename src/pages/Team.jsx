@@ -170,13 +170,15 @@ export default function Team() {
                 )}
               </div>
               <div className="field">
-                <label>Modul yang boleh diakses</label>
+                <label id="team-modules-label">Modul yang boleh diakses</label>
+                <div role="group" aria-labelledby="team-modules-label">
                 {MODULES.map((m) => (
                   <label key={m.key} className="agree" style={{ margin: '0 0 8px' }}>
                     <input type="checkbox" checked={form.modules.includes(m.key)} onChange={() => toggleModule(m.key)} />
                     <span><b>{m.label}</b><br /><span className="muted-sm">{m.desc}</span></span>
                   </label>
                 ))}
+                </div>
               </div>
               <div className="modal-foot">
                 <button type="button" className="btn btn-ghost btn-block" onClick={() => setForm(null)}>Batal</button>

@@ -376,10 +376,11 @@ export default function Attendance() {
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label>Status</label>
-                <div className="row-actions" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: 6 }}>
+                <label id="att-status-label">Status</label>
+                <div className="row-actions" role="group" aria-labelledby="att-status-label" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: 6 }}>
                   {ATTENDANCE_STATUS.map((s) => (
                     <button key={s.key} type="button"
+                      aria-pressed={editor.status === s.key}
                       className={`badge ${editor.status === s.key ? s.cls : ''}`}
                       style={editor.status === s.key
                         ? { border: '1px solid transparent', cursor: 'pointer' }

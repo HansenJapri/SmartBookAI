@@ -209,10 +209,10 @@ export default function Struk() {
 
           <div className="grid-2" style={{ marginBottom: 6, marginTop: 10 }}>
             <div className="field">
-              <label>Simpan sebagai</label>
-              <div className="seg">
-                <button type="button" className={direction === 'in' ? 'on-in' : ''} onClick={() => setDirection('in')}>Pemasukan (penjualan)</button>
-                <button type="button" className={direction === 'out' ? 'on-out' : ''} onClick={() => setDirection('out')}>Pengeluaran (belanja)</button>
+              <label id="struk-direction-label">Simpan sebagai</label>
+              <div className="seg" role="group" aria-labelledby="struk-direction-label">
+                <button type="button" className={direction === 'in' ? 'on-in' : ''} aria-pressed={direction === 'in'} onClick={() => setDirection('in')}>Pemasukan (penjualan)</button>
+                <button type="button" className={direction === 'out' ? 'on-out' : ''} aria-pressed={direction === 'out'} onClick={() => setDirection('out')}>Pengeluaran (belanja)</button>
               </div>
             </div>
             <div className="field">
