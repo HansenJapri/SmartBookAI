@@ -276,9 +276,9 @@ export default function Landing() {
           </div>
           <div>
             <h6>{L.footer.kontak}</h6>
-            <p className="lp-foot-line"><MapPin size={14} aria-hidden="true" /> {L.footer.alamat}</p>
-            <p className="lp-foot-line"><a href={`mailto:${CONTACT_EMAIL}`}><Mail size={14} aria-hidden="true" /> {CONTACT_EMAIL}</a></p>
-            <p className="lp-foot-line"><a href="https://instagram.com/sovralytics_tech" target="_blank" rel="noopener noreferrer"><InstagramIcon size={14} /> {L.footer.instagram}</a></p>
+            <p className="lp-foot-line"><span className="lp-foot-ic"><MapPin size={14} aria-hidden="true" /></span> {L.footer.alamat}</p>
+            <p className="lp-foot-line"><a href={`mailto:${CONTACT_EMAIL}`}><span className="lp-foot-ic"><Mail size={14} aria-hidden="true" /></span> {CONTACT_EMAIL}</a></p>
+            <p className="lp-foot-line"><a href="https://instagram.com/sovralytics_tech" target="_blank" rel="noopener noreferrer"><span className="lp-foot-ic"><InstagramIcon size={14} /></span> {L.footer.instagram}</a></p>
           </div>
         </div>
         <div className="lp-container lp-foot-bottom">

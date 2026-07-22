@@ -55,7 +55,7 @@ export const translations = {
       ctaFinal: {
         h2: 'Sudah Siap Membawa Bisnis Anda ke Level Berikutnya?',
         p: 'Bergabunglah dengan ribuan pemilik warung dan UMKM yang menghemat 10+ jam per minggu dengan SmartBook AI.',
-        primary: 'Mulai Gratis 14 Hari', secondary: 'Hubungi Sales',
+        primary: 'Mulai Gratis 3 Bulan', secondary: 'Hubungi Sales',
         note: 'Tanpa Kartu Kredit. Batalkan Kapan Saja.',
       },
       footer: {
@@ -320,7 +320,7 @@ export const translations = {
       ctaFinal: {
         h2: 'Ready to Take Your Business to the Next Level?',
         p: 'Join thousands of warung owners and SMEs saving 10+ hours a week with SmartBook AI.',
-        primary: 'Start Free 14 Days', secondary: 'Contact Sales',
+        primary: 'Start Free 3 Months', secondary: 'Contact Sales',
         note: 'No Credit Card. Cancel Anytime.',
       },
       footer: {
