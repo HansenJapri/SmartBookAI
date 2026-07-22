@@ -16,6 +16,7 @@ import Chatbot from './Chatbot'
 import AppLock from './AppLock'
 import LangToggle from './LangToggle'
 import ThemeToggle from './ThemeToggle'
+import './applayout.css'
 
 // Menu dikelompokkan agar rapi. Label & judul diambil dari kamus i18n via key.
 const NAV = [
@@ -92,7 +93,7 @@ export default function AppLayout() {
 
   const title = loc.pathname === '/app/struk'
     ? t.app.titleStruk
-    : (TITLE_KEY[loc.pathname] ? t.app.nav[TITLE_KEY[loc.pathname]] : 'BukuPintar')
+    : (TITLE_KEY[loc.pathname] ? t.app.nav[TITLE_KEY[loc.pathname]] : 'SmartBook')
 
   const openAsisten = () => {
     setSheet(false)
@@ -108,7 +109,7 @@ export default function AppLayout() {
       <Chatbot />
       <div className={`side-backdrop ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
       <aside className={`sidebar ${open ? 'open' : ''}`}>
-        <div className="brand"><img src="/logo.svg" alt="" /><span>Buku<b>Pintar</b></span></div>
+        <div className="brand"><span>Smart<b>Book</b> AI</span></div>
         <nav className="side-nav">
           {nav2.map((group) => (
             <div className="side-group" key={group.sec}>

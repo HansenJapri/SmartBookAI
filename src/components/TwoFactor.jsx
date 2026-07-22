@@ -33,7 +33,7 @@ export default function TwoFactor() {
           await supabase.auth.mfa.unenroll({ factorId: f.id })
         }
       }
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'BukuPintar ' + Date.now() })
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'SmartBook ' + Date.now() })
       if (error) throw error
       setFactorId(data.id); setQr(data.totp.qr_code); setSecret(data.totp.secret); setStatus('enrolling')
     } catch (e) { setErr(e.message) } finally { setBusy(false) }

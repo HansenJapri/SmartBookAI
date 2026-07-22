@@ -5,7 +5,7 @@ export default function AuthSide({ title, subtitle, points }) {
   return (
     <div className="auth-side">
       <div className="auth-side-top">
-        <Link to="/" className="brand"><img src="/logo.svg" alt="" /><span>Buku<b>Pintar</b> AI</span></Link>
+        <Link to="/" className="brand"><img src="/logo.svg" alt="" /><span>Smart<b>Book</b> AI</span></Link>
         <LangToggle />
       </div>
       <div>
@@ -15,7 +15,7 @@ export default function AuthSide({ title, subtitle, points }) {
           {points.map((p) => <li key={p}><span className="ck">✓</span> {p}</li>)}
         </ul>
       </div>
-      <p style={{ fontSize: 13, opacity: .7 }}>© 2026 BukuPintar AI</p>
+      <p style={{ fontSize: 13, opacity: .7 }}>© 2026 SmartBook AI</p>
     </div>
   )
 }

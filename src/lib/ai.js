@@ -57,6 +57,13 @@ export async function narasiAI(force = false) {
     'Insight harian sedang tidak dapat dimuat. Coba beberapa saat lagi.')
 }
 
+// Insight stok untuk halaman Stok Produk. Sama polanya dengan narasiAI:
+// hasil di-cache harian per user; force=true memaksa buat ulang.
+export async function stokInsightAI(force = false) {
+  return invokeFn('ai-stok-insight', { force },
+    'Insight stok sedang tidak dapat dimuat. Coba beberapa saat lagi.')
+}
+
 // Draf komposisi biaya (BoM) untuk 1 produk — hasilnya HANYA draf,
 // dikoreksi & disimpan pengguna sendiri.
 export async function hppDraftAI({ productName, businessType, unit, sellPrice }) {

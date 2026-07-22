@@ -168,7 +168,7 @@ export default function Chatbot() {
     <div className="chat-panel" role="dialog" aria-label="Asisten AI">
       <div className="chat-head">
         <div>
-          <b>Asisten BukuPintar</b>
+          <b>Asisten SmartBook</b>
           <div className="chat-sub">{mode === 'tanya' ? 'Panduan & tanya jawab usaha Anda' : 'Catat transaksi lewat ketikan / suara'}</div>
         </div>
         <button className="icon-btn" onClick={() => setOpen(false)} aria-label="Tutup"><X size={18} /></button>

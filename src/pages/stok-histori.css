@@ -1,0 +1,38 @@
+/* Gaya tambahan khusus halaman Histori — reuse .s2-* tokens dari stok.css. */
+
+.s2h-summary { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+.s2h-filters {
+  padding: 16px 24px 20px;
+  display: grid; grid-template-columns: 1fr; gap: 12px;
+}
+@media (min-width: 720px) {
+  .s2h-filters { grid-template-columns: 2fr 1fr 1fr 1.4fr; align-items: center; }
+}
+
+.s2h-date {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: var(--s2-radius);
+  border: 1px solid var(--s2-outline-variant);
+  background: var(--s2-surface-low); color: var(--s2-on-surface);
+  font: 500 13px 'Inter', sans-serif;
+}
+.s2h-date input {
+  background: transparent; border: 0; outline: none;
+  font: inherit; color: inherit; padding: 2px;
+}
+.s2h-date svg { color: var(--s2-primary-2); flex: none; }
+.s2h-date span { color: var(--s2-on-surface-variant); font-weight: 500; }
+.s2h-date:focus-within { border-color: var(--s2-primary-2); box-shadow: 0 0 0 3px rgba(19, 123, 231, 0.15); }
+
+.s2h-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px;
+  font: 700 11px 'Inter', sans-serif;
+}
+.s2h-tag svg { flex: none; }
+.s2h-tag-in { background: rgba(28, 54, 238, 0.1); color: var(--s2-primary); }
+.s2h-tag-out { background: color-mix(in srgb, var(--s2-error) 10%, transparent); color: var(--s2-error); }
+.s2h-tag-adj { background: rgba(7, 187, 210, 0.14); color: var(--s2-teal); }
+[data-theme="dark"] .s2h-tag-in { background: rgba(188, 194, 255, 0.18); color: #bcc2ff; }
+[data-theme="dark"] .s2h-tag-adj { color: var(--s2-cyan); }

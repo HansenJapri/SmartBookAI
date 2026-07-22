@@ -1,24 +1,28 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Wallet, Percent, Sparkles, RefreshCw, Target as TargetIcon, Trash2 } from 'lucide-react'
 import {
-  AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
+  TrendingUp, TrendingDown, Wallet, Percent, Sparkles, RefreshCw,
+  Target as TargetIcon, Trash2, CalendarDays, AlertTriangle, ChevronRight,
+  ArrowRight, CheckCircle2, Clock,
+} from 'lucide-react'
+import {
+  AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { fetchTransactions, fetchLowStock, fetchTxCount, fetchActiveTarget, addTarget, deactivateTarget } from '../lib/api'
+import { fetchTransactions, fetchLowStock, fetchTxCount, fetchActiveTarget, addTarget, deactivateTarget, fetchProfile } from '../lib/api'
 import { narasiAI } from '../lib/ai'
 import { forecastTarget } from '../lib/regression'
 import { sampleTransactions } from '../lib/sampleData'
 import { rupiah, rupiahShort, fmtDateTime, fmtDate } from '../lib/format'
-import { summarize, trendDaily, channelMix, expenseByCategory, findDuplicateGroups } from '../lib/analytics'
+import { summarize, trendDaily, channelMix, expenseByCategory } from '../lib/analytics'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
 import AIDisclaimer from '../components/AIDisclaimer'
 import Reminders from '../components/Reminders'
+import './dashboard.css'
 
 const PRESET_KEYS = ['today', 'week', 'month', 'quarter', 'semester', 'year', 'all', 'custom']
 
-// Menghitung rentang tanggal {start, end} dari preset terpilih.
 function presetRange(preset, from, to) {
   const now = new Date()
   if (preset === 'all') return { start: null, end: null }
@@ -38,6 +42,39 @@ function presetRange(preset, from, to) {
   return { start, end: now }
 }
 
+// Kelompok jam untuk "Peak Hour" — cari 2 jam berturut dengan jumlah transaksi tertinggi.
+function computePeakHour(transactions) {
+  if (!transactions.length) return '—'
+  const buckets = new Array(24).fill(0)
+  for (const t of transactions) {
+    if (t.direction !== 'in') continue
+    const h = new Date(t.occurred_at).getHours()
+    buckets[h]++
+  }
+  let bestI = 0, best = -1
+  for (let i = 0; i < 23; i++) {
+    const s = buckets[i] + buckets[i + 1]
+    if (s > best) { best = s; bestI = i }
+  }
+  if (best <= 0) return '—'
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(bestI)}:00 – ${pad(bestI + 2)}:00`
+}
+
+// Deskripsi transaksi paling sering muncul → proksi produk terlaris.
+function computeTopProduct(transactions) {
+  const map = new Map()
+  for (const t of transactions) {
+    if (t.direction !== 'in') continue
+    const key = (t.description || '').trim().split(/[·\-·|,]/)[0].trim().slice(0, 40)
+    if (!key) continue
+    map.set(key, (map.get(key) || 0) + 1)
+  }
+  let top = '—', best = 0
+  for (const [k, v] of map) if (v > best) { best = v; top = k }
+  return top
+}
+
 export default function Dashboard() {
   const { channelLabel } = useCatalog()
   const { t } = useLang()
@@ -49,11 +86,13 @@ export default function Dashboard() {
   const [preset, setPreset] = useState('month')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [ownerName, setOwnerName] = useState('')
 
   useEffect(() => {
     fetchTransactions().then(setTx).catch(() => setTx([]))
     fetchLowStock().then(setLowStock).catch(() => setLowStock([]))
     fetchTxCount().then(setTxTotal).catch(() => {})
+    fetchProfile().then((p) => setOwnerName(p?.owner_name || p?.business_name || '')).catch(() => {})
   }, [])
 
   const range = useMemo(() => presetRange(preset, from, to), [preset, from, to])
@@ -76,154 +115,171 @@ export default function Dashboard() {
     const mix = channelMix(scoped)
     const byCat = expenseByCategory(scoped).slice(0, 6)
     const trend = trendDaily(tx, 14)
-    const dups = findDuplicateGroups(scoped)
     const unpaid = scoped.filter((t) => t.direction === 'in' && t.payment_status === 'belum')
     const unpaidTotal = unpaid.reduce((s, t) => s + Number(t.amount), 0)
-    return { sum, margin, mix, byCat, trend, dups, recent: tx.slice(0, 6), unpaidCount: unpaid.length, unpaidTotal }
+    const topProduct = computeTopProduct(scoped)
+    const peakHour = computePeakHour(scoped)
+    return { sum, margin, mix, byCat, trend, recent: tx.slice(0, 6), unpaidCount: unpaid.length, unpaidTotal, topProduct, peakHour }
   }, [tx, scoped])
+
+  // Reveal on scroll.
+  const rootRef = useRef(null)
+  useEffect(() => {
+    if (!rootRef.current || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target) }
+    }, { threshold: 0.12 })
+    rootRef.current.querySelectorAll('.d2-rv').forEach((el) => io.observe(el))
+    return () => io.disconnect()
+  }, [tx])
 
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   const periodLabel = d.presets[preset] || d.periodFallback
-
   const enterDemo = () => { setTx(sampleTransactions()); setDemo(true); setPreset('all') }
   const exitDemo = () => { setDemo(false); fetchTransactions().then(setTx).catch(() => setTx([])) }
 
   return (
-    <>
+    <div className="d2" ref={rootRef}>
       <Reminders />
 
+      {/* Greeting + period selector */}
+      <div className="d2-greet d2-rv">
+        <div>
+          <h2>Halo{ownerName ? `, ${ownerName}` : ''} <span className="d2-greet-wave" role="img" aria-label="melambai">👋</span></h2>
+          <p>Berikut ringkasan performa usaha Anda pada periode {periodLabel.toLowerCase()}.</p>
+        </div>
+        <label className="d2-period" aria-label="Pilih rentang tanggal">
+          <CalendarDays size={18} />
+          <select value={preset} onChange={(e) => setPreset(e.target.value)}>
+            {PRESET_KEYS.map((k) => <option key={k} value={k}>{d.presets[k]}</option>)}
+          </select>
+          {preset === 'custom' && (
+            <>
+              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Dari tanggal" />
+              <span style={{ fontSize: 12, color: 'var(--d2-on-surface-variant)' }}>{d.to}</span>
+              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Sampai tanggal" />
+            </>
+          )}
+        </label>
+      </div>
+
+      {/* Alert stok menipis */}
       {lowStock.length > 0 && (
-        <div className="alert alert-err" style={{ marginBottom: 16 }}>
-          <b>{d.lowStock1}</b> {lowStock.length} {d.lowStock2a}
-          {' '}({lowStock.slice(0, 4).map((p) => p.name).join(', ')}{lowStock.length > 4 ? ', ' + d.andOthers : ''}).{' '}
-          <Link to="/app/stok" className="linklike">{d.seeStock}</Link>
+        <div className="d2-alert d2-rv" role="alert">
+          <div className="d2-alert-body">
+            <div className="d2-alert-ic"><AlertTriangle size={20} aria-hidden="true" /></div>
+            <div>
+              <b>{d.lowStock1} {lowStock.length} {d.lowStock2a}</b>
+              <p>{lowStock.slice(0, 4).map((p) => p.name).join(', ')}{lowStock.length > 4 ? `, ${d.andOthers}` : ''}.</p>
+            </div>
+          </div>
+          <Link to="/app/stok" className="d2-alert-cta">Pesan Sekarang</Link>
         </div>
       )}
 
       {demo && (
-        <div className="alert alert-info" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div className="d2-info d2-rv">
           <span><b>{d.demoBold}</b> {d.demoText}</span>
-          <button className="btn btn-ghost" onClick={exitDemo}>{d.demoExit}</button>
+          <button className="d2-btn-ghost" onClick={exitDemo}>{d.demoExit}</button>
         </div>
       )}
 
       {!demo && txTotal > tx.length && (
-        <div className="alert alert-err" style={{ marginBottom: 16 }}>
-          {d.trunc1} {txTotal.toLocaleString('id-ID')} {d.trunc2} {tx.length.toLocaleString('id-ID')} {d.trunc3}
+        <div className="d2-alert d2-rv" role="alert">
+          <div className="d2-alert-body">
+            <div className="d2-alert-ic"><AlertTriangle size={20} aria-hidden="true" /></div>
+            <div>
+              <b>{d.trunc1} {txTotal.toLocaleString('id-ID')} {d.trunc2} {tx.length.toLocaleString('id-ID')} {d.trunc3}</b>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* FILTER RENTANG TANGGAL */}
-      <div className="card card-pad" style={{ marginBottom: 16 }}>
-        <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
-          <div>
-            <h3 className="card-title">{d.summary}</h3>
-            <div className="card-sub">{d.periodLbl} {periodLabel}</div>
-          </div>
-          <div className="flex gap" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <select className="input" style={{ width: 'auto' }} value={preset} onChange={(e) => setPreset(e.target.value)} aria-label="Pilih rentang tanggal">
-              {PRESET_KEYS.map((k) => <option key={k} value={k}>{d.presets[k]}</option>)}
-            </select>
-            {preset === 'custom' && (
-              <>
-                <input className="input" type="date" style={{ width: 'auto' }} value={from} onChange={(e) => setFrom(e.target.value)} />
-                <span className="muted-sm">{d.to}</span>
-                <input className="input" type="date" style={{ width: 'auto' }} value={to} onChange={(e) => setTo(e.target.value)} />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* INSIGHT AI + TARGET PENJUALAN (fitur Masa Depan) */}
-      <div className="two-col" style={{ marginBottom: 16 }}>
-        <InsightCard />
-        <TargetCard tx={tx} />
-      </div>
-
       {tx.length === 0 ? (
-        <div className="card"><div className="empty">
+        <div className="d2-empty d2-rv">
           <h3>{d.emptyTitle}</h3>
           <p>{d.emptyDesc}</p>
-          <div className="flex gap" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" onClick={enterDemo}>{d.tryDemo}</button>
-            <Link to="/app/transaksi" className="btn btn-ghost">{d.addTx}</Link>
-            <Link to="/app/import" className="btn btn-ghost">{d.importCsv}</Link>
+          <div className="d2-empty-actions">
+            <button className="d2-btn-primary" onClick={enterDemo}>{d.tryDemo}</button>
+            <Link to="/app/transaksi" className="d2-btn-ghost">{d.addTx}</Link>
+            <Link to="/app/import" className="d2-btn-ghost">{d.importCsv}</Link>
           </div>
-          <p className="muted-sm" style={{ marginTop: 12 }}>{d.demoNote}</p>
-        </div></div>
+        </div>
       ) : (
         <>
-          <div className="grid-kpi">
-            <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.income}</span><span className="kpi-ic" style={{ background: 'var(--green-50)', color: 'var(--green)' }}><TrendingUp size={16} /></span></div>
-              <div className="kpi-v" style={{ color: 'var(--green)' }}>{rupiahShort(data.sum.income)}</div>
-              <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>{data.sum.count} {d.txCount}</div>
-            </div>
-            <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.expense}</span><span className="kpi-ic" style={{ background: 'var(--red-50)', color: 'var(--red)' }}><TrendingDown size={16} /></span></div>
-              <div className="kpi-v" style={{ color: 'var(--red)' }}>{rupiahShort(data.sum.expense)}</div>
-              <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>{d.periodWord} {periodLabel.toLowerCase()}</div>
-            </div>
-            <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.profit}</span><span className="kpi-ic" style={{ background: 'var(--indigo-50)', color: 'var(--secondary)' }}><Wallet size={16} /></span></div>
-              <div className="kpi-v" style={{ color: data.sum.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>{rupiahShort(data.sum.profit)}</div>
-              <div className={`kpi-d ${data.sum.profit >= 0 ? 'up' : 'down'}`}>{d.profitSub}</div>
-            </div>
-            <div className="card">
-              <div className="kpi-head"><span className="kpi-l">{d.margin}</span><span className="kpi-ic" style={{ background: 'var(--amber-50)', color: 'var(--warn-ink)' }}><Percent size={16} /></span></div>
-              <div className="kpi-v" style={{ color: data.margin >= 0 ? 'var(--green)' : 'var(--red)' }}>{data.margin}%</div>
-              <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>
-                {data.unpaidCount > 0 ? `${data.unpaidCount} ${d.unpaidA} (${rupiahShort(data.unpaidTotal)})` : d.marginSub}
-              </div>
-            </div>
+          {/* AI Insight + Target */}
+          <div className="d2-hero">
+            <InsightCard extras={{ topProduct: data.topProduct, peakHour: data.peakHour, txCount: data.sum.count }} />
+            <TargetCard tx={tx} />
           </div>
 
-          <div className="two-col mt">
-            <div className="card card-pad">
-              <h3 className="card-title">{d.trend}</h3>
-              <div className="card-sub">{d.trend14}</div>
-              <ResponsiveContainer width="100%" height={250}>
+          {/* 4 KPI */}
+          <div className="d2-kpi-grid">
+            <KpiCard variant="up" icon={<TrendingUp size={22} />} label={d.income} value={rupiahShort(data.sum.income)} sub={`${data.sum.count} ${d.txCount}`} />
+            <KpiCard variant="down" icon={<TrendingDown size={22} />} label={d.expense} value={rupiahShort(data.sum.expense)} sub={`${d.periodWord} ${periodLabel.toLowerCase()}`} />
+            <KpiCard variant="wallet" icon={<Wallet size={22} />} label={d.profit} value={rupiahShort(data.sum.profit)} sub={d.profitSub} />
+            <KpiCard variant="pct" icon={<Percent size={22} />} label={d.margin} value={`${data.margin}%`}
+              sub={data.unpaidCount > 0 ? `${data.unpaidCount} ${d.unpaidA} (${rupiahShort(data.unpaidTotal)})` : d.marginSub} />
+          </div>
+
+          {/* Chart tren + donut */}
+          <div className="d2-charts">
+            <div className="d2-panel d2-rv">
+              <div className="d2-panel-head">
+                <div>
+                  <h4 className="d2-panel-title">{d.trend}</h4>
+                  <div className="d2-panel-sub">{d.trend14}</div>
+                </div>
+                <div className="d2-legend">
+                  <span className="d2-legend-item"><span className="d2-legend-dot" style={{ background: '#001ec1' }} />{d.legIncome}</span>
+                  <span className="d2-legend-item"><span className="d2-legend-dot" style={{ background: '#3a90fe' }} />{d.legExpense}</span>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={data.trend} margin={{ left: -10, right: 6, top: 6 }}>
                   <defs>
-                    <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#00fed9" stopOpacity={0.30} />
-                      <stop offset="100%" stopColor="#137be7" stopOpacity={0} />
+                    <linearGradient id="d2gIn" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#001ec1" stopOpacity={0.30} />
+                      <stop offset="100%" stopColor="#001ec1" stopOpacity={0} />
                     </linearGradient>
-                    <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.22} />
-                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
+                    <linearGradient id="d2gOut" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3a90fe" stopOpacity={0.22} />
+                      <stop offset="100%" stopColor="#3a90fe" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={(v) => rupiahShort(v).replace('Rp ', '')} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={56} />
-                  <Tooltip formatter={(v) => rupiah(v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} />
-                  <Area type="monotone" dataKey="omzet" name={d.legIncome} stroke="#137be7" strokeWidth={2.5} fill="url(#gIn)" />
-                  <Area type="monotone" dataKey="pengeluaran" name={d.legExpense} stroke="#f43f5e" strokeWidth={2} fill="url(#gOut)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--d2-outline-variant)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--d2-on-surface-variant)' }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={(v) => rupiahShort(v).replace('Rp ', '')} tick={{ fontSize: 11, fill: 'var(--d2-on-surface-variant)' }} axisLine={false} tickLine={false} width={56} />
+                  <Tooltip formatter={(v) => rupiah(v)} contentStyle={{ borderRadius: 10, border: '1px solid var(--d2-outline-variant)', fontSize: 13, background: 'var(--d2-surface-lowest)' }} />
+                  <Area type="monotone" dataKey="omzet" name={d.legIncome} stroke="#001ec1" strokeWidth={2.5} fill="url(#d2gIn)" />
+                  <Area type="monotone" dataKey="pengeluaran" name={d.legExpense} stroke="#3a90fe" strokeWidth={2} fill="url(#d2gOut)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="card card-pad">
-              <h3 className="card-title">{d.incomeSrc}</h3>
-              <div className="card-sub">{d.perChannel} {periodLabel.toLowerCase()}</div>
-              {data.mix.length === 0 ? <p className="muted-sm">{d.noIncome}</p> : (
+            <div className="d2-panel d2-rv">
+              <div className="d2-panel-head">
+                <div>
+                  <h4 className="d2-panel-title">{d.incomeSrc}</h4>
+                  <div className="d2-panel-sub">{d.perChannel} {periodLabel.toLowerCase()}</div>
+                </div>
+              </div>
+              {data.mix.length === 0 ? <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>{d.noIncome}</p> : (
                 <>
-                  <ResponsiveContainer width="100%" height={160}>
+                  <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
-                      <Pie data={data.mix} dataKey="value" innerRadius={42} outerRadius={66} paddingAngle={3}>
+                      <Pie data={data.mix} dataKey="value" innerRadius={48} outerRadius={78} paddingAngle={3}>
                         {data.mix.map((c) => <Cell key={c.name} fill={c.color} />)}
                       </Pie>
-                      <Tooltip formatter={(v) => rupiah(v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} />
+                      <Tooltip formatter={(v) => rupiah(v)} contentStyle={{ borderRadius: 10, border: '1px solid var(--d2-outline-variant)', fontSize: 13, background: 'var(--d2-surface-lowest)' }} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="legend" style={{ marginTop: 10 }}>
+                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {data.mix.map((c) => (
-                      <div className="lrow" key={c.name}>
-                        <span className="sw" style={{ background: c.color }} />
-                        {c.name} <b>{rupiahShort(c.value)}</b>
+                      <div className="d2-mix-row" key={c.name}>
+                        <span><span className="d2-legend-dot" style={{ background: c.color }} />{channelLabel ? channelLabel(c.name) || c.name : c.name}</span>
+                        <b>{rupiahShort(c.value)}</b>
                       </div>
                     ))}
                   </div>
@@ -232,54 +288,98 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="two-col mt">
-            <div className="card card-pad">
-              <h3 className="card-title">{d.recent}</h3>
-              <div className="card-sub">{d.last6}</div>
-              {data.recent.map((t) => (
-                <div className="tx" key={t.id}>
-                  <div className="txmain">
-                    <div className="txt">{t.description}</div>
-                    <div className="txm">
-                      <span className="pill pill-ch">{channelLabel(t.channel)}</span>
-                      <span className="pill pill-cat">{t.category}</span>
-                      <span>{fmtDateTime(t.occurred_at)}</span>
-                    </div>
-                  </div>
-                  <div className={t.direction === 'in' ? 'amt-in' : 'amt-out'}>
-                    {t.direction === 'in' ? '+' : '-'}{rupiah(t.amount)}
-                  </div>
-                </div>
-              ))}
-              <Link to="/app/transaksi" className="btn btn-ghost mt" style={{ width: '100%', justifyContent: 'center' }}>{d.seeAll}</Link>
+          {/* Recent transactions */}
+          <div className="d2-panel d2-rv" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="d2-panel-head" style={{ padding: '20px 22px', marginBottom: 0, borderBottom: '1px solid var(--d2-outline-variant)' }}>
+              <div>
+                <h4 className="d2-panel-title">{d.recent}</h4>
+                <div className="d2-panel-sub">{d.last6}</div>
+              </div>
+              <Link to="/app/transaksi" style={{ color: 'var(--d2-primary)', font: '600 13px Inter, sans-serif', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {d.seeAll} <ChevronRight size={16} />
+              </Link>
             </div>
-
-            <div className="card card-pad">
-              <h3 className="card-title">{d.expCat}</h3>
-              <div className="card-sub">{d.top6} {periodLabel.toLowerCase()}</div>
-              {data.byCat.length === 0 ? <p className="muted-sm">{d.noExpense}</p> : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={data.byCat} layout="vertical" margin={{ left: 8, right: 12 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" horizontal={false} />
-                    <XAxis type="number" tickFormatter={(v) => rupiahShort(v).replace('Rp ', '')} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(v) => rupiah(v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} />
-                    <Bar dataKey="value" fill="#137be7" radius={[0, 6, 6, 0]} barSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
+            <div className="d2-table-wrap" style={{ margin: 0, padding: 0 }}>
+              <table className="d2-table">
+                <thead>
+                  <tr>
+                    <th>Waktu</th>
+                    <th>Keterangan</th>
+                    <th>Kategori</th>
+                    <th className="d2-num">Nominal</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recent.map((tr) => (
+                    <tr key={tr.id}>
+                      <td style={{ color: 'var(--d2-on-surface-variant)' }}>{fmtDateTime(tr.occurred_at)}</td>
+                      <td style={{ fontWeight: 600 }}>{tr.description}</td>
+                      <td>
+                        <span className={`d2-tag ${tr.direction === 'in' ? 'd2-tag-in' : 'd2-tag-out'}`}>
+                          {tr.direction === 'in' ? 'PEMASUKAN' : (tr.category || 'OPERASIONAL')}
+                        </span>
+                      </td>
+                      <td className={`d2-amt ${tr.direction === 'in' ? 'd2-amt-in' : 'd2-amt-out'}`}>
+                        {tr.direction === 'in' ? '+' : '-'}{rupiah(tr.amount)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {tr.payment_status === 'belum'
+                          ? <Clock size={18} style={{ color: 'var(--d2-outline)' }} aria-label="Belum lunas" />
+                          : <CheckCircle2 size={18} style={{ color: 'var(--d2-success)' }} aria-label="Lunas" />}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+
+          {/* Pengeluaran per kategori */}
+          {data.byCat.length > 0 && (
+            <div className="d2-panel d2-rv">
+              <div className="d2-panel-head">
+                <div>
+                  <h4 className="d2-panel-title">{d.expCat}</h4>
+                  <div className="d2-panel-sub">{d.top6} {periodLabel.toLowerCase()}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(() => {
+                  const max = Math.max(...data.byCat.map((c) => c.value), 1)
+                  return data.byCat.map((c) => (
+                    <div key={c.name}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
+                        <span style={{ color: 'var(--d2-on-surface)', fontWeight: 500 }}>{c.name}</span>
+                        <b style={{ color: 'var(--d2-on-surface)' }}>{rupiahShort(c.value)}</b>
+                      </div>
+                      <div className="d2-progress"><div style={{ width: `${(c.value / max) * 100}%` }} /></div>
+                    </div>
+                  ))
+                })()}
+              </div>
+            </div>
+          )}
         </>
       )}
-    </>
+    </div>
   )
 }
 
-// ---------- KARTU INSIGHT AI HARIAN ----------
-// Angka dihitung server secara deterministik (Edge Function ai-narasi tahap 1);
-// Gemini hanya menarasikan. Hasil di-cache per hari — buka berulang = gratis.
-function InsightCard() {
+function KpiCard({ variant, icon, label, value, sub }) {
+  return (
+    <div className="d2-kpi d2-rv">
+      <div className={`d2-kpi-ic d2-kpi-ic-${variant}`}>{icon}</div>
+      <div>
+        <span className="d2-kpi-l">{label}</span>
+        <div className={`d2-kpi-v d2-kpi-v-${variant}`}>{value}</div>
+        {sub && <span className="d2-kpi-sub">{sub}</span>}
+      </div>
+    </div>
+  )
+}
+
+function InsightCard({ extras }) {
   const [st, setSt] = useState({ loading: true, content: '', err: '' })
   const load = (force) => {
     setSt((s) => ({ ...s, loading: true, err: '' }))
@@ -288,34 +388,63 @@ function InsightCard() {
       .catch((e) => setSt({ loading: false, content: '', err: e.message }))
   }
   useEffect(() => { load(false) }, [])
+
+  const headline = useMemo(() => {
+    if (!st.content) return 'Insight AI Hari Ini'
+    const firstDot = st.content.indexOf('.')
+    return firstDot > 20 ? st.content.slice(0, firstDot + 1) : 'Insight AI Hari Ini'
+  }, [st.content])
+
+  const body = useMemo(() => {
+    if (!st.content) return ''
+    const firstDot = st.content.indexOf('.')
+    return firstDot > 20 ? st.content.slice(firstDot + 1).trim() : st.content
+  }, [st.content])
+
   return (
-    <div className="card card-pad">
-      <div className="flex between" style={{ alignItems: 'flex-start' }}>
-        <div>
-          <h3 className="card-title"><Sparkles size={16} style={{ verticalAlign: '-2px', marginRight: 6, color: '#f59e0b' }} />Insight AI Hari Ini</h3>
-          <div className="card-sub">Narasi otomatis dari angka usaha Anda</div>
+    <div className="d2-insight d2-rv">
+      <div className="d2-insight-blob" aria-hidden="true" />
+      <div className="d2-insight-head">
+        <div className="d2-insight-badges">
+          <span className="d2-badge-ai"><Sparkles size={12} />AI INSIGHT</span>
+          <span className="d2-ts">Diperbarui otomatis dari catatan Anda</span>
         </div>
-        <button className="icon-btn" onClick={() => load(true)} disabled={st.loading} title="Buat ulang insight">
-          <RefreshCw size={15} className={st.loading ? 'spin' : ''} />
+        <button className="d2-refresh" onClick={() => load(true)} disabled={st.loading} title="Buat ulang insight" aria-label="Perbarui insight">
+          <RefreshCw size={16} className={st.loading ? 'd2-spin' : ''} />
         </button>
       </div>
       {st.loading ? (
-        <p className="muted-sm" style={{ marginTop: 8 }}>Menyiapkan insight…</p>
+        <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>Menyiapkan insight…</p>
       ) : st.err ? (
-        <p className="muted-sm" style={{ marginTop: 8 }}>{st.err}</p>
+        <p style={{ color: 'var(--d2-error)', fontSize: 14 }}>{st.err}</p>
       ) : (
-        <p style={{ margin: '8px 0 0', fontSize: 14.5, lineHeight: 1.6 }}>{st.content}</p>
+        <>
+          <h3>{headline}</h3>
+          {body && <p className="d2-insight-body">{body}</p>}
+          <Link to="/app/laporan" className="d2-insight-cta">Lihat Detail <ArrowRight size={16} /></Link>
+        </>
       )}
+      <div className="d2-insight-mini">
+        <div>
+          <p>Top Product</p>
+          <p>{extras?.topProduct || '—'}</p>
+        </div>
+        <div>
+          <p>Peak Hour</p>
+          <p>{extras?.peakHour || '—'}</p>
+        </div>
+        <div>
+          <p>Transaksi</p>
+          <p>{extras?.txCount || 0}</p>
+        </div>
+      </div>
       <AIDisclaimer text="Angka dihitung sistem dari catatan Anda; narasinya dibuat AI dan bisa keliru — cek menu Laporan untuk angka resmi." />
     </div>
   )
 }
 
-// ---------- KARTU TARGET PENJUALAN (3 SKENARIO) ----------
-// Prediksi dihitung DETERMINISTIK di perangkat (lib/regression.js): regresi
-// musiman + persentil residual. Bukan AI — dapat diaudit dan gratis.
 function TargetCard({ tx }) {
-  const [target, setTarget] = useState(undefined) // undefined = memuat, null = belum ada
+  const [target, setTarget] = useState(undefined)
   const [form, setForm] = useState({ name: '', amount: '', start_date: new Date().toISOString().slice(0, 10) })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -339,71 +468,61 @@ function TargetCard({ tx }) {
   const dateLabel = (d) => (d ? fmtDate(d) : '> 1 tahun')
 
   return (
-    <div className="card card-pad">
-      <div className="flex between" style={{ alignItems: 'flex-start' }}>
+    <div className="d2-target d2-rv">
+      <div className="d2-target-head">
         <div>
-          <h3 className="card-title"><TargetIcon size={16} style={{ verticalAlign: '-2px', marginRight: 6, color: 'var(--secondary)' }} />Target Penjualan</h3>
-          <div className="card-sub">Prediksi 3 skenario dari pola penjualan Anda (regresi musiman, bukan AI)</div>
+          <h4><TargetIcon size={14} style={{ verticalAlign: '-2px', marginRight: 6, color: 'var(--d2-primary)' }} />Target Penjualan</h4>
+          <div className="d2-tv">{target?.amount ? rupiahShort(target.amount) : 'Rp —'}</div>
         </div>
         {target && (
-          <button className="icon-btn danger" onClick={stop} disabled={busy} title="Hapus target">
-            <Trash2 size={15} />
-          </button>
+          <>
+            <span className="d2-target-pct">{fc?.progressPct ?? 0}%</span>
+            <button className="d2-refresh" onClick={stop} disabled={busy} title="Hapus target" aria-label="Hapus target" style={{ color: 'var(--d2-error)', background: 'color-mix(in srgb, var(--d2-error) 10%, transparent)' }}>
+              <Trash2 size={15} />
+            </button>
+          </>
         )}
       </div>
-      {err && <div className="alert alert-err" style={{ marginTop: 8 }}>{err}</div>}
+
+      {err && <div className="d2-alert" style={{ padding: '10px 14px' }}><div className="d2-alert-body"><span style={{ fontSize: 13 }}>{err}</span></div></div>}
 
       {target === undefined ? (
-        <p className="muted-sm" style={{ marginTop: 8 }}>Memuat…</p>
+        <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>Memuat…</p>
       ) : !target ? (
-        <form onSubmit={create} className="flex gap" style={{ flexWrap: 'wrap', marginTop: 8, alignItems: 'flex-end' }}>
-          <div className="field" style={{ flex: 2, minWidth: 130 }}>
-            <label htmlFor="target-name">Nama target</label>
-            <input id="target-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Omzet Juli" />
+        <form onSubmit={create}>
+          <div>
+            <label htmlFor="d2-target-name">Nama target</label>
+            <input id="d2-target-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Omzet Juli" />
           </div>
-          <div className="field" style={{ flex: 2, minWidth: 120 }}>
-            <label htmlFor="target-amount">Nominal (Rp)</label>
-            <input id="target-amount" className="input" type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="10000000" />
+          <div>
+            <label htmlFor="d2-target-amount">Nominal (Rp)</label>
+            <input id="d2-target-amount" type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="10000000" />
           </div>
-          <div className="field" style={{ flex: 1.5, minWidth: 130 }}>
-            <label htmlFor="target-start-date">Dihitung sejak</label>
-            <input id="target-start-date" className="input" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+          <div>
+            <label htmlFor="d2-target-start">Dihitung sejak</label>
+            <input id="d2-target-start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
           </div>
-          <button className="btn btn-primary" disabled={busy}>{busy ? '...' : 'Buat Target'}</button>
+          <button className="d2-btn-primary" disabled={busy}>{busy ? '...' : 'Buat Target'}</button>
         </form>
       ) : (
         <>
-          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-            <b>{target.name}</b>
-            <span>{rupiahShort(fc?.achieved || 0)} / <b>{rupiahShort(target.amount)}</b> ({fc?.progressPct ?? 0}%)</span>
-          </div>
-          <div className="progress-bar" style={{ margin: '8px 0 10px' }}>
-            <div style={{ width: `${Math.min(100, fc?.progressPct || 0)}%` }} />
-          </div>
+          <div className="d2-progress"><div style={{ width: `${Math.min(100, fc?.progressPct || 0)}%` }} /></div>
+
           {fc?.done ? (
-            <div className="alert alert-ok">Target tercapai! 🎉 Hapus target ini untuk membuat target baru.</div>
+            <div className="d2-info">Target tercapai! Hapus target ini untuk membuat target baru.</div>
           ) : !fc?.ready ? (
-            <p className="muted-sm">
+            <p style={{ fontSize: 13, color: 'var(--d2-on-surface-variant)' }}>
               Prediksi aktif setelah <b>{fc?.model?.daysNeed ?? 14} hari</b> data dan <b>{fc?.model?.txNeed ?? 10} transaksi</b> pemasukan.
-              Saat ini: {fc?.model?.daysHave ?? 0} hari, {fc?.model?.txHave ?? 0} transaksi. Terus catat ya!
             </p>
           ) : (
-            <>
-              <div className="scn-chips">
-                <div className="scn-chip" style={{ borderColor: '#86efac' }}><span>Optimis</span><b>{dateLabel(fc.scenarios.optimis)}</b></div>
-                <div className="scn-chip" style={{ borderColor: 'var(--line-accent)' }}><span>Realistis</span><b>{dateLabel(fc.scenarios.realistis)}</b></div>
-                <div className="scn-chip" style={{ borderColor: '#fecaca' }}><span>Pesimis</span><b>{dateLabel(fc.scenarios.pesimis)}</b></div>
-              </div>
-              {fc.trendDown && (
-                <p className="muted-sm" style={{ marginTop: 8, color: 'var(--warn-ink)' }}>
-                  Tren penjualan sedang mendatar/menurun — tanggal di atas bisa mundur. Rata-rata 14 hari terakhir: {rupiah(Math.round(fc.model.avg14))}/hari.
-                </p>
-              )}
-              <p className="muted-sm" style={{ marginTop: 6 }}>
-                Memperhitungkan pola akhir pekan Anda. Skenario pesimis membantu bersiap untuk kondisi terburuk — ini perkiraan, bukan jaminan.
-              </p>
-            </>
+            <div className="d2-scenarios">
+              <span className="d2-scen-lbl">Prediksi AI tercapai:</span>
+              <div className="d2-scen-row"><span><span className="d2-scen-dot d2-scen-dot-opt" />Optimis</span><b>{dateLabel(fc.scenarios.optimis)}</b></div>
+              <div className="d2-scen-row"><span><span className="d2-scen-dot d2-scen-dot-real" />Realistis</span><b>{dateLabel(fc.scenarios.realistis)}</b></div>
+              <div className="d2-scen-row"><span><span className="d2-scen-dot d2-scen-dot-pes" />Pesimis</span><b>{dateLabel(fc.scenarios.pesimis)}</b></div>
+            </div>
           )}
+          <button className="d2-btn-outline" onClick={stop} disabled={busy}>Ubah Target</button>
         </>
       )}
     </div>

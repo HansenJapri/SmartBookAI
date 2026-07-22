@@ -1,262 +1,290 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Camera, FileText, Smartphone, Store, MessageCircle, Mail,
-  Landmark, Receipt, Puzzle, ArrowLeftRight, BarChart3,
+  Mic, ScanLine, Brain, LineChart, AlertTriangle, Users,
+  Bot, PlayCircle, CheckCircle2, MoreVertical, Image as ImageIcon,
+  Send, ChevronRight, ClipboardList, TrendingDown, PackageX,
+  Globe, MessageCircle, Mail, MapPin,
 } from 'lucide-react'
+
+// Ikon Instagram inline — versi lucide yang terpasang tidak mengekspor <Instagram/>.
+const InstagramIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+)
 import { CONTACT_EMAIL } from '../lib/legal'
 import { useLang } from '../context/LangContext'
 import LangToggle from '../components/LangToggle'
 import ThemeToggle from '../components/ThemeToggle'
+import './landing.css'
 
-// Ikon tetap (teks diambil dari kamus i18n, dicocokkan berdasarkan urutan).
-const CHAN_ICONS = [Camera, FileText, Smartphone, Store, MessageCircle, Mail]
-const CHAN_SOON = [false, false, false, false, true, true]
-const PROB_ICONS = [Landmark, Receipt, Puzzle]
-const FITUR_ICONS = [ArrowLeftRight, BarChart3, FileText]
-
-// Chip pembayaran/marketplace untuk strip berjalan (marquee).
-const STRIP_CHIPS = [
-  ['QRIS', '#1c36ee'], ['BCA', '#0ea5e9'], ['Mandiri', '#eab308'], ['BRI', '#1d4ed8'],
-  ['GoPay', '#16a34a'], ['OVO', '#7c3aed'], ['Dana', '#2563eb'], ['Tokopedia', '#16a34a'],
-  ['Shopee', '#f97316'], ['TikTok Shop', '#0f172a'],
-]
+const PROBLEM_ICONS = [ClipboardList, TrendingDown, PackageX]
 
 export default function Landing() {
   const { t } = useLang()
+  const L = t.landing2
 
-  // Animasi scroll-reveal (murni visual): elemen .rv diberi kelas .in saat masuk layar.
+  // Reveal-on-scroll: .lp-rv element gets .in when in viewport.
   useEffect(() => {
-    const els = document.querySelectorAll('.rv')
+    const els = document.querySelectorAll('.lp-rv')
     const io = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) }
       })
-    }, { threshold: 0.15, rootMargin: '0px 0px -40px' })
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px' })
     els.forEach((el) => io.observe(el))
     return () => io.disconnect()
   }, [])
+
   return (
-    <>
-      <header className="nav">
-        <div className="container nav-inner">
-          <div className="brand"><img src="/logo.svg" alt="" /><span>Buku<b>Pintar</b> AI</span></div>
-          <nav className="nav-links">
-            <a href="#masalah">{t.nav.masalah}</a>
-            <a href="#reveal">{t.nav.kebocoran}</a>
-            <a href="#channel">{t.nav.channel}</a>
-            <a href="#fitur">{t.nav.fitur}</a>
+    <div className="lp2">
+      {/* Header */}
+      <header className="lp-nav">
+        <div className="lp-container lp-nav-inner">
+          <Link to="/" className="lp-brand" aria-label="SmartBook AI">SmartBook AI</Link>
+          <nav className="lp-nav-links" aria-label="Utama">
+            <a href="#fitur">{L.nav.fitur}</a>
+            <a href="#cara">{L.nav.cara}</a>
+            <a href="#solusi">{L.nav.solusi}</a>
           </nav>
-          <div className="nav-spacer" />
-          <div className="nav-cta">
-            <ThemeToggle />
-            <LangToggle />
-            <Link to="/masuk" className="btn btn-ghost">{t.nav.masuk}</Link>
-            <Link to="/daftar" className="btn btn-primary">{t.nav.coba}</Link>
+          <div className="lp-nav-cta">
+            <div className="lp-nav-tools">
+              <LangToggle />
+              <ThemeToggle />
+            </div>
+            <Link to="/masuk" className="lp-btn lp-btn-ghost">{L.nav.masuk}</Link>
+            <Link to="/daftar" className="lp-btn lp-btn-primary">{L.nav.bukaAI}</Link>
           </div>
         </div>
       </header>
 
-      <section className="hero">
-        <div className="container">
-          <div className="hero-panel">
-            <div className="hero-grid">
-          <div className="hero-copy">
-            <span className="eyebrow">{t.hero.eyebrow}</span>
-            <h1>{t.hero.h1pre}<em>{t.hero.h1em}</em>{t.hero.h1post}</h1>
-            <p className="lead">{t.hero.lead}</p>
-            <div className="hero-cta">
-              <Link to="/daftar" className="btn btn-primary btn-lg">{t.hero.cta1}</Link>
-              <a href="#channel" className="btn btn-ghost btn-lg">{t.hero.cta2}</a>
+      {/* Hero */}
+      <section className="lp-hero">
+        <div className="lp-hero-blob lp-hero-blob-a" aria-hidden="true" />
+        <div className="lp-hero-blob lp-hero-blob-b" aria-hidden="true" />
+        <div className="lp-container lp-hero-grid">
+          <div className="lp-hero-copy">
+            <h1 className="lp-rv">
+              {L.hero.h1a}<span className="lp-hero-accent">{L.hero.h1b}</span>
+            </h1>
+            <p className="lp-lead lp-rv">{L.hero.lead}</p>
+            <div className="lp-hero-cta lp-rv">
+              <Link to="/daftar" className="lp-btn lp-btn-primary lp-btn-lg">{L.hero.ctaPrimary}</Link>
+              <a href="#cara" className="lp-btn lp-btn-outline lp-btn-lg">
+                <PlayCircle size={18} aria-hidden="true" /> {L.hero.ctaSecondary}
+              </a>
             </div>
-            <div className="hero-trust">
-              <div><div className="t-num">{t.hero.t1n}</div><div className="t-lbl">{t.hero.t1l}</div></div>
-              <div><div className="t-num">{t.hero.t2n}</div><div className="t-lbl">{t.hero.t2l}</div></div>
-              <div><div className="t-num">{t.hero.t3n}</div><div className="t-lbl">{t.hero.t3l}</div></div>
-            </div>
-            <div className="hero-source">{t.hero.source}</div>
           </div>
-          <div className="phone">
-            <div className="phone-screen">
-              <div className="phone-top">
-                <div className="ptitle">{t.hero.pOmzet}</div>
-                <div className="pomzet">Rp 2.400.000</div>
-                <div className="pdelta">{t.hero.pNote}</div>
-              </div>
-              <div className="notif-feed">
-                {[
-                  { Ic: MessageCircle, bg: '#f0fdf4', tt: t.hero.n1t, d: t.hero.n1d, tag: t.hero.tagJual, cls: 'tag-in' },
-                  { Ic: Store, bg: '#fff7ed', tt: t.hero.n2t, d: t.hero.n2d, tag: t.hero.tagJual, cls: 'tag-in' },
-                  { Ic: Camera, bg: '#fffbeb', tt: t.hero.n3t, d: t.hero.n3d, tag: t.hero.tagStok, cls: 'tag-out' },
-                ].map((n, i) => (
-                  <div className="notif" key={i} style={{ animationDelay: `${i * 0.12}s` }}>
-                    <div className="ic" style={{ background: n.bg }}><n.Ic size={18} /></div>
-                    <div><div className="nt">{n.tt}</div><div className="nd">{n.d}</div></div>
-                    <span className={`tag ${n.cls}`}>{n.tag}</span>
+
+          {/* Chat mockup card */}
+          <div className="lp-hero-mock lp-rv">
+            <div className="lp-mock-frame">
+              <div className="lp-mock-head">
+                <div className="lp-mock-head-l">
+                  <div className="lp-mock-avatar"><Bot size={20} aria-hidden="true" /></div>
+                  <div>
+                    <div className="lp-mock-name">{L.hero.chatTitle}</div>
+                    <div className="lp-mock-sub">{L.hero.chatStatus}</div>
                   </div>
-                ))}
+                </div>
+                <MoreVertical size={18} className="lp-mock-menu" aria-hidden="true" />
               </div>
-              <div className="phone-note">{t.hero.pIlus}</div>
-            </div>
-          </div>
+
+              <div className="lp-mock-body">
+                <div className="lp-msg lp-msg-bot lp-msg-anim" style={{ animationDelay: '.2s' }}>
+                  {L.hero.msgBot}
+                </div>
+                <div className="lp-msg lp-msg-me lp-msg-anim" style={{ animationDelay: '.9s' }}>
+                  {L.hero.msgUser}
+                </div>
+                <div className="lp-msg lp-msg-bot lp-msg-card lp-msg-anim" style={{ animationDelay: '1.6s' }}>
+                  <div className="lp-msg-card-head">
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    <span>{L.hero.recTitle}</span>
+                  </div>
+                  <div className="lp-msg-card-list">
+                    <p>{L.hero.recL1}</p>
+                    <p>{L.hero.recL2}</p>
+                    <p className="lp-strong">{L.hero.recL3}</p>
+                  </div>
+                  <p className="lp-msg-card-note">{L.hero.recNote}</p>
+                </div>
+                <div className="lp-typing lp-msg-anim" style={{ animationDelay: '2.3s' }} aria-hidden="true">
+                  <span /><span /><span />
+                </div>
+              </div>
+
+              <div className="lp-mock-input">
+                <ImageIcon size={18} aria-hidden="true" />
+                <div className="lp-mock-textbox">{L.hero.inputPh}</div>
+                <button type="button" className="lp-mock-send" aria-label="Kirim"><Send size={16} /></button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="strip">
-        <div className="container">
-          <div className="strip-title">{t.strip}</div>
-          <div className="strip-row">
-            {/* Dua salinan track agar marquee berjalan mulus tanpa celah */}
-            {[false, true].map((dup) => (
-              <div className="marquee-track" key={dup ? 'dup' : 'main'} aria-hidden={dup || undefined}>
-                {STRIP_CHIPS.map(([n, c]) => (
-                  <span className="chip" key={n}><span className="dot" style={{ background: c }} />{n}</span>
-                ))}
+      {/* Problem */}
+      <section className="lp-section lp-section-alt" id="solusi">
+        <div className="lp-container">
+          <div className="lp-head lp-center lp-rv">
+            <h2>{L.problem.h2}</h2>
+          </div>
+          <div className="lp-grid-3">
+            {L.problem.items.map((p, i) => {
+              const Ic = PROBLEM_ICONS[i]
+              return (
+                <article className="lp-card lp-problem lp-rv" key={p.t} style={{ transitionDelay: `${i * 80}ms` }}>
+                  <div className="lp-icon-tile lp-icon-danger" aria-hidden="true"><Ic size={24} /></div>
+                  <h3>{p.t}</h3>
+                  <p>{p.d}</p>
+                </article>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Bento */}
+      <section className="lp-section" id="fitur">
+        <div className="lp-container">
+          <div className="lp-head lp-center lp-rv">
+            <h2>{L.features.h2}</h2>
+          </div>
+          <div className="lp-bento">
+            <article className="lp-bento-c lp-bento-1 lp-rv">
+              <div className="lp-icon-tile lp-icon-primary" aria-hidden="true"><Mic size={22} /></div>
+              <h3>{L.features.voiceT}</h3>
+              <p>{L.features.voiceD}</p>
+            </article>
+
+            <article className="lp-bento-c lp-bento-2 lp-rv">
+              <div className="lp-bento-2-copy">
+                <h3>{L.features.scanT}</h3>
+                <p>{L.features.scanD}</p>
+              </div>
+              <div className="lp-bento-2-art">
+                <img
+                  src="/receipt-scanner.png"
+                  alt="Ilustrasi pemindaian struk dengan kamera ponsel"
+                  className="lp-bento-2-img"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            </article>
+
+            <article className="lp-bento-c lp-bento-3 lp-rv">
+              <div className="lp-icon-tile lp-icon-soft" aria-hidden="true"><Brain size={22} /></div>
+              <h4 className="lp-uppercase">{L.features.assistT}</h4>
+              <p>{L.features.assistD}</p>
+            </article>
+
+            <article className="lp-bento-c lp-bento-4 lp-rv">
+              <div className="lp-icon-tile lp-icon-primary" aria-hidden="true"><LineChart size={22} /></div>
+              <h3>{L.features.predictT}</h3>
+              <p>{L.features.predictD}</p>
+            </article>
+
+            <div className="lp-bento-stack">
+              <article className="lp-bento-c lp-bento-mini lp-mini-danger lp-rv">
+                <AlertTriangle size={20} aria-hidden="true" />
+                <div>
+                  <h5>{L.features.leakT}</h5>
+                  <p>{L.features.leakD}</p>
+                </div>
+              </article>
+              <article className="lp-bento-c lp-bento-mini lp-mini-info lp-rv">
+                <Users size={20} aria-hidden="true" />
+                <div>
+                  <h5>{L.features.hrT}</h5>
+                  <p>{L.features.hrD}</p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="lp-section lp-section-dark" id="cara">
+        <div className="lp-container">
+          <div className="lp-head lp-center lp-rv">
+            <h2>{L.how.h2}</h2>
+            <p className="lp-head-sub">{L.how.sub}</p>
+          </div>
+          <div className="lp-steps">
+            <div className="lp-steps-line" aria-hidden="true" />
+            {L.how.steps.map((s, i) => (
+              <div className="lp-step lp-rv" key={s.t} style={{ transitionDelay: `${i * 120}ms` }}>
+                <div className="lp-step-num">{i + 1}</div>
+                <h3>{s.t}</h3>
+                <p>{s.d}</p>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      <section className="section" id="masalah">
-        <div className="container">
-          <div className="section-head rv">
-            <span className="eyebrow">{t.masalah.eyebrow}</span>
-            <h2>{t.masalah.h2}</h2>
-            <p>{t.masalah.p}</p>
+      {/* CTA final */}
+      <section className="lp-section lp-cta">
+        <div className="lp-cta-blob lp-cta-blob-a" aria-hidden="true" />
+        <div className="lp-cta-blob lp-cta-blob-b" aria-hidden="true" />
+        <div className="lp-container lp-cta-inner lp-rv">
+          <h2>{L.ctaFinal.h2}</h2>
+          <p>{L.ctaFinal.p}</p>
+          <div className="lp-cta-btns">
+            <Link to="/daftar" className="lp-btn lp-btn-primary lp-btn-lg">{L.ctaFinal.primary}</Link>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="lp-btn lp-btn-outline-strong lp-btn-lg">{L.ctaFinal.secondary}</a>
           </div>
-          <div className="prob-grid">
-            {t.masalah.items.map((p, i) => { const Ic = PROB_ICONS[i]; return (
-              <div className="prob-card rv" key={p.t}><div className="pe"><Ic size={24} /></div><h3>{p.t}</h3><p>{p.d}</p></div>
-            ) })}
-          </div>
+          <p className="lp-cta-note">{L.ctaFinal.note}</p>
         </div>
       </section>
 
-      <section className="section" id="reveal">
-        <div className="container">
-          <div className="section-head rv">
-            <span className="eyebrow">{t.reveal.eyebrow}</span>
-            <h2>{t.reveal.h2}</h2>
-            <p>{t.reveal.p}</p>
-          </div>
-          <div className="reveal-card rv">
-            <div className="reveal-top">
-              <div><div className="reveal-k">{t.reveal.gross}</div><div className="reveal-gross">Rp 50.000.000</div></div>
-              <div className="reveal-net-wrap"><div className="reveal-k">{t.reveal.net}</div><div className="reveal-net">Rp 43.000.000</div></div>
+      {/* Footer */}
+      <footer className="lp-footer">
+        <div className="lp-container lp-footer-grid">
+          <div>
+            <div className="lp-brand lp-brand-static">SmartBook AI</div>
+            <p className="lp-foot-tag">{L.footer.tagline}</p>
+            <div className="lp-foot-social">
+              <a href="#" aria-label="Website"><Globe size={16} /></a>
+              <a href="https://instagram.com/sovralytics_tech" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><InstagramIcon size={16} /></a>
+              <a href={`mailto:${CONTACT_EMAIL}`} aria-label="Kontak"><MessageCircle size={16} /></a>
             </div>
-            <div className="reveal-bar" role="img" aria-label="86% : 14%"><span className="reveal-bar-net" style={{ width: '86%' }} /><span className="reveal-bar-leak" style={{ width: '14%' }} /></div>
-            <div className="reveal-legend"><span><i className="dot net" />{t.reveal.legNet}</span><span><i className="dot leak" />{t.reveal.legLeak}</span></div>
-            <ul className="reveal-list">
-              <li><span>{t.reveal.l1}</span><b>Rp 3.100.000</b></li>
-              <li><span>{t.reveal.l2}</span><b>Rp 1.800.000</b></li>
-              <li><span>{t.reveal.l3}</span><b>Rp 1.500.000</b></li>
-              <li><span>{t.reveal.l4}</span><b>Rp 600.000</b></li>
+          </div>
+          <div>
+            <h6>{L.footer.produk}</h6>
+            <ul>
+              <li><a href="#fitur">{L.footer.pFitur}</a></li>
+              <li><a href="#fitur">{L.footer.pDash}</a></li>
+              <li><a href="#fitur">{L.footer.pStok}</a></li>
+              <li><Link to="/daftar">{L.footer.pHarga}</Link></li>
             </ul>
-            <div className="reveal-sum">{t.reveal.sumPre}<b>Rp 7.000.000</b>{t.reveal.sumPost}</div>
           </div>
-          <p className="reveal-note">{t.reveal.note}</p>
-        </div>
-      </section>
-
-      <section className="section section-alt" id="channel">
-        <div className="container">
-          <div className="section-head rv">
-            <span className="eyebrow">{t.channel.eyebrow}</span>
-            <h2>{t.channel.h2}</h2>
-            <p>{t.channel.p}</p>
+          <div>
+            <h6>{L.footer.perusahaan}</h6>
+            <ul>
+              <li><Link to="/masuk">{L.footer.cTentang}</Link></li>
+              <li><Link to="/privasi">{L.footer.cPrivasi}</Link></li>
+              <li><Link to="/ketentuan">{L.footer.cSyarat}</Link></li>
+              <li><a href={`mailto:${CONTACT_EMAIL}`}>{L.footer.cBantuan}</a></li>
+            </ul>
           </div>
-          <div className="chan-grid">
-            {t.channel.items.map((c, i) => { const Ic = CHAN_ICONS[i]; return (
-              <div className="chan-card rv" key={c.t}>
-                <div className="cic"><Ic size={24} /></div>
-                <h3>{c.t} {CHAN_SOON[i] && <span className="soon-badge">{t.channel.soon}</span>}</h3>
-                <p>{c.d}</p>
-              </div>
-            ) })}
+          <div>
+            <h6>{L.footer.kontak}</h6>
+            <p className="lp-foot-line"><MapPin size={14} aria-hidden="true" /> {L.footer.alamat}</p>
+            <p className="lp-foot-line"><a href={`mailto:${CONTACT_EMAIL}`}><Mail size={14} aria-hidden="true" /> {CONTACT_EMAIL}</a></p>
+            <p className="lp-foot-line"><a href="https://instagram.com/sovralytics_tech" target="_blank" rel="noopener noreferrer"><InstagramIcon size={14} /> {L.footer.instagram}</a></p>
           </div>
         </div>
-      </section>
-
-      <section className="section" id="fitur">
-        <div className="container">
-          <div className="section-head rv">
-            <span className="eyebrow">{t.fitur.eyebrow}</span>
-            <h2>{t.fitur.h2}</h2>
-          </div>
-          <div className="prob-grid">
-            {t.fitur.items.map((f, i) => { const Ic = FITUR_ICONS[i]; return (
-              <div className="prob-card rv" key={f.t}><div className="pe"><Ic size={24} /></div><h3>{f.t}</h3><p>{f.d}</p></div>
-            ) })}
-          </div>
-        </div>
-      </section>
-
-      <section className="section section-alt" id="metrik">
-        <div className="container">
-          <div className="section-head rv">
-            <span className="eyebrow">{t.metrik.eyebrow}</span>
-            <h2>{t.metrik.h2}</h2>
-            <p>{t.metrik.p}</p>
-          </div>
-          <div className="metric-grid">
-            {t.metrik.items.map((m) => (
-              <div className="metric rv" key={m.l}><div className="mv">{m.v}</div><div className="ml">{m.l}</div></div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section section-alt" id="privasi-ringkas">
-        <div className="container">
-          <div className="section-head rv">
-            <span className="eyebrow">{t.trust.eyebrow}</span>
-            <h2>{t.trust.h2}</h2>
-            <p>{t.trust.p}</p>
-          </div>
-          <div className="trust-grid">
-            {t.trust.items.map((it) => (
-              <div className="trust-item rv" key={it.b}><b>{it.b}</b>{it.t}</div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="cta rv">
-            <h2>{t.cta.h2}</h2>
-            <p>{t.cta.p}</p>
-            <Link to="/daftar" className="btn btn-primary btn-lg">{t.cta.btn}</Link>
-          </div>
-        </div>
-      </section>
-
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-grid">
-            <div>
-              <div className="brand"><img src="/logo.svg" alt="" /><span>Buku<b>Pintar</b> AI</span></div>
-              <p>{t.footer.tagline}</p>
-              <p className="foot-contact">{t.footer.kontak}: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
-            </div>
-            <div className="fcol">
-              <h5>{t.footer.produk}</h5>
-              <a href="#channel">{t.footer.channelInput}</a><a href="#fitur">{t.footer.fitur}</a><Link to="/daftar">{t.footer.daftar}</Link>
-            </div>
-            <div className="fcol">
-              <h5>{t.footer.untukUmkm}</h5>
-              <a href="#metrik">{t.footer.laporanKur}</a><a href="#metrik">{t.footer.persiapanSpt}</a><Link to="/masuk">{t.footer.masuk}</Link>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <span>© 2026 BukuPintar AI</span>
-            <span className="foot-disc">{t.footer.disc}</span>
-          </div>
+        <div className="lp-container lp-foot-bottom">
+          <span>{L.footer.copyright}</span>
         </div>
       </footer>
-    </>
+    </div>
   )
 }

@@ -1,0 +1,24 @@
+<svg width="1200" height="360" viewBox="0 0 1200 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">SmartBook AI</title>
+  <desc id="desc">SmartBook AI logo with an open book and intelligent learning symbol.</desc>
+
+  <!-- Icon -->
+  <rect x="36" y="36" width="288" height="288" rx="72" fill="#EAF3FF"/>
+  <path d="M72 111C113 111 149 126 180 150V276C147 247 110 231 72 231V111Z" fill="#2F50C6"/>
+  <path d="M288 111C247 111 211 126 180 150V276C213 247 250 231 288 231V111Z" fill="#4637C8"/>
+  <path d="M180 150V276" stroke="#A5F3FC" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- Reader / AI spark -->
+  <path d="M115 148C133 129 154 120 178 120C200 120 222 130 243 120" stroke="white" stroke-width="17" stroke-linecap="round"/>
+  <path d="M109 211C129 231 153 237 180 216C202 199 229 208 247 231" stroke="white" stroke-width="17" stroke-linecap="round"/>
+  <path d="M188 139C205 139 219 130 230 117" stroke="#4637C8" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="247" cy="108" r="8" fill="#38CBE6"/>
+  <path d="M216 83V101M207 92H225M210 86L222 98M222 86L210 98" stroke="#38CBE6" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="111" cy="173" r="7" fill="#A5F3FC"/>
+  <circle cx="250" cy="181" r="7" fill="#A5F3FC"/>
+
+  <!-- Wordmark -->
+  <text x="392" y="184" fill="#10266D" font-family="Inter, Avenir Next, Segoe UI, Arial, sans-serif" font-size="105" font-weight="800" letter-spacing="-5">SmartBook</text>
+  <rect x="946" y="105" width="124" height="85" rx="42.5" fill="#3166E8"/>
+  <text x="983" y="165" fill="white" font-family="Inter, Avenir Next, Segoe UI, Arial, sans-serif" font-size="51" font-weight="800" letter-spacing="-1">AI</text>
+</svg>

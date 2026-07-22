@@ -11,7 +11,7 @@ export function invoiceNo(tx) {
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
-// Logo BukuPintar (inline SVG) untuk branding di nota/invoice. bw=true untuk nota hitam-putih.
+// Logo SmartBook (inline SVG) untuk branding di nota/invoice. bw=true untuk nota hitam-putih.
 function bukuMark(size = 18, bw = false) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="${bw ? 'filter:grayscale(1);' : ''}vertical-align:middle;display:inline-block;">
     <rect width="32" height="32" rx="8" fill="#1c36ee"/>
@@ -174,11 +174,11 @@ function invoiceHtml(tx, profile) {
 
     ${meterai}
     <div style="border-top:1px solid #e2e8f0;padding-top:14px;margin-top:18px;color:#94a3b8;font-size:11px;line-height:1.6;">
-      Terima kasih atas kepercayaan Anda. Dokumen ini diterbitkan secara elektronik melalui BukuPintar AI dan
+      Terima kasih atas kepercayaan Anda. Dokumen ini diterbitkan secara elektronik melalui SmartBook AI dan
       merupakan bukti transaksi yang sah sesuai Undang-Undang Informasi dan Transaksi Elektronik
       (UU No. 11 Tahun 2008 jo. UU No. 19 Tahun 2016), tanpa memerlukan tanda tangan basah.
       <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:13px;color:#475569;font-weight:700;font-size:12px;">
-        ${bukuMark(18)}<span>Dibuat dengan BukuPintar AI</span>
+        ${bukuMark(18)}<span>Dibuat dengan SmartBook AI</span>
       </div>
     </div>
   </div>`
@@ -313,7 +313,7 @@ function notaHtmlBW(tx, profile) {
     <div style="font-size:10px;margin-top:3px;font-style:italic;">Terbilang: ${esc(terbilang(t.grand))} rupiah</div>
     <div style="text-align:center;border-top:1px dashed #000;margin-top:10px;padding-top:8px;font-size:10px;line-height:1.5;">
       <div style="margin-bottom:4px;">${bukuMark(22, true)}</div>
-      Terima kasih atas kunjungan Anda.<br>Dibuat dengan BukuPintar AI.
+      Terima kasih atas kunjungan Anda.<br>Dibuat dengan SmartBook AI.
     </div>
   </div>`
 }

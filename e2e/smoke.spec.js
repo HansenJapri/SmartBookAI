@@ -13,7 +13,7 @@ test.describe('Halaman publik', () => {
     // Ada jalan menuju halaman masuk.
     await expect(page.locator('a[href="/masuk"]').first()).toBeVisible()
     // Judul dokumen menyebut brand.
-    await expect(page).toHaveTitle(/BukuPintar/i)
+    await expect(page).toHaveTitle(/SmartBook/i)
   })
 
   test('Halaman masuk menampilkan form kredensial', async ({ page }) => {

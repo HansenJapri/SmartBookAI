@@ -17,6 +17,7 @@ const Transactions = lazy(() => import('./pages/Transactions'))
 const Struk = lazy(() => import('./pages/Struk'))
 const Import = lazy(() => import('./pages/Import'))
 const Stok = lazy(() => import('./pages/Stok'))
+const StokHistori = lazy(() => import('./pages/StokHistori'))
 const Supplier = lazy(() => import('./pages/Supplier'))
 const Reconciliation = lazy(() => import('./pages/Reconciliation'))
 const Reveal = lazy(() => import('./pages/Reveal'))
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="struk" element={<Struk />} />
           <Route path="import" element={<Import />} />
           <Route path="stok" element={<Stok />} />
+          <Route path="stok/histori" element={<StokHistori />} />
           <Route path="po" element={<PurchaseOrders />} />
           <Route path="opname" element={<Opname />} />
           <Route path="supplier" element={<Supplier />} />

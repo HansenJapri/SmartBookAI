@@ -63,7 +63,7 @@ export default function Reports() {
     doc.rect(0, 0, 210, 26, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(15); doc.setFont(undefined, 'bold')
-    doc.text('BukuPintar AI', 14, 12)
+    doc.text('SmartBook AI', 14, 12)
     doc.setFontSize(10); doc.setFont(undefined, 'normal')
     doc.text(title, 14, 19)
     doc.setTextColor(30, 30, 30)

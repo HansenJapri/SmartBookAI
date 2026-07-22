@@ -392,6 +392,35 @@ export async function deleteProduct(id) {
   if (error) throw error
 }
 
+// Unggah foto produk ke bucket product-images. Path selalu diawali <user_id>/
+// agar RLS di storage bisa membatasi akses per pemilik.
+export async function uploadProductImage(file) {
+  if (!file) throw new Error('Berkas foto belum dipilih.')
+  const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
+  if (!ALLOWED.includes(file.type)) throw new Error('Format foto harus JPG, PNG, atau WEBP.')
+  if (file.size > 5 * 1024 * 1024) throw new Error('Ukuran foto maksimal 5 MB.')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sesi tidak valid.')
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const path = `${user.id}/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage.from('product-images').upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type,
+  })
+  if (error) throw error
+  const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+  return { path, publicUrl: data.publicUrl }
+}
+
+// Hapus foto produk dari bucket. Aman dipanggil dengan URL publik.
+export async function deleteProductImage(urlOrPath) {
+  if (!urlOrPath) return
+  // Ambil path <user_id>/<file> dari URL publik.
+  const marker = '/product-images/'
+  const idx = urlOrPath.indexOf(marker)
+  const path = idx >= 0 ? urlOrPath.slice(idx + marker.length) : urlOrPath
+  await supabase.storage.from('product-images').remove([path]).catch(() => {})
+}
+
 // Simpan transaksi BARU + sesuaikan stok baris produknya dalam SATU transaksi
 // database (RPC add_transaction_with_stock). Gagal di langkah mana pun =
 // seluruh operasi dibatalkan otomatis — tidak ada transaksi tanpa stok

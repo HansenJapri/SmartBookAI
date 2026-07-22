@@ -151,7 +151,7 @@ export default function Settings() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `BukuPintar-DataSaya-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `SmartBook-DataSaya-${new Date().toISOString().slice(0, 10)}.json`
       document.body.appendChild(a); a.click(); a.remove()
       URL.revokeObjectURL(url)
       setDataMsg('Data berhasil diunduh ✓')

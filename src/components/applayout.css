@@ -1,0 +1,58 @@
+/* Sidebar polish — background gradient & subtle brand tagline.
+ * Topbar dibiarkan seperti aslinya sesuai preferensi.
+ */
+
+.sidebar {
+  background: linear-gradient(180deg, #000a63 0%, #05060a 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding: 20px 14px !important;
+}
+.sidebar .brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff !important;
+  padding: 4px 10px 18px !important;
+  letter-spacing: -0.01em;
+}
+.sidebar .brand span b { color: var(--accent, #bcc2ff); }
+.side-section {
+  color: rgba(255, 255, 255, 0.55) !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.09em !important;
+  padding: 14px 14px 6px !important;
+}
+.side-link {
+  color: rgba(255, 255, 255, 0.78) !important;
+  border-radius: 10px !important;
+  font-weight: 500 !important;
+  transition: background 0.15s ease, color 0.15s ease, border-left-color 0.2s ease !important;
+  border-left: 3px solid transparent;
+  padding-left: 12px !important;
+}
+.side-link:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #fff !important;
+}
+.side-link.active {
+  background: rgba(28, 54, 238, 0.32) !important;
+  color: #fff !important;
+  border-left-color: #fff !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+}
+.side-foot { border-top-color: rgba(255, 255, 255, 0.1) !important; }
+.side-user { color: rgba(255, 255, 255, 0.65) !important; }
+.side-user b { color: #fff !important; }
+.side-logout {
+  background: #001ec1 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 20px rgba(0, 30, 193, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.2s ease !important;
+}
+.side-logout:hover {
+  background: #1c36ee !important;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(0, 30, 193, 0.45);
+}
