@@ -6,6 +6,16 @@ import { rupiah } from '../lib/format'
 import AIDisclaimer from './AIDisclaimer'
 
 const CONSENT_KEY = 'bukupintar_ai_consent'
+
+// Gabungkan tanggal (YYYY-MM-DD dari AI) dengan waktu jam:menit:detik SAAT INI.
+// Dibangun dari komponen tanggal lokal agar tanggal tidak bergeser ke UTC, dan
+// menghindari bug lama yang memaksa semua transaksi AI ke jam 12:00.
+function occurredAtIso(dateStr) {
+  const now = new Date()
+  const ds = /^\d{4}-\d{2}-\d{2}$/.test(dateStr || '') ? dateStr : now.toISOString().slice(0, 10)
+  const [y, m, d] = ds.split('-').map(Number)
+  return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString()
+}
 const SpeechRec = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
 
 export default function Chatbot() {
@@ -134,7 +144,7 @@ export default function Chatbot() {
         direction: d.direction === 'in' ? 'in' : 'out',
         category: d.category,
         channel: 'asisten',
-        occurred_at: new Date((d.occurred_at || new Date().toISOString().slice(0, 10)) + 'T12:00:00').toISOString(),
+        occurred_at: occurredAtIso(d.occurred_at),
         payment_status: d.direction === 'in' && d.payment_status === 'belum' ? 'belum' : 'lunas',
       }))
     if (!rows.length) { setErr('Tidak ada transaksi valid untuk disimpan (nominal harus lebih dari 0).'); return }

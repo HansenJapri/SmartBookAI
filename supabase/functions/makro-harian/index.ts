@@ -1,13 +1,13 @@
 // ============================================================
 // Supabase Edge Function: makro-harian (v3)
 // Pipeline makro BERSAMA untuk seluruh platform, berjalan 1x per "hari data":
-//   1) HARGA RESMI bahan pokok dari PIHPS Bank Indonesia (endpoint publik
-//      resmi tanpa kunci) -> tabel commodity_prices.
-//   2) Kurs USD/IDR (open.er-api.com, backfill frankfurter/ECB)
-//      -> tabel exchange_rates.
+//   1) HARGA RESMI bahan pokok dari SP2KP Kemendag (nasional/HNT, API publik
+//      tanpa kunci) -> tabel commodity_prices. Logika di ../_shared/sp2kp.ts.
+//   2) Kurs USD/IDR SAMA PERSIS TradingView (FX_IDC:USDIDR); backfill histori
+//      frankfurter/ECB untuk sparkline -> tabel exchange_rates.
 //   3) Judul berita Bing News RSS per komoditas -> 1 panggilan Gemini
-//      -> tabel macro_signals. (Google News tidak dipakai: blokir IP
-//      datacenter, terverifikasi 503.)
+//      -> tabel macro_signals (perkiraan arah 30 hari). (Google News tidak
+//      dipakai: blokir IP datacenter, terverifikasi 503.)
 //
 // BATAS HARI = 06.00 WIB: dijadwalkan pg_cron pukul 23.00 UTC (06.00 WIB).
 // Sebelum jam 6 pagi, kunci hari jatuh ke kemarin sehingga data yang tampil
@@ -22,6 +22,7 @@
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { buildNational } from '../_shared/sp2kp.ts'
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -61,21 +62,6 @@ const COMMODITIES: { key: string; label: string; q: string; qEn?: string }[] = [
   { key: 'kurs', label: 'Kurs USD/IDR', q: 'nilai tukar rupiah dolar', qEn: 'rupiah exchange rate' },
 ]
 
-// Pemetaan kelompok PIHPS -> commodity_key kita.
-const PIHPS_GROUP: Record<string, string> = {
-  'Beras': 'beras',
-  'Daging Ayam': 'ayam',
-  'Daging Sapi': 'daging_sapi',
-  'Telur Ayam': 'telur',
-  'Bawang Merah': 'bawang_merah',
-  'Bawang Putih': 'bawang_putih',
-  'Cabai Merah': 'cabai_merah',
-  'Cabai Rawit': 'cabai_rawit',
-  'Minyak Goreng': 'minyak_goreng',
-  'Gula Pasir': 'gula',
-}
-const PIHPS_UNIT: Record<string, string> = { minyak_goreng: 'Rp/liter' } // sisanya Rp/kg
-
 const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
 function corsHeaders(origin: string | null) {
   const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : (ALLOWED_ORIGINS[0] || '*')
@@ -99,19 +85,15 @@ function decodeEntities(s: string): string {
 // ---------- SUMBER TEPERCAYA TERPUSAT (RAG) ----------
 // Hanya berita dari domain di bawah yang boleh masuk pipeline & jadi referensi.
 // Menambah/mengurangi sumber cukup di daftar ini (satu titik kendali).
+// DIPANGKAS agresif ke inti paling berdampak (sinkron dengan src/lib/ragPrice.js):
+// sumber resmi + kantor berita + media ekonomi papan atas + acuan komoditas global.
 const TRUSTED_DOMAINS = [
-  // Resmi pemerintah / lembaga
-  'bi.go.id', 'bps.go.id', 'badanpangan.go.id', 'kemendag.go.id', 'esdm.go.id',
-  'kementan.go.id', 'setkab.go.id', 'antaranews.com',
-  // Media ekonomi-bisnis arus utama Indonesia
-  'kontan.co.id', 'bisnis.com', 'cnbcindonesia.com', 'katadata.co.id',
-  'kompas.com', 'kompas.id', 'detik.com', 'tempo.co', 'cnnindonesia.com',
-  'liputan6.com', 'republika.co.id', 'idxchannel.com', 'investor.id',
-  'medcom.id', 'sindonews.com', 'tribunnews.com', 'merdeka.com', 'suara.com',
-  'okezone.com', 'viva.co.id', 'inews.id', 'kumparan.com', 'tirto.id',
-  // Global (untuk komoditas dunia: CPO, gandum, kakao, kurs)
-  'reuters.com', 'bloomberg.com', 'investing.com', 'tradingeconomics.com',
-  'nasdaq.com', 'barchart.com', 'agweb.com', 'spglobal.com', 'apnews.com',
+  // Resmi pemerintah / lembaga (paling otoritatif untuk harga pangan)
+  'bi.go.id', 'bps.go.id', 'kemendag.go.id', 'badanpangan.go.id',
+  // Kantor berita & media ekonomi papan atas Indonesia
+  'antaranews.com', 'kontan.co.id', 'bisnis.com', 'cnbcindonesia.com',
+  // Global (komoditas dunia: CPO, gandum, kakao, kurs)
+  'reuters.com', 'tradingeconomics.com',
 ]
 
 function domainOf(link: string): string {
@@ -167,203 +149,7 @@ async function fetchRss(url: string, max = 4): Promise<NewsItem[]> {
   } catch { return [] }
 }
 
-// ---------- HARGA VIA RAG BERITA (komoditas di luar cakupan PIHPS) ----------
-// Angka HANYA sah bila tertulis eksplisit di judul/ringkasan berita sumber
-// tepercaya; kode memverifikasi ulang keberadaan angka itu di teks (anti
-// karang). Satuan, tanggal & link diambil dari item berita — bukan dari AI.
-const RAG_PRICE: Record<string, { unit: string; min: number; max: number; target: string }> = {
-  jagung: { unit: 'Rp/kg', min: 2000, max: 20000, target: 'harga jagung pipilan kering per kg' },
-  kedelai: { unit: 'Rp/kg', min: 5000, max: 30000, target: 'harga kedelai per kg' },
-  terigu: { unit: 'Rp/kg', min: 5000, max: 30000, target: 'harga tepung terigu per kg' },
-  ikan: { unit: 'Rp/kg', min: 10000, max: 150000, target: 'harga ikan konsumsi (bandeng/kembung/tongkol) per kg' },
-  garam: { unit: 'Rp/kg', min: 1000, max: 30000, target: 'harga garam konsumsi per kg' },
-  susu: { unit: 'Rp/liter', min: 8000, max: 50000, target: 'harga susu cair/UHT per liter' },
-  kakao: { unit: 'Rp/kg', min: 30000, max: 500000, target: 'harga biji kakao per kg' },
-  kopi: { unit: 'Rp/kg', min: 20000, max: 500000, target: 'harga biji kopi per kg' },
-  lpg: { unit: 'Rp/tabung 3 kg', min: 12000, max: 60000, target: 'harga LPG tabung 3 kg' },
-  bbm: { unit: 'Rp/liter', min: 5000, max: 30000, target: 'harga BBM Pertalite per liter' },
-  tekstil: { unit: 'Rp/meter', min: 3000, max: 300000, target: 'harga kain per meter' },
-  kertas: { unit: 'Rp/rim', min: 20000, max: 150000, target: 'harga kertas A4 per rim' },
-  deterjen: { unit: 'Rp/kg', min: 5000, max: 100000, target: 'harga deterjen bubuk per kg' },
-  plastik: { unit: 'Rp/kg', min: 5000, max: 100000, target: 'harga plastik kemasan/resin per kg' },
-}
-const RAG_KEYS = Object.keys(RAG_PRICE)
 
-// Kata kunci nama komoditas & petunjuk satuan — kandidat harga HANYA sah bila
-// kalimatnya menyebut komoditasnya (deterministik, bukan tebakan AI).
-const RAG_KEYWORDS: Record<string, string[]> = {
-  jagung: ['jagung'],
-  kedelai: ['kedelai'],
-  terigu: ['terigu', 'tepung'],
-  ikan: ['ikan', 'bandeng', 'kembung', 'tongkol'],
-  garam: ['garam'],
-  susu: ['susu'],
-  kakao: ['kakao', 'cokelat', 'coklat'],
-  kopi: ['kopi'],
-  lpg: ['lpg', 'elpiji', 'bright gas'],
-  bbm: ['pertalite'],
-  tekstil: ['kain', 'tekstil'],
-  kertas: ['kertas', 'hvs'],
-  deterjen: ['deterjen', 'detergen'],
-  plastik: ['plastik', 'resin'],
-}
-// Produk "tetangga" yang sering satu daftar harga — bila namanya muncul LEBIH
-// DEKAT ke angka daripada kata kunci target, angka itu milik produk tsb, buang.
-const RAG_NEGATIVES: Record<string, string[]> = {
-  bbm: ['pertamax', 'solar', 'dex', 'revvo', 'shell', 'bp '],
-  lpg: ['12 kg', '12kg', '5,5 kg', '5.5 kg', '50 kg', '5,5kg'],
-  susu: ['kental', 'bubuk', 'formula', 'evaporasi', 'kedelai'],
-  terigu: ['tepung beras', 'tapioka', 'maizena', 'ketan'],
-  kakao: ['minuman', 'bubuk instan'],
-}
-
-const RAG_UNIT_HINTS: Record<string, string[]> = {
-  jagung: ['/kg', 'per kg', 'per kilogram', 'perkilogram', 'sekilo'],
-  kedelai: ['/kg', 'per kg', 'per kilogram', 'perkilogram', 'sekilo'],
-  terigu: ['/kg', 'per kg', 'per kilogram', 'perkilogram', 'sekilo'],
-  ikan: ['/kg', 'per kg', 'per kilogram', 'perkilogram', 'sekilo'],
-  garam: ['/kg', 'per kg', 'per kilogram', 'perkilogram', 'sekilo'],
-  susu: ['/liter', 'per liter', 'perliter'],
-  kakao: ['/kg', 'per kg', 'per kilogram', 'perkilogram', 'sekilo'],
-  kopi: ['/kg', 'per kg', 'per kilogram', 'perkilogram', 'sekilo'],
-  lpg: ['3 kg', '3kg', 'per tabung', '/tabung'],
-  bbm: ['/liter', 'per liter', 'perliter', 'pertalite'],
-  tekstil: ['/meter', 'per meter', 'permeter'],
-  kertas: ['/rim', 'per rim', 'perrim'],
-  deterjen: ['/kg', 'per kg', 'sachet', 'kemasan'],
-  plastik: ['/kg', 'per kg', 'per kilogram'],
-}
-
-// Ambil petikan ISI ARTIKEL di sekitar tulisan "Rp..." (maks 3 petikan) —
-// tetap dari halaman sumber tepercaya, untuk komoditas yang ringkasan RSS-nya
-// tidak memuat angka. Petikan inilah yang jadi dasar ekstraksi & verifikasi.
-async function fetchArticleExcerpts(link: string): Promise<string[]> {
-  try {
-    const ctrl = new AbortController()
-    const t = setTimeout(() => ctrl.abort(), 8000)
-    const res = await fetch(link, { signal: ctrl.signal, headers: { 'User-Agent': UA, 'Accept': 'text/html' } })
-    clearTimeout(t)
-    if (!res.ok) return []
-    const html = await res.text()
-    const text = decodeEntities(
-      html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
-        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-        .replace(/<[^>]+>/g, ' '),
-    ).replace(/\s+/g, ' ')
-    const out: string[] = []
-    let idx = 0
-    while (out.length < 4) {
-      const p = text.indexOf('Rp', idx)
-      if (p < 0) break
-      out.push(text.slice(Math.max(0, p - 120), p + 180).trim())
-      idx = p + 180
-    }
-    return out
-  } catch { return [] }
-}
-
-// Gali SEMUA sebutan "Rp <angka>" dari teks secara deterministik (regex, bukan
-// AI) beserta kalimat sekitarnya. AI nanti hanya MEMILIH kandidat yang cocok,
-// tidak pernah menghasilkan angka sendiri.
-function parseRupiahMentions(text: string): { harga: number; kalimat: string; pre: string }[] {
-  const out: { harga: number; kalimat: string; pre: string }[] = []
-  const re = /Rp\s?\.?\s?(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(ribu|rb|juta|jt)?/gi
-  let m: RegExpExecArray | null
-  while ((m = re.exec(text)) && out.length < 8) {
-    const numStr = m[1].trim()
-    const suf = (m[2] || '').toLowerCase()
-    let val = 0
-    if (suf === 'juta' || suf === 'jt') val = Math.round(parseFloat(numStr.replace(/\./g, '').replace(',', '.')) * 1e6)
-    else if (suf === 'ribu' || suf === 'rb') val = Math.round(parseFloat(numStr.replace(',', '.')) * 1000)
-    else val = Math.round(Number(numStr.replace(/[.,]/g, '')))
-    if (!Number.isFinite(val) || val <= 0) continue
-    out.push({
-      harga: val,
-      kalimat: text.slice(Math.max(0, m.index - 90), m.index + 90).trim(),
-      // 55 huruf tepat SEBELUM "Rp" — untuk mencocokkan pola daftar harga
-      // "NamaProduk: Rp X" agar angka tidak tertukar produk sebelahnya.
-      pre: text.slice(Math.max(0, m.index - 55), m.index).toLowerCase(),
-    })
-  }
-  return out
-}
-
-// Verifikasi deterministik: angka harga benar-benar tertulis di teks berita
-// dalam salah satu format lazim Indonesia (18.500 / 18500 / 18 ribu / 1,2 juta).
-function numberAppearsIn(text: string, price: number): boolean {
-  const s = ' ' + String(text).toLowerCase().replace(/ /g, ' ') + ' '
-  const cands = new Set<string>()
-  cands.add(String(price))
-  cands.add(price.toLocaleString('id-ID'))            // 18.500
-  cands.add(price.toLocaleString('en-US'))            // 18,500
-  if (price % 1000 === 0) {
-    const rb = price / 1000
-    for (const r of [`${rb} ribu`, `${rb}ribu`, `${rb} rb`, `${rb}rb`, `${rb}.000`, `${rb},000`]) cands.add(r)
-    if (rb >= 1000 && rb % 100 === 0) {
-      const jt = price / 1_000_000
-      const jtStr = String(jt).replace('.', ',')
-      for (const j of [`${jt} juta`, `${jtStr} juta`, `${jt}jt`, `${jtStr}jt`]) cands.add(j)
-    }
-  }
-  // Angka dengan pecahan ribuan gaya "18,5 ribu"
-  if (price % 100 === 0 && price >= 1000) {
-    const rbF = price / 1000
-    if (!Number.isInteger(rbF)) {
-      const rbStr = String(rbF).replace('.', ',')
-      cands.add(`${rbStr} ribu`); cands.add(`${rbStr}rb`)
-    }
-  }
-  for (const c of cands) if (s.includes(c.toLowerCase())) return true
-  return false
-}
-
-// ---------- HARGA RESMI: PIHPS Bank Indonesia ----------
-// Endpoint publik resmi (JSON, tanpa kunci) — URL yang sama disimpan sebagai
-// referensi yang bisa dibuka pengguna.
-async function fetchPihps(runKey: string) {
-  const start = new Date(new Date(runKey + 'T00:00:00Z').getTime() - 6 * 86400000).toISOString().slice(0, 10)
-  const url = 'https://www.bi.go.id/hargapangan/WebSite/TabelHarga/GetGridDataDaerah'
-    + `?price_type_id=1&comcat_id=&province_id=&regency_id=&market_id=&tipe_laporan=1&start_date=${start}&end_date=${runKey}`
-  try {
-    const ctrl = new AbortController()
-    const t = setTimeout(() => ctrl.abort(), 15000)
-    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA, 'Accept': 'application/json' } })
-    clearTimeout(t)
-    if (!res.ok) return { url, rows: [] as any[] }
-    const j = await res.json()
-    const out: any[] = []
-    let groupKey = ''
-    for (const row of j?.data || []) {
-      const name = String(row.name || '').trim()
-      const isGroup = row.level === 1
-      if (isGroup) groupKey = PIHPS_GROUP[name] || ''
-      if (!groupKey || !name) continue
-      // Ambil kolom tanggal dd/mm/yyyy, urutkan, pilih nilai terisi terbaru + sebelumnya.
-      const dates = Object.keys(row)
-        .filter((k) => /^\d{2}\/\d{2}\/\d{4}$/.test(k))
-        .map((k) => ({ k, d: k.slice(6) + '-' + k.slice(3, 5) + '-' + k.slice(0, 2) }))
-        .sort((a, b) => (a.d < b.d ? -1 : 1))
-      let price = 0, prev = 0, priceDate = ''
-      for (const { k, d } of dates) {
-        const v = Number(String(row[k] ?? '').replace(/[^\d]/g, ''))
-        if (v > 0) { prev = price || v; price = v; priceDate = d }
-      }
-      if (price <= 0) continue
-      out.push({
-        commodity_key: groupKey,
-        variant_name: name,
-        is_group: isGroup,
-        price,
-        prev_price: prev && prev !== price ? prev : null,
-        price_date: priceDate || null,
-        unit: PIHPS_UNIT[groupKey] || 'Rp/kg',
-        source_name: 'PIHPS Bank Indonesia',
-        source_url: url,
-      })
-    }
-    return { url, rows: out }
-  } catch { return { url, rows: [] as any[] } }
-}
 
 serve(async (req) => {
   const origin = req.headers.get('Origin')
@@ -375,47 +161,33 @@ serve(async (req) => {
   try {
     const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
     const runKey = runKeyWIB()
-    // Mode diagnosa internal (body {"debug":true}) — cron memakai body kosong,
-    // UI tidak pernah mengirimnya; hasilnya tidak tampil ke pengguna.
-    let debug = false
-    try { const b = await req.json(); debug = b?.debug === true } catch { /* body kosong */ }
-    const diag: any = { excerpts: {}, extract: null, rejects: [] }
 
-    // ---------- 0) KURS USD/IDR — DIPERBARUI SETIAP PEMANGGILAN ----------
-    // Median dari beberapa sumber pasar terbuka agar tidak bergantung pada
-    // satu snapshot; tanggal data tampil di UI. (Selisih kecil antar situs
-    // kurs adalah normal — beda jam pengambilan & jenis kurs.)
+    // ---------- 0) KURS USD/IDR dari TRADINGVIEW — DIPERBARUI SETIAP PEMANGGILAN ----------
+    // Angka WAJIB sama persis dengan yang tampil di TradingView (FX_IDC:USDIDR).
+    // Harga realtime `lp` di-gate untuk non-login → pakai `close` (nilai berjalan
+    // terakhir yang ditampilkan TradingView). Bila TradingView tak terjangkau,
+    // SENGAJA tidak menulis sumber lain (agar tak melenceng dari TradingView) —
+    // nilai TradingView terakhir yang tersimpan tetap tampil di UI.
     let kursNote = ''
     try {
-      const vals: number[] = []
-      const srcs: string[] = []
-      await Promise.all([
-        (async () => {
-          try {
-            const j = await (await fetch('https://open.er-api.com/v6/latest/USD')).json()
-            const v = Number(j?.rates?.IDR); if (v > 0) { vals.push(v); srcs.push('er-api') }
-          } catch { /* satu sumber gagal tak apa */ }
-        })(),
-        (async () => {
-          try {
-            const j = await (await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json')).json()
-            const v = Number(j?.usd?.idr); if (v > 0) { vals.push(v); srcs.push('currency-api') }
-          } catch { /* lanjut */ }
-        })(),
-        (async () => {
-          try {
-            const j = await (await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=IDR')).json()
-            const v = Number(j?.rates?.IDR); if (v > 0) { vals.push(v); srcs.push('ECB') }
-          } catch { /* lanjut */ }
-        })(),
-      ])
-      if (vals.length) {
-        vals.sort((a, b) => a - b)
-        const mid = vals.length % 2 ? vals[(vals.length - 1) / 2] : (vals[vals.length / 2 - 1] + vals[vals.length / 2]) / 2
-        await svc.from('exchange_rates').upsert({
-          rate_date: todayWIB(), usd_idr: Math.round(mid * 100) / 100, source: `median(${srcs.join(',')})`,
-        })
-        kursNote = `USD/IDR: ${Math.round(mid)}`
+      const r = await fetch('https://scanner.tradingview.com/forex/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
+        body: JSON.stringify({
+          symbols: { tickers: ['FX_IDC:USDIDR'], query: { types: [] } },
+          columns: ['lp', 'close'],
+        }),
+      })
+      if (r.ok) {
+        const j = await r.json()
+        const d = j?.data?.[0]?.d || []
+        const rate = Number(d[0]) > 0 ? Number(d[0]) : Number(d[1]) // lp bila ada, else close
+        if (rate > 0) {
+          await svc.from('exchange_rates').upsert({
+            rate_date: todayWIB(), usd_idr: rate, source: 'TradingView (FX_IDC:USDIDR)',
+          })
+          kursNote = `USD/IDR: ${Math.round(rate)}`
+        }
       }
     } catch { /* kurs gagal tidak menghentikan pipeline */ }
 
@@ -429,14 +201,17 @@ serve(async (req) => {
       await svc.from('macro_runs').update({ status: 'running', started_at: new Date().toISOString() }).eq('run_date', runKey)
     }
 
-    // ---------- 1) HARGA RESMI (PIHPS BI) ----------
-    const pihps = await fetchPihps(runKey)
-    if (pihps.rows.length) {
-      await svc.from('commodity_prices').upsert(
-        pihps.rows.map((r) => ({ ...r, run_date: runKey })),
-        { onConflict: 'run_date,variant_name,province_id' },
-      )
-    }
+    // ---------- 1) HARGA RESMI (SP2KP Kemendag) — nasional (HNT) semua bapok ----------
+    // Pra-isi cache commodity_prices (province_id=0) agar Radar langsung siap.
+    // Bila gagal, harga-daerah(0) tetap menariknya on-demand saat UI dibuka.
+    let sp2kpCount = 0
+    try {
+      const rows = await buildNational(runKey)
+      if (rows.length) {
+        await svc.from('commodity_prices').upsert(rows, { onConflict: 'run_date,variant_name,province_id' })
+        sp2kpCount = rows.length
+      }
+    } catch { /* harga SP2KP gagal tak menghentikan pipeline */ }
 
     // ---------- 2) BACKFILL HISTORI KURS (sekali saja saat data < 30 hari) ----------
     try {
@@ -499,159 +274,6 @@ serve(async (req) => {
       return { key: c.key, label: c.label, headlines: items.slice(0, 5) }
     }))
 
-    // ---------- 3b) HARGA RAG untuk komoditas di luar PIHPS ----------
-    // Harga terakhir yang pernah tersimpan (utk prev_price & carry-forward).
-    const prevByKey: Record<string, any> = {}
-    try {
-      const since = new Date(Date.parse(runKey) - 60 * 86400000).toISOString().slice(0, 10)
-      const { data: prevRows } = await svc.from('commodity_prices').select('*')
-        .in('commodity_key', RAG_KEYS).eq('province_id', 0)
-        .gte('run_date', since).lt('run_date', runKey)
-        .order('run_date', { ascending: false }).limit(200)
-      for (const r of prevRows || []) if (!prevByKey[r.commodity_key]) prevByKey[r.commodity_key] = r
-    } catch { /* tanpa histori tetap jalan */ }
-
-    let ragSaved = 0
-    if (GEMINI_API_KEY) {
-      // Buka isi artikel (maks 3 per komoditas) dari sumber tepercaya agar
-      // angka harga yang tidak muncul di ringkasan RSS tetap bisa ditemukan.
-      const excerptsByKey: Record<string, string[][]> = {}
-      await Promise.all(feeds
-        .filter((f) => RAG_KEYS.includes(f.key) && f.headlines.length)
-        .map(async (f) => {
-          // Buka maks 3 artikel teratas per komoditas secara paralel.
-          const tops = f.headlines.slice(0, 3)
-          const got = await Promise.all(tops.map((h) => fetchArticleExcerpts(h.link)))
-          const per: string[][] = f.headlines.map((_, i) => got[i] || [])
-          excerptsByKey[f.key] = per
-          diag.excerpts[f.key] = per.flat().length
-        }))
-
-      // PEMILIHAN DETERMINISTIK: angka digali regex dari teks sumber, lalu
-      // disaring aturan mekanis — kalimatnya WAJIB menyebut nama komoditas;
-      // diprioritaskan yang menyebut satuan target. Tanpa tebakan AI.
-      type Pick = { key: string; i: number; harga: number; kalimat: string; hasUnit: boolean; strong: boolean; score: number }
-      const picked: Pick[] = []
-      for (const f of feeds) {
-        if (!RAG_KEYS.includes(f.key) || !f.headlines.length) continue
-        const cfg = RAG_PRICE[f.key]
-        const kws = RAG_KEYWORDS[f.key] || []
-        const hints = RAG_UNIT_HINTS[f.key] || []
-        const negs = RAG_NEGATIVES[f.key] || []
-        let best: Pick | null = null
-        f.headlines.forEach((h, i) => {
-          const texts = [`${h.title}. ${h.snippet}`, ...(excerptsByKey[f.key]?.[i] || [])]
-          for (const t of texts) {
-            for (const m of parseRupiahMentions(t)) {
-              if (m.harga < cfg.min || m.harga > cfg.max) continue
-              const kal = m.kalimat.toLowerCase()
-              if (!kws.some((k) => kal.includes(k))) continue // wajib sebut komoditasnya
-              // "Nama terdekat menang": bila produk tetangga (Solar, 12 kg, dll)
-              // disebut LEBIH DEKAT ke angka daripada kata kunci target,
-              // angka itu milik produk tetangga — buang kandidatnya.
-              const preKw = Math.max(...kws.map((k) => m.pre.lastIndexOf(k)), -1)
-              const preNeg = Math.max(...negs.map((n) => m.pre.lastIndexOf(n)), -1)
-              if (preNeg > preKw) continue
-              // strong = nama komoditas tepat SEBELUM angka ("Garam ... Rp X")
-              // — kunci anti-tertukar pada artikel daftar banyak harga.
-              const strong = preKw >= 0
-              const hasUnit = hints.some((u) => kal.includes(u))
-              const score = (strong ? 2 : 0) + (hasUnit ? 1 : 0)
-              const cand: Pick = { key: f.key, i, harga: m.harga, kalimat: m.kalimat, hasUnit, strong, score }
-              if (!best || cand.score > best.score) best = cand
-            }
-          }
-        })
-        if (best) picked.push(best)
-        diag.excerpts[f.key + '_pick'] = best ? `${(best as Pick).harga} (skor ${(best as Pick).score})` : null
-      }
-
-      // AI hanya KONFIRMASI ya/tidak per kandidat terpilih — tugas biner paling
-      // andal; angka & sumber tidak pernah berasal dari AI.
-      let confirmed: Record<string, boolean> = {}
-      let confirmOk = false
-      if (picked.length) {
-        const CONFIRM_PROMPT = `Periksa tiap butir: apakah KALIMAT tersebut benar-benar menyatakan harga jual/eceran "target" itu (satuan cocok, bukan subsidi/anggaran/produk lain/harga masa lalu)? Harga tingkat daerah/pasar tetap sah.
-
-DATA:
-${JSON.stringify(picked.map((p) => ({ key: p.key, target: RAG_PRICE[p.key].target, harga: p.harga, kalimat: p.kalimat })))}
-
-Balas HANYA JSON array: [ { "key": string, "sah": true | false } ]`
-        try {
-          const exRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-            {
-              method: 'POST',
-              headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: CONFIRM_PROMPT }] }],
-                generationConfig: {
-                  temperature: 0, responseMimeType: 'application/json',
-                  maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 512 },
-                },
-              }),
-            },
-          )
-          if (exRes.ok) {
-            const exData = await exRes.json()
-            const exText = exData?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '[]'
-            try {
-              const arr = JSON.parse(exText.match(/\[[\s\S]*\]/)?.[0] ?? '[]')
-              for (const a of arr) if (a && typeof a.key === 'string') confirmed[a.key] = a.sah === true
-              confirmOk = arr.length > 0
-            } catch { diag.extract = `parse gagal: ${exText.slice(0, 200)}` }
-          } else {
-            diag.extract = `HTTP ${exRes.status}: ${(await exRes.text()).slice(0, 200)}`
-          }
-        } catch (e) { diag.extract = `exception: ${String(e).slice(0, 200)}` }
-        if (debug) diag.extracted = { picked: picked.map((p) => ({ key: p.key, harga: p.harga, hasUnit: p.hasUnit })), confirmed }
-      }
-
-      const ragRows: any[] = []
-      for (const p of picked) {
-        // Bila AI konfirmasi berjalan: pakai yang disetujui. Bila AI gagal
-        // dihubungi: pakai hanya kandidat "strong" bersatuan cocok (aturan
-        // mekanis paling ketat) — tetap tanpa asumsi.
-        const lolos = confirmOk ? confirmed[p.key] === true : (p.strong && p.hasUnit)
-        if (!lolos) { diag.rejects.push(`${p.key}: ${p.harga} tidak lolos konfirmasi`); continue }
-        const feed = feeds.find((f) => f.key === p.key)
-        const ev = feed?.headlines?.[p.i]
-        if (!ev) continue
-        const cfg = RAG_PRICE[p.key]
-        const prev = prevByKey[p.key]
-        ragRows.push({
-          run_date: runKey,
-          commodity_key: p.key,
-          variant_name: COMMODITIES.find((c) => c.key === p.key)?.label || p.key,
-          is_group: true,
-          price: p.harga,
-          prev_price: prev && Number(prev.price) !== p.harga ? Number(prev.price) : null,
-          price_date: ev.pubDate || runKey,
-          unit: cfg.unit,
-          source_name: ev.domain,
-          source_url: ev.link,
-        })
-      }
-      if (ragRows.length) {
-        await svc.from('commodity_prices').upsert(ragRows, { onConflict: 'run_date,variant_name,province_id' })
-        ragSaved = ragRows.length
-      }
-    }
-
-    // Carry-forward: komoditas RAG tanpa harga baru hari ini tetap tampil
-    // dengan harga TERSUMBER terakhir (tanggal & link sumber aslinya dibawa).
-    try {
-      const { data: todayRows } = await svc.from('commodity_prices')
-        .select('commodity_key').eq('run_date', runKey).eq('province_id', 0).in('commodity_key', RAG_KEYS)
-      const have = new Set((todayRows || []).map((r: any) => r.commodity_key))
-      const carries = RAG_KEYS
-        .filter((k) => !have.has(k) && prevByKey[k])
-        .map((k) => {
-          const { id: _id, created_at: _ca, ...rest } = prevByKey[k]
-          return { ...rest, run_date: runKey }
-        })
-      if (carries.length) await svc.from('commodity_prices').upsert(carries, { onConflict: 'run_date,variant_name,province_id' })
-    } catch { /* opsional */ }
 
     // ---------- 4) SATU panggilan Gemini untuk semua komoditas ----------
     let signals: any[] = []
@@ -747,10 +369,10 @@ ATURAN KERAS (pelanggaran = jawaban tidak dipakai):
 
     await svc.from('macro_runs').update({
       status: 'done', finished_at: new Date().toISOString(),
-      detail: `${rows.length} sinyal; ${pihps.rows.length} harga PIHPS; ${ragSaved} harga RAG; ${kursNote || 'kurs gagal'}`,
+      detail: `${rows.length} sinyal; ${sp2kpCount} harga SP2KP; ${kursNote || 'kurs gagal'}`,
     }).eq('run_date', runKey)
 
-    return json({ ok: true, signals: rows.length, prices: pihps.rows.length, rag: ragSaved, ...(debug ? { diag } : {}) })
+    return json({ ok: true, signals: rows.length, prices: sp2kpCount })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan pipeline makro.', detail: String(e).slice(0, 300) }, 500)
   }

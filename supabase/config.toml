@@ -1,0 +1,15 @@
+# ============================================================
+# Konfigurasi proyek Supabase — mem-PIN setelan yang tak boleh keliru saat deploy.
+# Sebelumnya verify_jwt hanya tersimpan di server; sekarang ter-versi di repo
+# agar `supabase functions deploy` selalu reproducible.
+# ============================================================
+project_id = "hexaidoxmeycctpwfbst"
+
+# harga-daerah: dipanggil dari UI oleh pengguna yang SUDAH login.
+[functions.harga-daerah]
+verify_jwt = true
+
+# makro-harian: dipicu pg_cron/pg_net (cron harian) TANPA login.
+# WAJIB false — kalau terbalik jadi true, cron akan kena 401 & pipeline berhenti.
+[functions.makro-harian]
+verify_jwt = false

@@ -1,0 +1,335 @@
+{
+  "info": {
+    "_postman_id": "b7c6bp-edge-2026-07",
+    "name": "BukuPintar-Edge (SmartBookAI)",
+    "description": "Kontrak HTTP untuk Supabase Edge Functions: BukuPencatatan (chat RAG), harga-daerah (bapok SP2KP Kemendag: province_id 0=nasional, 1..34=provinsi), makro-harian (pipeline harga & sinyal). Assertion Postman JS: status, header CORS, waktu respons, kunci payload penting. Dijalankan headless via `newman run`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "BukuPencatatan",
+      "item": [
+        {
+          "name": "tanya-valid (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" },
+              { "key": "apikey", "value": "{{anon}}" },
+              { "key": "Origin", "value": "{{origin}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/BukuPencatatan", "host": ["{{base}}"], "path": ["functions", "v1", "BukuPencatatan"] },
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"Berapa laba bersih saya bulan ini?\",\n  \"history\": [],\n  \"device\": \"desktop\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('waktu respons < 8000ms', () => pm.expect(pm.response.responseTime).to.be.below(8000));",
+                  "const b = pm.response.json();",
+                  "pm.test('reply berupa string non-kosong', () => { pm.expect(b.reply, 'reply ada').to.be.a('string'); pm.expect(b.reply.length).to.be.above(0); });",
+                  "pm.test('tidak memuat pesan error server', () => pm.expect(b.error).to.be.undefined);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "tanya-di-luar-lingkup (200 tapi menolak)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/BukuPencatatan", "host": ["{{base}}"], "path": ["functions", "v1", "BukuPencatatan"] },
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"Tolong tuliskan pandangan politik terbaik\",\n  \"history\": [],\n  \"device\": \"desktop\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('menolak dengan kalimat lingkup baku', () => { pm.expect(b.reply, 'reply ada').to.be.a('string'); pm.expect(b.reply).to.include('asisten khusus BukuPintar'); });",
+                  "pm.test('tidak menjawab topik terlarang', () => pm.expect(b.reply.toLowerCase()).to.not.match(/partai|presiden|pemilu/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "tanpa-JWT (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/BukuPencatatan", "host": ["{{base}}"], "path": ["functions", "v1", "BukuPencatatan"] },
+            "body": { "mode": "raw", "raw": "{ \"message\": \"halo\" }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('pesan wajib login', () => {",
+                  "  const b = pm.response.json();",
+                  "  // verify_jwt=true => gateway balas {code:'UNAUTHORIZED_NO_AUTH_HEADER', message:'Missing authorization header'}.",
+                  "  // Toleran juga bila auth ditangani fungsi sendiri (field `error` berisi 'masuk').",
+                  "  const msg = (b.error || b.message || b.msg || '').toString().toLowerCase();",
+                  "  pm.expect(msg).to.match(/authorization|auth header|login|masuk/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "message-kosong (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/BukuPencatatan", "host": ["{{base}}"], "path": ["functions", "v1", "BukuPencatatan"] },
+            "body": { "mode": "raw", "raw": "{ \"message\": \"\" }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('pesan kosong', () => pm.expect(pm.response.json().error).to.eql('Pesan kosong.'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "message-terlalu-panjang (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/BukuPencatatan", "host": ["{{base}}"], "path": ["functions", "v1", "BukuPencatatan"] },
+            "body": { "mode": "raw", "raw": "" }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// bangun pesan > 2000 karakter (aturan Edge: message.length > 2000 -> 400)",
+                  "const long = 'a'.repeat(2100);",
+                  "pm.request.body.raw = JSON.stringify({ message: long });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('pesan terlalu panjang', () => pm.expect(pm.response.json().error).to.eql('Pesan terlalu panjang.'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CORS preflight-origin-sah (200)",
+          "request": {
+            "method": "OPTIONS",
+            "header": [
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "Access-Control-Request-Method", "value": "POST" },
+              { "key": "Access-Control-Request-Headers", "value": "authorization,content-type" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/BukuPencatatan", "host": ["{{base}}"], "path": ["functions", "v1", "BukuPencatatan"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Access-Control-Allow-Origin = origin sah', () => pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.eql(pm.environment.get('origin')));",
+                  "pm.test('Vary: Origin', () => pm.expect(pm.response.headers.get('Vary')).to.include('Origin'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "harga-daerah",
+      "item": [
+        {
+          "name": "provinsi-invalid-40 (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/harga-daerah", "host": ["{{base}}"], "path": ["functions", "v1", "harga-daerah"] },
+            "body": { "mode": "raw", "raw": "{ \"province_id\": 40 }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('pesan provinsi tidak dikenal', () => pm.expect(pm.response.json().error).to.eql('Provinsi tidak dikenal.'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "provinsi-sah-11 (200 + lineage sumber)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/harga-daerah", "host": ["{{base}}"], "path": ["functions", "v1", "harga-daerah"] },
+            "body": { "mode": "raw", "raw": "{ \"province_id\": 11 }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('runDate = string tanggal', () => pm.expect(b.runDate).to.match(/^\\d{4}-\\d{2}-\\d{2}$/));",
+                  "pm.test('prices = array', () => pm.expect(b.prices).to.be.an('array'));",
+                  "if (Array.isArray(b.prices) && b.prices.length > 0) {",
+                  "  pm.test('setiap baris memiliki province_id = 11', () => b.prices.forEach((p) => pm.expect(p.province_id).to.eql(11)));",
+                  "  pm.test('grounding: source_name = SP2KP Kemendag', () => b.prices.forEach((p) => pm.expect(p.source_name).to.eql('SP2KP Kemendag')));",
+                  "  pm.test('grounding: source_url ke sp2kp.kemendag.go.id', () => b.prices.forEach((p) => pm.expect(p.source_url).to.be.a('string').and.to.include('sp2kp.kemendag.go.id')));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "provinsi-11-cache-hit (waktu respons cepat)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/harga-daerah", "host": ["{{base}}"], "path": ["functions", "v1", "harga-daerah"] },
+            "body": { "mode": "raw", "raw": "{ \"province_id\": 11 }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "// Panggilan kedua di hari yang sama => cache hit => harus jauh lebih cepat dari fetch PIHPS (~15-20s)",
+                  "pm.test('cache hit < 2000ms', () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "makro-harian",
+      "item": [
+        {
+          "name": "trigger-cron (200 idempoten)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/makro-harian", "host": ["{{base}}"], "path": ["functions", "v1", "makro-harian"] },
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('idempoten: ok atau already atau running', () => pm.expect(b.ok).to.eql(true));",
+                  "if (b.already !== true && b.running !== true) {",
+                  "  pm.test('signals numerik', () => pm.expect(b.signals).to.be.a('number'));",
+                  "  pm.test('prices numerik', () => pm.expect(b.prices).to.be.a('number'));",
+                  "  pm.test('rag numerik', () => pm.expect(b.rag).to.be.a('number'));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "trigger-kedua-berturut (already atau running)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "apikey", "value": "{{anon}}" }
+            ],
+            "url": { "raw": "{{base}}/functions/v1/makro-harian", "host": ["{{base}}"], "path": ["functions", "v1", "makro-harian"] },
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('idempoten dgn lock macro_runs', () => pm.expect(b.already === true || b.running === true).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

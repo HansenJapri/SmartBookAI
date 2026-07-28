@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Minus, RefreshCw, ExternalLink, BadgeCheck } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
-  fetchMacroSignals, fetchCommodityPrices, fetchExchangeRates,
+  fetchMacroSignals, fetchExchangeRates,
   fetchMacroConfigLatest, fetchIngredients,
 } from '../lib/api'
 import { makroRefresh, hargaDaerah } from '../lib/ai'
 import { rupiah, fmtDate } from '../lib/format'
-import { COMMODITIES } from '../lib/hpp'
+import { signalKeyOf, SP2KP_SITE, SP2KP_SOURCE_NAME } from '../lib/sp2kp'
 import { PROVINCES, PROVINCE_NAME } from '../lib/provinces'
 import AIDisclaimer from '../components/AIDisclaimer'
 
@@ -19,17 +19,42 @@ const DIR = {
 }
 const CONF = { rendah: 'var(--muted)', sedang: 'var(--warn-ink)', tinggi: 'var(--green)' }
 
-// Urutan tampil mengikuti daftar komoditas standar; kurs paling akhir.
-const ORDER = Object.fromEntries([...COMMODITIES.map((c, i) => [c.key, i]), ['kurs', 999]])
-
 // Kunci "hari data" — batas hari pukul 06.00 WIB, HARUS sama dengan Edge
 // Function makro-harian: sebelum jam 6 pagi, data terbaru = tarikan kemarin.
 const expectedRunKey = () => new Date(Date.now() + (7 - 6) * 3600 * 1000).toISOString().slice(0, 10)
 
+// Blok perkiraan 30 hari (sinyal RAG) — dipakai untuk bapok maupun komoditas lain.
+function SignalBlock({ s, mine }) {
+  const range = Number(s.est_pct_min) === 0 && Number(s.est_pct_max) === 0
+    ? '±0%'
+    : `${Number(s.est_pct_min) > 0 ? '+' : ''}${Number(s.est_pct_min)}% s.d. ${Number(s.est_pct_max) > 0 ? '+' : ''}${Number(s.est_pct_max)}%`
+  const sources = Array.isArray(s.sources) ? s.sources.slice(0, 2) : []
+  const drivers = Array.isArray(s.drivers) ? s.drivers : []
+  return (
+    <>
+      <div style={{ fontSize: 15, fontWeight: 600, margin: '4px 0 2px' }}>Perkiraan 30 hari: {range}</div>
+      <div className="muted-sm" style={{ marginBottom: 6 }}>
+        Keyakinan: <b style={{ color: CONF[s.confidence] || '#94a3b8' }}>{s.confidence}</b>
+        {mine && <span className="pill pill-cat" style={{ marginLeft: 8 }}>dipakai usaha Anda</span>}
+      </div>
+      {drivers.length > 0 && <ul className="sig-drivers">{drivers.map((dr, i) => <li key={i}>{dr}</li>)}</ul>}
+      {sources.length > 0 && (
+        <div className="sig-sources">
+          {sources.map((src, i) => (
+            <a key={i} href={src.link || '#'} target="_blank" rel="noreferrer noopener" title={src.title}>
+              <ExternalLink size={11} /> {String(src.title).slice(0, 60)}{String(src.title).length > 60 ? '…' : ''}
+            </a>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function Radar() {
   const [signals, setSignals] = useState([])
   const [runDate, setRunDate] = useState(null)
-  const [prices, setPrices] = useState([])
+  const [prices, setPrices] = useState([])       // harga bapok nasional SP2KP
   const [rates, setRates] = useState([])
   const [config, setConfig] = useState(null)
   const [ingredients, setIngredients] = useState([])
@@ -39,12 +64,12 @@ export default function Radar() {
   const [onlyMine, setOnlyMine] = useState(false)
   const [err, setErr] = useState('')
   const [provId, setProvId] = useState(0)          // 0 = nasional
-  const [provPrices, setProvPrices] = useState([]) // harga PIHPS provinsi terpilih
+  const [provPrices, setProvPrices] = useState([]) // harga SP2KP provinsi terpilih
   const [provLoading, setProvLoading] = useState(false)
   const provReq = useRef(0) // penjaga urutan: hanya respons terakhir yang dipakai
 
-  // Ganti provinsi: ambil harga resmi PIHPS provinsi tsb (server meng-cache
-  // per provinsi per hari). Bahan non-PIHPS tetap memakai harga nasional.
+  // Ganti provinsi: ambil harga SP2KP provinsi tsb (server meng-cache per
+  // provinsi per hari). Bahan yang tak tercakup provinsi tetap memakai nasional.
   const changeProvince = async (id) => {
     const token = ++provReq.current
     setProvId(id)
@@ -65,15 +90,18 @@ export default function Radar() {
 
   const load = async () => {
     const [sig, prc, rts, cfg, ing] = await Promise.allSettled([
-      fetchMacroSignals(), fetchCommodityPrices(), fetchExchangeRates(90),
+      fetchMacroSignals(), hargaDaerah(0), fetchExchangeRates(90),
       fetchMacroConfigLatest(), fetchIngredients(),
     ])
-    if (sig.status === 'fulfilled') { setSignals(sig.value.signals); setRunDate(sig.value.runDate) }
-    if (prc.status === 'fulfilled') setPrices(prc.value.prices)
+    if (sig.status === 'fulfilled') setSignals(sig.value.signals)
+    let rd = null
+    if (prc.status === 'fulfilled') { setPrices(prc.value.prices || []); rd = prc.value.runDate }
+    if (!rd && sig.status === 'fulfilled') rd = sig.value.runDate
+    setRunDate(rd)
     if (rts.status === 'fulfilled') setRates(rts.value)
     if (cfg.status === 'fulfilled') setConfig(cfg.value)
     if (ing.status === 'fulfilled') setIngredients(ing.value)
-    return sig.status === 'fulfilled' ? sig.value.runDate : null
+    return rd
   }
 
   // Pipeline dijadwalkan tiap 06.00 WIB (pg_cron). Pemicu dari sini hanya
@@ -105,29 +133,39 @@ export default function Radar() {
     () => new Set(ingredients.map((i) => i.commodity_key).filter(Boolean)),
     [ingredients],
   )
-  const shown = useMemo(() => {
-    const list = onlyMine && relevantKeys.size > 0
-      ? signals.filter((s) => relevantKeys.has(s.commodity_key) || s.commodity_key === 'kurs')
-      : signals
-    return [...list].sort((a, b) => (ORDER[a.commodity_key] ?? 500) - (ORDER[b.commodity_key] ?? 500))
-  }, [signals, onlyMine, relevantKeys])
+  const signalByKey = useMemo(
+    () => Object.fromEntries((signals || []).map((s) => [s.commodity_key, s])),
+    [signals],
+  )
 
-  // Harga resmi per kelompok: baris is_group = angka utama; sisanya varian.
-  // Saat provinsi dipilih, baris PIHPS provinsi menggantikan baris nasional
-  // untuk komoditas yang tercakup; sisanya tetap nasional (berlabel).
-  const pricesByKey = useMemo(() => {
+  // Baris harga efektif: saat provinsi dipilih, baris SP2KP provinsi
+  // menggantikan baris nasional untuk komoditas yang tercakup; sisanya nasional.
+  const effectivePrices = useMemo(() => {
     const provKeys = new Set(provPrices.map((p) => p.commodity_key))
-    const effective = provId !== 0 && provPrices.length
+    return provId !== 0 && provPrices.length
       ? [...provPrices, ...prices.filter((p) => !provKeys.has(p.commodity_key))]
       : prices
-    const map = {}
-    for (const p of effective) {
-      if (!map[p.commodity_key]) map[p.commodity_key] = { group: null, variants: [] }
-      if (p.is_group) map[p.commodity_key].group = p
-      else map[p.commodity_key].variants.push(p)
-    }
-    return map
   }, [prices, provPrices, provId])
+
+  // DAFTAR UTAMA = semua bapok SP2KP. Sinyal RAG (perkiraan) jadi overlay opsional.
+  const bapokItems = useMemo(() => {
+    let list = effectivePrices.map((p) => {
+      const sigKey = signalKeyOf(p.variant_name)
+      return { price: p, sigKey, signal: sigKey ? signalByKey[sigKey] : null }
+    })
+    if (onlyMine && relevantKeys.size > 0) {
+      list = list.filter((it) => it.sigKey && relevantKeys.has(it.sigKey))
+    }
+    return list
+  }, [effectivePrices, signalByKey, onlyMine, relevantKeys])
+
+  // Sinyal komoditas NON-bapok (CPO/gandum global, LPG, BBM, dll) — tak punya
+  // harga SP2KP; ditampilkan sebagai kartu sinyal-saja agar fitur perkiraan tetap ada.
+  const otherSignals = useMemo(() => {
+    const matched = new Set(bapokItems.map((i) => i.sigKey).filter(Boolean))
+    if (onlyMine && relevantKeys.size > 0) return []
+    return (signals || []).filter((s) => s.commodity_key !== 'kurs' && !matched.has(s.commodity_key))
+  }, [signals, bapokItems, onlyMine, relevantKeys])
 
   const kurs = useMemo(() => {
     if (!rates.length) return null
@@ -141,11 +179,13 @@ export default function Radar() {
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
+  const provLabel = provId !== 0 ? (PROVINCE_NAME[provId] || 'provinsi') : 'nasional'
+
   return (
     <div style={{ maxWidth: 1040 }}>
       <div className="alert alert-info" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <span>
-          <b>Radar Harga Bahan.</b> Harga dari sumber resmi &amp; media tepercaya, diperbarui otomatis <b>setiap pagi pukul 06.00 WIB</b>.
+          <b>Radar Harga Bahan.</b> Harga bahan pokok dari <b>SP2KP Kementerian Perdagangan</b>, diperbarui otomatis <b>setiap pagi pukul 06.00 WIB</b>.
           {runDate ? ` Data: ${fmtDate(runDate)}.` : ' Belum ada data.'}
         </span>
         <button className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
@@ -212,13 +252,13 @@ export default function Radar() {
         </div>
       </div>
 
-      {/* HARGA & SINYAL PER KOMODITAS */}
+      {/* HARGA BAPOK SP2KP + SINYAL */}
       <div className="card card-pad">
         <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
           <div>
-            <h3 className="card-title">Harga Bahan Terkini & Perkiraan 30 Hari</h3>
+            <h3 className="card-title">Harga Bahan Pokok Terkini & Perkiraan 30 Hari</h3>
             <div className="card-sub">
-              Harga: sumber resmi (PIHPS Bank Indonesia) &amp; harga terpantau media tepercaya · Arah: berita sepekan terakhir
+              Harga: <b>SP2KP Kementerian Perdagangan</b> (barang kebutuhan pokok) · Arah: berita sepekan terakhir dari media tepercaya
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -239,107 +279,86 @@ export default function Radar() {
             )}
           </div>
         </div>
-        <AIDisclaimer text="Sinyal arah dibuat AI dari berita — bisa keliru. Harga PIHPS adalah rata-rata nasional; harga di pasar Anda bisa berbeda." />
+        <AIDisclaimer text="Harga bapok bersumber dari SP2KP Kemendag (rata-rata; harga di pasar Anda bisa berbeda). Sinyal arah 30 hari dibuat AI dari berita — bisa keliru." />
 
-        {!shown.length ? (
+        {!bapokItems.length ? (
           <p className="muted-sm" style={{ marginTop: 12 }}>
-            {signals.length ? 'Tidak ada sinyal untuk bahan Anda. Matikan filter untuk melihat semua komoditas.' : 'Belum ada data. Tekan tombol Perbarui di atas.'}
+            {prices.length ? 'Tidak ada bahan yang cocok. Matikan filter untuk melihat semua komoditas.' : 'Belum ada data harga. Tekan tombol Perbarui di atas.'}
           </p>
         ) : (
           <div className="sig-grid" style={{ marginTop: 12 }}>
-            {shown.map((s) => {
-              const d = DIR[s.direction] || DIR.stabil
-              const Icon = d.icon
-              const mine = relevantKeys.has(s.commodity_key)
-              const pr = pricesByKey[s.commodity_key]
-              const headline = pr?.group || pr?.variants?.[0] || null
-              const delta = headline?.prev_price
-                ? ((Number(headline.price) - Number(headline.prev_price)) / Number(headline.prev_price)) * 100
+            {bapokItems.map(({ price: p, sigKey, signal: s }) => {
+              const d = s ? (DIR[s.direction] || DIR.stabil) : null
+              const Icon = d ? d.icon : null
+              const mine = sigKey && relevantKeys.has(sigKey)
+              const delta = p.prev_price
+                ? ((Number(p.price) - Number(p.prev_price)) / Number(p.prev_price)) * 100
                 : null
-              const range = Number(s.est_pct_min) === 0 && Number(s.est_pct_max) === 0
-                ? '±0%'
-                : `${Number(s.est_pct_min) > 0 ? '+' : ''}${Number(s.est_pct_min)}% s.d. ${Number(s.est_pct_max) > 0 ? '+' : ''}${Number(s.est_pct_max)}%`
-              const sources = Array.isArray(s.sources) ? s.sources.slice(0, 2) : []
-              const drivers = Array.isArray(s.drivers) ? s.drivers : []
               return (
-                <div className="sig-card" key={s.commodity_key}>
+                <div className="sig-card" key={p.commodity_key}>
                   <div className="flex between" style={{ alignItems: 'flex-start' }}>
-                    <b>{s.commodity_label}</b>
-                    <span className="sig-dir" style={{ color: d.color, background: d.bg }}>
-                      <Icon size={13} /> {d.label}
-                    </span>
+                    <b>{p.variant_name}</b>
+                    {d && (
+                      <span className="sig-dir" style={{ color: d.color, background: d.bg }}>
+                        <Icon size={13} /> {d.label}
+                      </span>
+                    )}
                   </div>
 
-                  {/* HARGA TERKINI (resmi PIHPS atau terpantau media tepercaya) */}
-                  {headline ? (() => {
-                    const resmi = String(headline.source_name).includes('PIHPS')
-                    // Harga resmi: arahkan ke halaman publik PIHPS yang ramah
-                    // dibaca; harga dari media: langsung ke artikelnya.
-                    const srcHref = resmi ? 'https://www.bi.go.id/hargapangan' : headline.source_url
-                    return (
-                      <div style={{ margin: '6px 0' }}>
-                        <div style={{ fontSize: 20, fontWeight: 700 }}>
-                          {rupiah(headline.price)} <span className="muted-sm" style={{ fontWeight: 400 }}>/{String(headline.unit).replace('Rp/', '')}</span>
-                          {delta !== null && Math.abs(delta) >= 0.05 && (
-                            <span style={{ fontSize: 12.5, fontWeight: 600, marginLeft: 8, color: delta > 0 ? 'var(--red)' : 'var(--green)' }}>
-                              {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
-                            </span>
-                          )}
-                        </div>
-                        <div className="muted-sm">
-                          {resmi
-                            ? (Number(headline.province_id) > 0 ? `rata-rata ${PROVINCE_NAME[headline.province_id] || 'provinsi'}` : 'rata-rata nasional')
-                            : 'harga terpantau dari berita'}
-                          {headline.price_date ? `, ${fmtDate(headline.price_date)}` : ''}
-                        </div>
-                        {pr.variants.length > 0 && (
-                          <details className="sig-variants">
-                            <summary>{pr.variants.length} varian harga</summary>
-                            <ul>
-                              {pr.variants.map((v) => (
-                                <li key={v.variant_name}><span>{v.variant_name}</span><b>{rupiah(v.price)}</b></li>
-                              ))}
-                            </ul>
-                          </details>
-                        )}
-                        <a className="sig-official" href={srcHref} target="_blank" rel="noreferrer noopener"
-                          title="Buka sumber harga ini">
-                          <BadgeCheck size={12} /> Sumber: {resmi ? 'PIHPS Bank Indonesia' : headline.source_name}
-                        </a>
-                      </div>
-                    )
-                  })() : s.commodity_key !== 'kurs' && (
-                    <div className="muted-sm" style={{ margin: '6px 0' }}>
-                      Harga belum tersedia dari sumber tepercaya — akan terisi otomatis begitu ada publikasi harga terbaru.
+                  {/* HARGA TERKINI (SP2KP) */}
+                  <div style={{ margin: '6px 0' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700 }}>
+                      {rupiah(p.price)} <span className="muted-sm" style={{ fontWeight: 400 }}>/{String(p.unit).replace('Rp/', '')}</span>
+                      {delta !== null && Math.abs(delta) >= 0.05 && (
+                        <span style={{ fontSize: 12.5, fontWeight: 600, marginLeft: 8, color: delta > 0 ? 'var(--red)' : 'var(--green)' }}>
+                          {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <div className="muted-sm">
+                      {Number(p.province_id) > 0 ? `rata-rata ${PROVINCE_NAME[p.province_id] || 'provinsi'}` : 'rata-rata nasional (HNT)'}
+                      {p.price_date ? `, ${fmtDate(p.price_date)}` : ''}
+                    </div>
+                    <a className="sig-official" href={SP2KP_SITE} target="_blank" rel="noreferrer noopener"
+                      title="Buka sumber harga SP2KP Kemendag">
+                      <BadgeCheck size={12} /> Sumber: {SP2KP_SOURCE_NAME}
+                    </a>
+                  </div>
 
-                  {/* SINYAL 30 HARI */}
-                  <div style={{ fontSize: 15, fontWeight: 600, margin: '4px 0 2px' }}>
-                    Perkiraan 30 hari: {range}
-                  </div>
-                  <div className="muted-sm" style={{ marginBottom: 6 }}>
-                    Keyakinan: <b style={{ color: CONF[s.confidence] || '#94a3b8' }}>{s.confidence}</b>
-                    {mine && <span className="pill pill-cat" style={{ marginLeft: 8 }}>dipakai usaha Anda</span>}
-                  </div>
-                  {drivers.length > 0 && (
-                    <ul className="sig-drivers">
-                      {drivers.map((dr, i) => <li key={i}>{dr}</li>)}
-                    </ul>
-                  )}
-                  {sources.length > 0 && (
-                    <div className="sig-sources">
-                      {sources.map((src, i) => (
-                        <a key={i} href={src.link || '#'} target="_blank" rel="noreferrer noopener" title={src.title}>
-                          <ExternalLink size={11} /> {String(src.title).slice(0, 60)}{String(src.title).length > 60 ? '…' : ''}
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                  {/* SINYAL 30 HARI (opsional) */}
+                  {s
+                    ? <SignalBlock s={s} mine={mine} />
+                    : <div className="muted-sm" style={{ margin: '2px 0 0' }}>Perkiraan arah 30 hari belum tersedia untuk komoditas ini.</div>}
                 </div>
               )
             })}
           </div>
+        )}
+
+        {/* KOMODITAS LAIN (tanpa harga SP2KP) — sinyal perkiraan saja */}
+        {otherSignals.length > 0 && (
+          <>
+            <h4 className="card-title" style={{ fontSize: 15, marginTop: 22 }}>Komoditas lain (perkiraan arah)</h4>
+            <div className="card-sub" style={{ marginBottom: 8 }}>Komoditas global/energi di luar cakupan SP2KP — hanya sinyal arah dari berita, tanpa harga resmi.</div>
+            <div className="sig-grid">
+              {otherSignals.map((s) => {
+                const d = DIR[s.direction] || DIR.stabil
+                const Icon = d.icon
+                const mine = relevantKeys.has(s.commodity_key)
+                return (
+                  <div className="sig-card" key={s.commodity_key}>
+                    <div className="flex between" style={{ alignItems: 'flex-start' }}>
+                      <b>{s.commodity_label}</b>
+                      <span className="sig-dir" style={{ color: d.color, background: d.bg }}>
+                        <Icon size={13} /> {d.label}
+                      </span>
+                    </div>
+                    <SignalBlock s={s} mine={mine} />
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
