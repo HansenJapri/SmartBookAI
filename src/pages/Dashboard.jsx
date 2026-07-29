@@ -380,20 +380,22 @@ function KpiCard({ variant, icon, label, value, sub }) {
 }
 
 function InsightCard({ extras }) {
+  const { t, lang } = useLang()
+  const di = t.dashboard
   const [st, setSt] = useState({ loading: true, content: '', err: '' })
   const load = (force) => {
     setSt((s) => ({ ...s, loading: true, err: '' }))
-    narasiAI(force)
+    narasiAI(force, lang)
       .then((d) => setSt({ loading: false, content: d.content, err: '' }))
       .catch((e) => setSt({ loading: false, content: '', err: e.message }))
   }
-  useEffect(() => { load(false) }, [])
+  useEffect(() => { load(false) }, [lang]) // eslint-disable-line
 
   const headline = useMemo(() => {
-    if (!st.content) return 'Insight AI Hari Ini'
+    if (!st.content) return di.defaultHeadline
     const firstDot = st.content.indexOf('.')
-    return firstDot > 20 ? st.content.slice(0, firstDot + 1) : 'Insight AI Hari Ini'
-  }, [st.content])
+    return firstDot > 20 ? st.content.slice(0, firstDot + 1) : di.defaultHeadline
+  }, [st.content, di.defaultHeadline])
 
   const body = useMemo(() => {
     if (!st.content) return ''
@@ -406,39 +408,39 @@ function InsightCard({ extras }) {
       <div className="d2-insight-blob" aria-hidden="true" />
       <div className="d2-insight-head">
         <div className="d2-insight-badges">
-          <span className="d2-badge-ai"><Sparkles size={12} />AI INSIGHT</span>
-          <span className="d2-ts">Diperbarui otomatis dari catatan Anda</span>
+          <span className="d2-badge-ai"><Sparkles size={12} />{di.insightBadge}</span>
+          <span className="d2-ts">{di.insightUpdated}</span>
         </div>
-        <button className="d2-refresh" onClick={() => load(true)} disabled={st.loading} title="Buat ulang insight" aria-label="Perbarui insight">
+        <button className="d2-refresh" onClick={() => load(true)} disabled={st.loading} title={di.refreshTitle} aria-label={di.refreshAria}>
           <RefreshCw size={16} className={st.loading ? 'd2-spin' : ''} />
         </button>
       </div>
       {st.loading ? (
-        <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>Menyiapkan insight…</p>
+        <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>{di.preparing}</p>
       ) : st.err ? (
         <p style={{ color: 'var(--d2-error)', fontSize: 14 }}>{st.err}</p>
       ) : (
         <>
           <h3>{headline}</h3>
           {body && <p className="d2-insight-body">{body}</p>}
-          <Link to="/app/laporan" className="d2-insight-cta">Lihat Detail <ArrowRight size={16} /></Link>
+          <Link to="/app/laporan" className="d2-insight-cta">{di.viewDetail} <ArrowRight size={16} /></Link>
         </>
       )}
       <div className="d2-insight-mini">
         <div>
-          <p>Top Product</p>
+          <p>{di.topProduct}</p>
           <p>{extras?.topProduct || '—'}</p>
         </div>
         <div>
-          <p>Peak Hour</p>
+          <p>{di.peakHour}</p>
           <p>{extras?.peakHour || '—'}</p>
         </div>
         <div>
-          <p>Transaksi</p>
+          <p>{di.transactions}</p>
           <p>{extras?.txCount || 0}</p>
         </div>
       </div>
-      <AIDisclaimer text="Angka dihitung sistem dari catatan Anda; narasinya dibuat AI dan bisa keliru — cek menu Laporan untuk angka resmi." />
+      <AIDisclaimer text={di.aiDisclaimer} />
     </div>
   )
 }

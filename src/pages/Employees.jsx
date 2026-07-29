@@ -4,6 +4,7 @@ import Modal from '../components/Modal'
 import { fetchEmployees, addEmployee, updateEmployee, deleteEmployee } from '../lib/api'
 import { SALARY_TYPES } from '../lib/hr'
 import { rupiah, fmtDate } from '../lib/format'
+import { useLang } from '../context/LangContext'
 
 const blankForm = () => ({
   id: null, name: '', role: '', phone: '', salary_type: 'bulanan',
@@ -13,6 +14,9 @@ const blankForm = () => ({
 // Data Karyawan: master SDM. Gaji bulanan (nominal/bulan) atau harian
 // (nominal per hari HADIR — dihitung otomatis dari absensi saat penggajian).
 export default function Employees() {
+  const { t } = useLang()
+  const ee = t.employees
+  const salaryTypeLabel = (key) => (key === 'harian' ? t.hr.salaryHarian : t.hr.salaryBulanan)
   const [list, setList] = useState(null)
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -24,9 +28,9 @@ export default function Employees() {
   const save = async (e) => {
     e.preventDefault()
     setErr('')
-    if (!form.name.trim()) return setErr('Nama karyawan wajib diisi.')
+    if (!form.name.trim()) return setErr(ee.errName)
     const amt = Number(form.salary_amount)
-    if (!amt || amt <= 0) return setErr('Nominal gaji harus lebih dari 0.')
+    if (!amt || amt <= 0) return setErr(ee.errSalary)
     setBusy(true)
     try {
       const payload = {
@@ -41,11 +45,11 @@ export default function Employees() {
       if (form.id) {
         const upd = await updateEmployee(form.id, payload)
         setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
-        setMsg(`Data ${upd.name} diperbarui.`)
+        setMsg(ee.updatedMsg.replace('{name}', upd.name))
       } else {
         const created = await addEmployee(payload)
         setList((prev) => [...(prev || []), created].sort((a, b) => a.name.localeCompare(b.name)))
-        setMsg(`${created.name} ditambahkan. Catat absensinya di menu Absensi & Cuti.`)
+        setMsg(ee.addedMsg.replace('{name}', created.name))
       }
       setForm(null)
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
@@ -53,7 +57,7 @@ export default function Employees() {
 
   const toggleStatus = async (emp) => {
     const status = emp.status === 'aktif' ? 'nonaktif' : 'aktif'
-    if (status === 'nonaktif' && !confirm(`Nonaktifkan ${emp.name}? Dia tidak ikut absensi & penggajian berikutnya (riwayat tetap tersimpan).`)) return
+    if (status === 'nonaktif' && !confirm(ee.confirmDeactivate.replace('{name}', emp.name))) return
     try {
       const upd = await updateEmployee(emp.id, { status })
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
@@ -61,7 +65,7 @@ export default function Employees() {
   }
 
   const remove = async (emp) => {
-    if (!confirm(`Hapus ${emp.name} beserta riwayat absensinya? Tindakan ini terekam di Audit Log.`)) return
+    if (!confirm(ee.confirmDelete.replace('{name}', emp.name))) return
     try {
       await deleteEmployee(emp.id)
       setList((prev) => prev.filter((x) => x.id !== emp.id))
@@ -75,53 +79,53 @@ export default function Employees() {
       {msg && (
         <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
           <span>{msg}</span>
-          <button className="icon-btn" onClick={() => setMsg('')} aria-label="Tutup">✕</button>
+          <button className="icon-btn" onClick={() => setMsg('')} aria-label={ee.close}>✕</button>
         </div>
       )}
       {err && !form && <div className="alert alert-err">{err}</div>}
 
       <div className="toolbar">
         <p className="muted-sm" style={{ flex: 1, margin: 0 }}>
-          Gaji karyawan otomatis masuk Biaya Operasional di Laba Rugi saat dibayar lewat menu Penggajian.
+          {ee.hint}
         </p>
-        <button className="btn btn-primary" onClick={() => { setErr(''); setForm(blankForm()) }}>+ Tambah Karyawan</button>
+        <button className="btn btn-primary" onClick={() => { setErr(''); setForm(blankForm()) }}>{ee.addEmployee}</button>
       </div>
 
       {list.length === 0 ? (
         <div className="card"><div className="empty">
           <div className="ee"><User size={36} /></div>
-          <h3>Belum ada karyawan</h3>
-          <p>Tambahkan karyawan untuk mulai mencatat absensi dan menghitung gaji otomatis.</p>
-          <button className="btn btn-primary" onClick={() => setForm(blankForm())}>+ Tambah Karyawan Pertama</button>
+          <h3>{ee.emptyTitle}</h3>
+          <p>{ee.emptyDesc}</p>
+          <button className="btn btn-primary" onClick={() => setForm(blankForm())}>{ee.addFirst}</button>
         </div></div>
       ) : (
         <div className="table-wrap">
           <table className="tbl">
             <thead><tr>
-              <th>Nama</th><th>Jabatan</th><th>Tipe gaji</th><th>Nominal</th><th>Bergabung</th><th>Status</th><th></th>
+              <th>{ee.thName}</th><th>{ee.thRole}</th><th>{ee.thSalaryType}</th><th>{ee.thAmount}</th><th>{ee.thJoined}</th><th>{ee.thStatus}</th><th></th>
             </tr></thead>
             <tbody>
               {list.map((emp) => (
                 <tr key={emp.id}>
                   <td><b>{emp.name}</b>{emp.phone && <div className="muted-sm">{emp.phone}</div>}</td>
                   <td className="muted-sm">{emp.role || '-'}</td>
-                  <td>{emp.salary_type === 'harian' ? 'Harian' : 'Bulanan'}</td>
+                  <td>{salaryTypeLabel(emp.salary_type)}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <b>{rupiah(emp.salary_amount)}</b>
-                    <span className="muted-sm">/{emp.salary_type === 'harian' ? 'hari hadir' : 'bulan'}</span>
+                    <span className="muted-sm">/{emp.salary_type === 'harian' ? t.hr.perHariHadir : t.hr.perBulan}</span>
                   </td>
                   <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{emp.join_date ? fmtDate(emp.join_date) : '-'}</td>
                   <td>
                     <span className={`badge ${emp.status === 'aktif' ? 'badge-green' : 'badge-red'}`}>
-                      {emp.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                      {emp.status === 'aktif' ? ee.active : ee.inactive}
                     </span>
                   </td>
                   <td>
                     <div className="row-actions">
                       <button className="linklike" onClick={() => toggleStatus(emp)}>
-                        {emp.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                        {emp.status === 'aktif' ? ee.deactivate : ee.activate}
                       </button>
-                      <button className="icon-btn" title="Ubah" aria-label="Ubah" onClick={() => {
+                      <button className="icon-btn" title={ee.edit} aria-label={ee.edit} onClick={() => {
                         setErr('')
                         setForm({
                           id: emp.id, name: emp.name, role: emp.role || '', phone: emp.phone || '',
@@ -129,7 +133,7 @@ export default function Employees() {
                           join_date: emp.join_date || '', note: emp.note || '',
                         })
                       }}><Pencil size={15} /></button>
-                      <button className="icon-btn danger" title="Hapus" aria-label="Hapus" onClick={() => remove(emp)}><Trash2 size={15} /></button>
+                      <button className="icon-btn danger" title={ee.del} aria-label={ee.del} onClick={() => remove(emp)}><Trash2 size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -142,54 +146,54 @@ export default function Employees() {
       {form && (
         <Modal onClose={() => setForm(null)} onSubmit={save} labelledBy="empModalTitle">
             <div className="modal-head">
-              <h3 id="empModalTitle">{form.id ? 'Ubah Karyawan' : 'Tambah Karyawan'}</h3>
-              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label="Tutup">✕</button>
+              <h3 id="empModalTitle">{form.id ? ee.modalEditTitle : ee.modalAddTitle}</h3>
+              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label={ee.close}>✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label htmlFor="emp-name">Nama</label>
-                <input id="emp-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Andi" />
+                <label htmlFor="emp-name">{ee.lName}</label>
+                <input id="emp-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={ee.namePh} />
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label htmlFor="emp-role">Jabatan <span className="muted-sm">(opsional)</span></label>
-                  <input id="emp-role" className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="cth: Kasir" />
+                  <label htmlFor="emp-role">{ee.lRole} <span className="muted-sm">{ee.optional}</span></label>
+                  <input id="emp-role" className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder={ee.rolePh} />
                 </div>
                 <div className="field">
-                  <label htmlFor="emp-phone">No. HP / WA <span className="muted-sm">(opsional)</span></label>
-                  <input id="emp-phone" className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="08xxxxxxxxxx" />
+                  <label htmlFor="emp-phone">{ee.lPhone} <span className="muted-sm">{ee.optional}</span></label>
+                  <input id="emp-phone" className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={ee.phonePh} />
                 </div>
               </div>
               <div className="field">
-                <label htmlFor="emp-salary-type">Tipe gaji</label>
+                <label htmlFor="emp-salary-type">{ee.lSalaryType}</label>
                 <select id="emp-salary-type" className="input" value={form.salary_type} onChange={(e) => setForm({ ...form, salary_type: e.target.value })}>
-                  {SALARY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                  {SALARY_TYPES.map((st) => <option key={st.key} value={st.key}>{salaryTypeLabel(st.key)}</option>)}
                 </select>
                 {form.salary_type === 'harian' && (
                   <p className="muted-sm" style={{ margin: '6px 0 0' }}>
-                    Gaji harian dihitung otomatis: tarif × jumlah hari <b>Hadir</b> di absensi bulan tersebut.
+                    {ee.harianHintPre}<b>{ee.harianHintBold}</b>{ee.harianHintPost}
                   </p>
                 )}
               </div>
               <div className="grid-2">
                 <div className="field">
-                  <label htmlFor="emp-salary-amount">Nominal gaji (Rp)</label>
+                  <label htmlFor="emp-salary-amount">{ee.lSalaryAmount}</label>
                   <input id="emp-salary-amount" className="input" type="number" min="0" step="any" value={form.salary_amount}
                     onChange={(e) => setForm({ ...form, salary_amount: e.target.value })} placeholder={form.salary_type === 'harian' ? '100000' : '2500000'} />
                 </div>
                 <div className="field">
-                  <label htmlFor="emp-join-date">Tanggal bergabung <span className="muted-sm">(opsional)</span></label>
+                  <label htmlFor="emp-join-date">{ee.lJoinDate} <span className="muted-sm">{ee.optional}</span></label>
                   <input id="emp-join-date" className="input" type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
                 </div>
               </div>
               <div className="field">
-                <label htmlFor="emp-note">Catatan <span className="muted-sm">(opsional)</span></label>
+                <label htmlFor="emp-note">{ee.lNote} <span className="muted-sm">{ee.optional}</span></label>
                 <input id="emp-note" className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn btn-ghost btn-block" onClick={() => setForm(null)}>Batal</button>
-                <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan'}</button>
+                <button type="button" className="btn btn-ghost btn-block" onClick={() => setForm(null)}>{ee.cancel}</button>
+                <button className="btn btn-primary btn-block" disabled={busy}>{busy ? ee.saving : ee.save}</button>
               </div>
             </div>
         </Modal>

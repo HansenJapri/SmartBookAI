@@ -8,11 +8,14 @@ import { compressImage } from '../lib/imageCompress'
 import { toDateInput, rupiah } from '../lib/format'
 import AIDisclaimer from '../components/AIDisclaimer'
 import Modal from '../components/Modal'
+import { useLang } from '../context/LangContext'
 
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.heic,.pdf,image/*,application/pdf'
 const blankItem = () => ({ name: '', qty: 1, unit: 'pcs', total: '', productId: '', conv: 1 })
 
 export default function Struk() {
+  const { t } = useLang()
+  const sk = t.struk
   const nav = useNavigate()
   const fileRef = useRef()
   const cameraRef = useRef()
@@ -41,8 +44,8 @@ export default function Struk() {
   const pickFile = (f) => {
     if (!f) return
     const okType = f.type.startsWith('image/') || f.type === 'application/pdf' || /\.(jpe?g|png|webp|heic|pdf)$/i.test(f.name)
-    if (!okType) { setErr('Format harus foto (JPG/PNG) atau PDF.'); return }
-    if (f.size > 10 * 1024 * 1024) { setErr('Ukuran file maksimal 10 MB.'); return }
+    if (!okType) { setErr(sk.errFormat); return }
+    if (f.size > 10 * 1024 * 1024) { setErr(sk.errMaxSize); return }
     setErr(''); setFile(f)
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(f.type.startsWith('image/') ? URL.createObjectURL(f) : null)
@@ -55,7 +58,7 @@ export default function Struk() {
   }
 
   const runAI = async () => {
-    if (!file) { setErr('Unggah foto atau PDF struk dulu.'); return }
+    if (!file) { setErr(sk.errUploadFirst); return }
     setErr(''); setAiBusy(true); setAiMeta(null)
     try {
       // Kompres di sisi klien: hemat biaya AI vision + kuota data seluler.
@@ -70,11 +73,11 @@ export default function Struk() {
         }
       })
       setItems(mapped.length ? mapped : [blankItem()])
-      setKeterangan(res.merchant ? `Belanja di ${res.merchant}` : '')
+      setKeterangan(res.merchant ? sk.shoppingAt.replace('{merchant}', res.merchant) : '')
       setDirection('out')
       setAiMeta({ total: Number(res.total) || 0, legibility: res.legibility || 'cetak_jelas' })
       if (res.date) { try { setOccurredAt(toDateInput(res.date + 'T12:00')) } catch { /* abaikan */ } }
-      if (!mapped.length) setErr('AI tidak menemukan item. Anda bisa menambah item manual di bawah.')
+      if (!mapped.length) setErr(sk.errNoItemsAI)
     } catch (e) { setErr(e.message) } finally { setAiBusy(false) }
   }
 
@@ -95,9 +98,9 @@ export default function Struk() {
 
   const submit = (e) => {
     e.preventDefault(); setErr(''); setDoneMsg('')
-    if (!items.length) return setErr('Belum ada item. Baca struk dengan AI atau tambah item manual.')
-    if (grandTotal <= 0) return setErr('Total harus lebih dari 0. Isi harga tiap item.')
-    if (!category) return setErr('Pilih kategori dulu.')
+    if (!items.length) return setErr(sk.errNoItems)
+    if (grandTotal <= 0) return setErr(sk.errTotalZero)
+    if (!category) return setErr(sk.errPickCategory)
     setConfirming(true)
   }
 
@@ -107,7 +110,7 @@ export default function Struk() {
       let receipt_url = null
       if (file) { try { receipt_url = await uploadReceipt(file) } catch { /* lampiran opsional */ } }
       const desc = keterangan.trim()
-        || (items.length ? `Belanja: ${items.slice(0, 3).map((it) => `${it.qty} ${it.unit} ${it.name}`).join(', ')}${items.length > 3 ? ', dll' : ''}` : 'Belanja')
+        || (items.length ? sk.shoppingDesc.replace('{items}', items.slice(0, 3).map((it) => `${it.qty} ${it.unit} ${it.name}`).join(', ')) + (items.length > 3 ? sk.shoppingMore : '') : sk.shoppingFallback)
       await addTransaction({
         description: desc.slice(0, 200),
         amount: grandTotal,
@@ -128,14 +131,14 @@ export default function Struk() {
           }
         }
       }
-      setDoneMsg(`Transaksi tersimpan (${items.length} item)` + (linkedCount ? ` dan stok ${linkedCount} produk diperbarui.` : '.'))
+      setDoneMsg(sk.savedMsg.replace('{n}', items.length) + (linkedCount ? sk.savedStockMsg.replace('{n}', linkedCount) : '.'))
       setFile(null); if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null)
       setItems([]); setKeterangan(''); setAiMeta(null)
       fetchProducts().then(setProducts).catch(() => {})
     } catch (e) {
       setErr(e.message?.toLowerCase().includes('bucket')
-        ? 'Penyimpanan struk belum disiapkan. Jalankan migration_v2.sql (membuat bucket "receipts").'
-        : 'Gagal menyimpan: ' + e.message)
+        ? sk.storageNotReady
+        : sk.saveFailed.replace('{msg}', e.message))
     } finally { setBusy(false) }
   }
 
@@ -144,42 +147,42 @@ export default function Struk() {
       {doneMsg && (
         <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <span>{doneMsg}</span>
-          <button className="btn btn-primary" onClick={() => nav('/app/transaksi')}>Lihat Transaksi</button>
+          <button className="btn btn-primary" onClick={() => nav('/app/transaksi')}>{sk.viewTransactions}</button>
         </div>
       )}
       {err && <div className="alert alert-err">{err}</div>}
 
       {/* 1. Unggah & baca struk */}
       <div className="card card-pad" style={{ marginBottom: 20 }}>
-        <h3 className="card-title">1. Unggah Struk lalu Baca dengan AI</h3>
-        <div className="card-sub">AI akan memindai struk dan mendeteksi item belanja. Anda tinjau dan perbaiki sebelum disimpan.</div>
+        <h3 className="card-title">{sk.step1Title}</h3>
+        <div className="card-sub">{sk.step1Sub}</div>
         <div className="grid-2">
           <div>
             <div className="drop" onClick={() => fileRef.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={onDrop} style={{ minHeight: 180 }}>
               {previewUrl ? (
                 <img src={previewUrl} alt="pratinjau struk" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10 }} />
               ) : file ? (
-                <><div className="di"><FileText size={30} /></div><h3>{file.name}</h3><p>Siap dibaca</p></>
+                <><div className="di"><FileText size={30} /></div><h3>{file.name}</h3><p>{sk.dropReady}</p></>
               ) : (
-                <><div className="di"><ScanLine size={30} /></div><h3>Ambil foto atau pilih file</h3><p>JPG, PNG, atau PDF, maks. 10 MB. Paling akurat: struk cetak kasir — bon tulisan tangan belum didukung penuh.</p></>
+                <><div className="di"><ScanLine size={30} /></div><h3>{sk.dropTitle}</h3><p>{sk.dropDesc}</p></>
               )}
             </div>
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => pickFile(e.target.files[0])} />
             <input ref={fileRef} type="file" accept={ACCEPT} hidden onChange={(e) => pickFile(e.target.files[0])} />
             <div className="flex gap mt" style={{ flexWrap: 'wrap' }}>
-              <button type="button" className="btn btn-ghost" onClick={() => cameraRef.current.click()}><Camera size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ambil Foto</button>
-              <button type="button" className="btn btn-ghost" onClick={() => fileRef.current.click()}><FolderOpen size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Pilih File</button>
+              <button type="button" className="btn btn-ghost" onClick={() => cameraRef.current.click()}><Camera size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />{sk.takePhoto}</button>
+              <button type="button" className="btn btn-ghost" onClick={() => fileRef.current.click()}><FolderOpen size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />{sk.pickFile}</button>
             </div>
           </div>
           <div className="flex" style={{ flexDirection: 'column', justifyContent: 'center', gap: 12 }}>
             <button type="button" className="btn btn-primary btn-lg" onClick={runAI} disabled={aiBusy || !file} style={{ justifyContent: 'center' }}>
               <Sparkles size={18} style={{ verticalAlign: '-4px', marginRight: 8 }} />
-              {aiBusy ? 'Membaca struk...' : 'Baca Struk dengan AI'}
+              {aiBusy ? sk.readingAI : sk.readWithAI}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => { if (!items.length) setItems([blankItem()]) }} style={{ justifyContent: 'center' }}>
-              Atau isi item manual
+              {sk.orManual}
             </button>
-            <p className="muted-sm" style={{ margin: 0 }}>Jika satuan di struk berbeda dengan satuan stok (mis. "dus" vs "pcs"), Anda akan diminta mengisi konversinya agar stok tetap akurat.</p>
+            <p className="muted-sm" style={{ margin: 0 }}>{sk.unitHint}</p>
           </div>
         </div>
       </div>
@@ -187,56 +190,56 @@ export default function Struk() {
       {/* 2. Tinjau item & simpan */}
       {items.length > 0 && (
         <form className="card card-pad" onSubmit={submit}>
-          <h3 className="card-title">2. Tinjau Item dan Simpan</h3>
-          <div className="card-sub">Periksa item hasil pindaian. Anda bisa tambah, ubah, atau hapus item sebelum menyimpan.</div>
+          <h3 className="card-title">{sk.step2Title}</h3>
+          <div className="card-sub">{sk.step2Sub}</div>
 
           {aiMeta?.legibility === 'tulisan_tangan' && (
             <div className="alert alert-err" style={{ margin: '10px 0 0' }}>
-              Struk ini terdeteksi <b>tulisan tangan</b>. Dukungan penuh hanya untuk struk cetak kasir — hasil baca kemungkinan banyak salah, mohon periksa setiap baris.
+              {sk.handwrittenWarn}
             </div>
           )}
           {aiMeta?.legibility === 'buram' && (
             <div className="alert alert-err" style={{ margin: '10px 0 0' }}>
-              Foto terdeteksi <b>buram/kurang jelas</b>. Bila banyak yang salah, foto ulang dengan cahaya cukup dan posisi tegak lurus.
+              {sk.blurryWarn}
             </div>
           )}
           {aiTotalMismatch && (
             <div className="alert alert-err" style={{ margin: '10px 0 0' }}>
-              Jumlah rincian item ({rupiah(grandTotal)}) <b>tidak cocok</b> dengan total di struk ({rupiah(aiMeta.total)}). Periksa kembali harga tiap baris.
+              {sk.totalMismatchWarn.replace('{sum}', rupiah(grandTotal)).replace('{total}', rupiah(aiMeta.total))}
             </div>
           )}
-          {aiMeta && <AIDisclaimer text="Hasil baca AI bisa keliru — periksa nama item, jumlah, dan harga sebelum simpan." />}
+          {aiMeta && <AIDisclaimer text={sk.aiDisclaimer} />}
 
           <div className="grid-2" style={{ marginBottom: 6, marginTop: 10 }}>
             <div className="field">
-              <label id="struk-direction-label">Simpan sebagai</label>
+              <label id="struk-direction-label">{sk.lSaveAs}</label>
               <div className="seg" role="group" aria-labelledby="struk-direction-label">
-                <button type="button" className={direction === 'in' ? 'on-in' : ''} aria-pressed={direction === 'in'} onClick={() => setDirection('in')}>Pemasukan (penjualan)</button>
-                <button type="button" className={direction === 'out' ? 'on-out' : ''} aria-pressed={direction === 'out'} onClick={() => setDirection('out')}>Pengeluaran (belanja)</button>
+                <button type="button" className={direction === 'in' ? 'on-in' : ''} aria-pressed={direction === 'in'} onClick={() => setDirection('in')}>{sk.dirIn}</button>
+                <button type="button" className={direction === 'out' ? 'on-out' : ''} aria-pressed={direction === 'out'} onClick={() => setDirection('out')}>{sk.dirOut}</button>
               </div>
             </div>
             <div className="field">
-              <label htmlFor="struk-category">Kategori</label>
+              <label htmlFor="struk-category">{sk.lCategory}</label>
               <select id="struk-category" className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                {cats.length === 0 && <option value="">(belum ada kategori)</option>}
+                {cats.length === 0 && <option value="">{sk.noCategoryOpt}</option>}
                 {cats.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="field">
-              <label htmlFor="struk-occurred-at">Tanggal & waktu</label>
+              <label htmlFor="struk-occurred-at">{sk.lDateTime}</label>
               <input id="struk-occurred-at" className="input" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="struk-note">Keterangan</label>
-              <input id="struk-note" className="input" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder="cth: Belanja stok di Pasar Induk" />
+              <label htmlFor="struk-note">{sk.lNote}</label>
+              <input id="struk-note" className="input" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder={sk.notePh} />
             </div>
           </div>
 
           <div className="table-wrap" style={{ marginBottom: 12 }}>
             <table className="tbl">
               <thead><tr>
-                <th>Item</th><th style={{ textAlign: 'right' }}>Qty</th><th>Satuan</th>
-                <th style={{ textAlign: 'right' }}>Harga (Rp)</th><th>Kaitkan ke stok</th><th>Konversi</th><th></th>
+                <th>{sk.thItem}</th><th style={{ textAlign: 'right' }}>{sk.thQty}</th><th>{sk.thUnit}</th>
+                <th style={{ textAlign: 'right' }}>{sk.thPrice}</th><th>{sk.thLinkStock}</th><th>{sk.thConversion}</th><th></th>
               </tr></thead>
               <tbody>
                 {items.map((it, i) => {
@@ -244,13 +247,13 @@ export default function Struk() {
                   const mismatch = p && p.unit !== it.unit
                   return (
                     <tr key={i}>
-                      <td><input className="input" value={it.name} onChange={(e) => setItem(i, { name: e.target.value })} placeholder="Nama barang" style={{ minWidth: 130 }} /></td>
+                      <td><input className="input" value={it.name} onChange={(e) => setItem(i, { name: e.target.value })} placeholder={sk.namePh} style={{ minWidth: 130 }} /></td>
                       <td style={{ textAlign: 'right' }}><input className="input" type="number" min="0" value={it.qty} onChange={(e) => setItem(i, { qty: e.target.value })} style={{ width: 64, textAlign: 'right' }} /></td>
                       <td><input className="input" value={it.unit} onChange={(e) => setItem(i, { unit: e.target.value })} style={{ width: 64 }} /></td>
                       <td style={{ textAlign: 'right' }}><input className="input" type="number" min="0" value={it.total} onChange={(e) => setItem(i, { total: e.target.value })} style={{ width: 96, textAlign: 'right' }} placeholder="0" /></td>
                       <td>
                         <select className="input" value={it.productId} onChange={(e) => { const np = productById(e.target.value); setItem(i, { productId: e.target.value, conv: np ? (np.unit === it.unit ? 1 : '') : 1 }) }} style={{ minWidth: 130 }}>
-                          <option value="">(tidak ke stok)</option>
+                          <option value="">{sk.notLinked}</option>
                           {products.map((pr) => <option key={pr.id} value={pr.id}>{pr.name} ({pr.unit})</option>)}
                         </select>
                       </td>
@@ -263,7 +266,7 @@ export default function Struk() {
                           </span>
                         ) : <span className="muted-sm">{stockQty(it)} {p.unit}</span>) : <span className="muted-sm">-</span>}
                       </td>
-                      <td><button type="button" className="icon-btn danger" title="Hapus item" onClick={() => removeItem(i)}><Trash2 size={15} /></button></td>
+                      <td><button type="button" className="icon-btn danger" title={sk.delItemTitle} onClick={() => removeItem(i)}><Trash2 size={15} /></button></td>
                     </tr>
                   )
                 })}
@@ -272,18 +275,18 @@ export default function Struk() {
           </div>
 
           <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
-            <button type="button" className="btn btn-ghost" onClick={addItem}><Plus size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tambah item</button>
-            <div style={{ fontSize: 16 }}>Total: <b>{rupiah(grandTotal)}</b></div>
+            <button type="button" className="btn btn-ghost" onClick={addItem}><Plus size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />{sk.addItem}</button>
+            <div style={{ fontSize: 16 }}>{sk.total} <b>{rupiah(grandTotal)}</b></div>
           </div>
 
           {mismatchCount > 0 && (
             <div className="alert alert-err" style={{ marginTop: 12 }}>
-              {mismatchCount} item dikaitkan ke stok tapi konversi satuannya belum diisi. Isi dulu (mis. 1 dus = 40 pcs) agar stok benar.
+              {sk.mismatchWarn.replace('{n}', mismatchCount)}
             </div>
           )}
 
           <button className="btn btn-primary btn-block btn-lg" style={{ marginTop: 16 }} disabled={busy}>
-            {busy ? 'Menyimpan...' : `Simpan Transaksi · ${rupiah(grandTotal)}`}
+            {busy ? sk.saving : `${sk.saveTransaction} ${rupiah(grandTotal)}`}
           </button>
         </form>
       )}
@@ -291,18 +294,18 @@ export default function Struk() {
       {/* Konfirmasi */}
       {confirming && (
         <Modal onClose={() => setConfirming(false)} labelledBy="strukConfirmModalTitle">
-            <div className="modal-head"><h3 id="strukConfirmModalTitle">Konfirmasi</h3><button className="icon-btn" onClick={() => setConfirming(false)} aria-label="Tutup"><X size={16} /></button></div>
+            <div className="modal-head"><h3 id="strukConfirmModalTitle">{sk.confirmTitle}</h3><button className="icon-btn" onClick={() => setConfirming(false)} aria-label={sk.close}><X size={16} /></button></div>
             <div className="modal-body">
               {mismatchCount > 0 ? (
-                <div className="alert alert-err">Masih ada {mismatchCount} item yang konversi satuannya kosong. Tutup, lalu isi dulu.</div>
+                <div className="alert alert-err">{sk.confirmMismatch.replace('{n}', mismatchCount)}</div>
               ) : (
                 <>
                   <p style={{ marginBottom: 10 }}>
-                    Yakin simpan <b>{items.length} item</b> sebagai <b>{direction === 'in' ? 'Pemasukan' : 'Pengeluaran'}</b> sejumlah <b>{rupiah(grandTotal)}</b>?
+                    {sk.confirmSave.replace('{n}', items.length).replace('{dir}', direction === 'in' ? sk.dirIn.split(' (')[0] : sk.dirOut.split(' (')[0]).replace('{total}', rupiah(grandTotal))}
                   </p>
                   {linkedCount > 0 && (
                     <>
-                      <p className="muted-sm" style={{ marginBottom: 6 }}>Stok produk berikut akan {direction === 'out' ? 'bertambah' : 'berkurang'}:</p>
+                      <p className="muted-sm" style={{ marginBottom: 6 }}>{sk.confirmStockNote.replace('{change}', direction === 'out' ? sk.stockUp : sk.stockDown)}</p>
                       <ul style={{ paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 5 }}>
                         {items.filter((it) => it.productId && stockQty(it) > 0).map((it, i) => {
                           const p = productById(it.productId)
@@ -315,8 +318,8 @@ export default function Struk() {
                 </>
               )}
               <div className="modal-foot">
-                <button className="btn btn-ghost btn-block" onClick={() => setConfirming(false)}>Periksa lagi</button>
-                <button className="btn btn-primary btn-block" disabled={mismatchCount > 0 || busy} onClick={doSave}>Ya, simpan</button>
+                <button className="btn btn-ghost btn-block" onClick={() => setConfirming(false)}>{sk.recheck}</button>
+                <button className="btn btn-primary btn-block" disabled={mismatchCount > 0 || busy} onClick={doSave}>{sk.yesSave}</button>
               </div>
             </div>
         </Modal>

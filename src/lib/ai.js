@@ -52,15 +52,16 @@ export async function catatAI(message) {
 }
 
 // Insight harian Dashboard. force=true memaksa buat ulang (kena kuota harian).
-export async function narasiAI(force = false) {
-  return invokeFn('ai-narasi', { force },
+// lang menentukan bahasa narasi ('id'/'en'); dipakai juga sebagai bagian cache key.
+export async function narasiAI(force = false, lang = 'id') {
+  return invokeFn('ai-narasi', { force, lang },
     'Insight harian sedang tidak dapat dimuat. Coba beberapa saat lagi.')
 }
 
 // Insight stok untuk halaman Stok Produk. Sama polanya dengan narasiAI:
 // hasil di-cache harian per user; force=true memaksa buat ulang.
-export async function stokInsightAI(force = false) {
-  return invokeFn('ai-stok-insight', { force },
+export async function stokInsightAI(force = false, lang = 'id') {
+  return invokeFn('ai-stok-insight', { force, lang },
     'Insight stok sedang tidak dapat dimuat. Coba beberapa saat lagi.')
 }
 

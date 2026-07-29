@@ -69,6 +69,35 @@ function templateNarrative(m: any): string {
   return parts.join(' ')
 }
 
+// English fallback template — same structure & fields as templateNarrative.
+function templateNarrativeEn(m: any): string {
+  const parts: string[] = []
+  if (m.today_income > 0 || m.today_expense > 0) {
+    parts.push(`Today's income is ${rupiah(m.today_income)} and expenses ${rupiah(m.today_expense)}, for a profit of ${rupiah(m.today_profit)}.`)
+    if (m.yesterday_income > 0) {
+      const dir = m.today_income >= m.yesterday_income ? 'higher' : 'lower'
+      parts.push(`Today's revenue is ${dir} than yesterday (${rupiah(m.yesterday_income)}).`)
+    }
+  } else {
+    parts.push('No transactions recorded today yet.')
+  }
+  if (m.month_income > 0 || m.month_expense > 0) {
+    parts.push(`This month's revenue is ${rupiah(m.month_income)}, net profit ${rupiah(m.month_profit)} (margin ${m.month_margin_pct ?? 0}%).`)
+  }
+  if (m.wow_pct !== null) {
+    parts.push(`The last-7-day trend is ${m.wow_pct >= 0 ? 'up' : 'down'} ${Math.abs(m.wow_pct)}% versus the prior week.`)
+  }
+  if (m.target?.revenue_pct != null || m.target?.profit_pct != null) {
+    const bits: string[] = []
+    if (m.target.revenue_pct != null) bits.push(`revenue ${m.target.revenue_pct}%`)
+    if (m.target.profit_pct != null) bits.push(`profit ${m.target.profit_pct}%`)
+    parts.push(`Target "${m.target.name}": ${bits.join(', ')} achieved.`)
+  }
+  if (m.unpaid_count > 0) parts.push(`There are ${m.unpaid_count} unpaid sale(s) totaling ${rupiah(m.unpaid_total)}${m.unpaid_oldest_days ? `, the oldest ${m.unpaid_oldest_days} day(s)` : ''}.`)
+  if (m.low_stock_names?.length) parts.push(`Low stock: ${m.low_stock_names.slice(0, 4).join(', ')}.`)
+  return parts.join(' ')
+}
+
 serve(async (req) => {
   const origin = req.headers.get('Origin')
   const cors = corsHeaders(origin)
@@ -86,7 +115,10 @@ serve(async (req) => {
     if (!userData?.user) return json({ error: 'Sesi tidak valid.' }, 401)
 
     let force = false
-    try { const b = await req.json(); force = b?.force === true } catch { /* body kosong tak apa */ }
+    let lang = 'id'
+    try { const b = await req.json(); force = b?.force === true; if (b?.lang === 'en') lang = 'en' } catch { /* body kosong tak apa */ }
+    const isEn = lang === 'en'
+    const kind = isEn ? 'harian_en' : 'harian'
 
     const today = todayWIB()
 
@@ -94,7 +126,7 @@ serve(async (req) => {
     if (!force) {
       const { data: cached } = await supabase
         .from('ai_insights').select('content, payload, created_at')
-        .eq('insight_date', today).eq('kind', 'harian').maybeSingle()
+        .eq('insight_date', today).eq('kind', kind).maybeSingle()
       if (cached?.content) return json({ content: cached.content, metrics: cached.payload, cached: true })
     }
 
@@ -226,7 +258,26 @@ serve(async (req) => {
     let content = ''
     if (GEMINI_API_KEY && metrics.tx_count > 0) {
       try {
-        const PROMPT = `Kamu penasihat keuangan UMKM Indonesia yang membumi dan to the point.
+        const PROMPT = isEn ? `You are a down-to-earth, to-the-point financial advisor for a small Indonesian business (UMKM).
+Your job: summarize this owner's BUSINESS CONDITION for TODAY, in plain everyday English.
+
+DATA (the only source of numbers you may mention):
+${JSON.stringify(metrics)}
+
+HOW TO STRUCTURE IT (must follow this order):
+1) First sentence = CONCLUSION about today's business condition (use today_income, today_expense, today_profit). If both are 0, say no transactions yet today and discuss the month-to-date instead.
+2) Briefly compare with yesterday (today_vs_yesterday_pct) and/or month-to-date (month_income, month_profit, month_margin_pct).
+3) Highlight 1 thing that needs attention if present: target (target.revenue_pct / target.profit_pct), receivables (unpaid_*), biggest expense (top_expense_cat), or low stock (low_stock_names).
+4) Last sentence = 1 concrete, realistic action tip for a small shop/UMKM owner.
+
+HARD RULES:
+- Maximum 5 sentences total. Concise, no rambling.
+- PLAIN TEXT with no markdown (no *, #, _, no bullets).
+- NEVER mention any number not in DATA. Never invent trends or products.
+- A null/0 field means the data doesn't exist yet — don't force a mention of it.
+- Currency amounts stay in Rupiah, written like "Rp 2.4 million" or "Rp 450 thousand" (round sensibly from DATA).
+- Percentages are taken as-is from DATA (e.g. margin ${metrics.month_margin_pct ?? 0}%).
+- Tone: warm, clear, encouraging without being preachy.` : `Kamu penasihat keuangan UMKM Indonesia yang membumi dan to the point.
 Tugasmu: simpulkan KONDISI BISNIS pemilik usaha ini untuk HARI INI, dalam Bahasa Indonesia sehari-hari.
 
 DATA (satu-satunya sumber angka yang boleh kamu sebut):
@@ -271,12 +322,18 @@ ATURAN KERAS:
       } catch { /* jatuh ke template */ }
     }
     const usedAI = Boolean(content)
-    if (!content) content = metrics.tx_count > 0 ? templateNarrative(metrics) : 'Belum ada transaksi tercatat. Mulai catat lewat menu Transaksi, tombol + Catat, atau foto struk — insight harian akan muncul di sini.'
+    if (!content) {
+      content = metrics.tx_count > 0
+        ? (isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics))
+        : (isEn
+          ? 'No transactions recorded yet. Start logging via the Transactions menu, the + Record button, or a receipt photo — a daily insight will appear here.'
+          : 'Belum ada transaksi tercatat. Mulai catat lewat menu Transaksi, tombol + Catat, atau foto struk — insight harian akan muncul di sini.')
+    }
 
-    // Simpan cache (upsert per user per hari).
+    // Simpan cache (upsert per user per hari, terpisah per bahasa lewat "kind").
     try {
       await supabase.from('ai_insights').upsert({
-        user_id: userData.user.id, insight_date: today, kind: 'harian',
+        user_id: userData.user.id, insight_date: today, kind,
         content, payload: metrics,
       }, { onConflict: 'user_id,insight_date,kind' })
     } catch { /* cache gagal bukan masalah fatal */ }

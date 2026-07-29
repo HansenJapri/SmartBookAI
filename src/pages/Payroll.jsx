@@ -11,11 +11,15 @@ import {
 import { attendanceAdjustments, recapAttendance, weightedTotal, applyBonusTier } from '../lib/kpi'
 import { rupiah, fmtDate } from '../lib/format'
 import { useCatalog } from '../context/CatalogContext'
+import { useLang } from '../context/LangContext'
 
 // Penggajian per periode: draf dihitung otomatis (bulanan = nominal tetap;
 // harian = tarif x hari hadir dari absensi), bonus/potongan bisa diubah,
 // lalu "Bayar" mencatat transaksi pengeluaran -> cashflow & Laba Rugi.
 export default function Payroll() {
+  const { t } = useLang()
+  const pr = t.payroll
+  const statusLabel = (key) => (key === 'paid' ? pr.statusPaid : pr.statusDraft)
   const { catNames } = useCatalog()
   const [employees, setEmployees] = useState(null)
   const [period, setPeriod] = useState(currentPeriod())
@@ -67,9 +71,9 @@ export default function Payroll() {
         const bonus = adj.bonus + (tier?.bonus || 0)
         const deduction = adj.deduction + (tier?.deduction || 0)
         const noteParts = []
-        if (emp.salary_type === 'harian') noteParts.push(`${hadir} hari hadir x ${rupiah(emp.salary_amount)}`)
+        if (emp.salary_type === 'harian') noteParts.push(pr.hadirNote.replace('{n}', hadir).replace('{amount}', rupiah(emp.salary_amount)))
         if (adj.detail.length) noteParts.push(adj.detail.join(', '))
-        if (tier) noteParts.push(`KPI ${kpiTotal}${tier.rule.label ? ` (${tier.rule.label})` : ''}`)
+        if (tier) noteParts.push(pr.kpiNote.replace('{score}', kpiTotal) + (tier.rule.label ? ` (${tier.rule.label})` : ''))
 
         const row = await addPayroll({
           employee_id: emp.id, period, base_amount: base, bonus, deduction,
@@ -80,11 +84,9 @@ export default function Payroll() {
       }
       if (created.length) {
         setRows((prev) => [...(prev || []), ...created])
-        setMsg(`${created.length} draf gaji ${periodLabel(period)} dibuat — bonus/potongan awal dihitung dari aturan absensi & skor KPI, silakan sesuaikan bila perlu.`)
+        setMsg(pr.draftCreatedMsg.replace('{n}', created.length).replace('{period}', periodLabel(period)))
       } else {
-        setMsg(activeEmps.length === 0
-          ? 'Belum ada karyawan aktif. Tambahkan dulu di menu Data Karyawan.'
-          : 'Semua karyawan aktif sudah punya baris gaji di periode ini.')
+        setMsg(activeEmps.length === 0 ? pr.noActiveEmp : pr.allHaveRows)
       }
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
@@ -98,7 +100,7 @@ export default function Payroll() {
   }
 
   const removeRow = async (row) => {
-    if (!confirm(`Hapus draf gaji ${empOf(row.employee_id)?.name || ''}?`)) return
+    if (!confirm(pr.confirmDelDraft.replace('{name}', empOf(row.employee_id)?.name || ''))) return
     try {
       await deletePayroll(row.id)
       setRows((prev) => prev.filter((x) => x.id !== row.id))
@@ -120,7 +122,7 @@ export default function Payroll() {
         employeeName: emp?.name || '', category: payCategory, periodText: periodLabel(period),
       })
       setRows((prev) => prev.map((x) => (x.id === res.payroll.id ? res.payroll : x)))
-      setMsg(`Gaji ${emp?.name} ${rupiah(res.txn.amount)} dibayar & tercatat sebagai pengeluaran (masuk Laba Rugi).`)
+      setMsg(pr.paidMsg.replace('{name}', emp?.name).replace('{amount}', rupiah(res.txn.amount)))
       setPayTarget(null)
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
@@ -134,34 +136,34 @@ export default function Payroll() {
       {msg && (
         <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
           <span>{msg}</span>
-          <button className="icon-btn" onClick={() => setMsg('')} aria-label="Tutup">✕</button>
+          <button className="icon-btn" onClick={() => setMsg('')} aria-label={pr.close}>✕</button>
         </div>
       )}
       {err && <div className="alert alert-err">{err}</div>}
 
       <div className="toolbar">
-        <label className="muted-sm" style={{ whiteSpace: 'nowrap' }}>Periode:</label>
-        <input className="input" type="month" style={{ maxWidth: 180 }} aria-label="Pilih bulan penggajian" value={period}
+        <label className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{pr.period}</label>
+        <input className="input" type="month" style={{ maxWidth: 180 }} aria-label={pr.periodAria} value={period}
           onChange={(e) => setPeriod(e.target.value)} />
         <div style={{ flex: 1 }} />
         <button className="btn btn-primary" onClick={generate} disabled={busy}>
-          {busy ? 'Menghitung...' : '+ Buat Draf Gaji'}
+          {busy ? pr.calculating : pr.genDraft}
         </button>
       </div>
 
       {rows.length === 0 ? (
         <div className="card"><div className="empty">
           <div className="ee"><Banknote size={36} /></div>
-          <h3>Belum ada gaji {periodLabel(period)}</h3>
-          <p>Klik "Buat Draf Gaji" — sistem menghitung otomatis dari data karyawan & absensi (tanpa AI, bisa diperiksa).</p>
-          <button className="btn btn-primary" onClick={generate} disabled={busy}>+ Buat Draf Gaji</button>
+          <h3>{pr.emptyTitle.replace('{period}', periodLabel(period))}</h3>
+          <p>{pr.emptyDesc}</p>
+          <button className="btn btn-primary" onClick={generate} disabled={busy}>{pr.genDraft}</button>
         </div></div>
       ) : (
         <>
           <div className="table-wrap">
             <table className="tbl">
               <thead><tr>
-                <th>Karyawan</th><th>Gaji pokok</th><th>Bonus</th><th>Potongan</th><th>Total</th><th>Status</th><th></th>
+                <th>{pr.thEmployee}</th><th>{pr.thBase}</th><th>{pr.thBonus}</th><th>{pr.thDeduction}</th><th>{pr.thTotal}</th><th>{pr.thStatus}</th><th></th>
               </tr></thead>
               <tbody>
                 {rows.map((row) => {
@@ -171,35 +173,35 @@ export default function Payroll() {
                   return (
                     <tr key={row.id}>
                       <td>
-                        <b>{emp?.name || '(karyawan terhapus)'}</b>
+                        <b>{emp?.name || pr.deletedEmp}</b>
                         {row.note && <div className="muted-sm">{row.note}</div>}
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{rupiah(row.base_amount)}</td>
                       <td style={{ maxWidth: 120 }}>
                         {draft ? (
                           <input className="input" type="number" min="0" step="any" value={row.bonus}
-                            aria-label={`Bonus untuk ${empOf(row.employee_id)?.name || "karyawan"}`}
+                            aria-label={pr.bonusAria.replace('{name}', empOf(row.employee_id)?.name || pr.defaultEmpName)}
                             onChange={(e) => patchRow(row, { bonus: Number(e.target.value) || 0 })} />
                         ) : rupiah(row.bonus)}
                       </td>
                       <td style={{ maxWidth: 120 }}>
                         {draft ? (
                           <input className="input" type="number" min="0" step="any" value={row.deduction}
-                            aria-label={`Potongan untuk ${empOf(row.employee_id)?.name || "karyawan"}`}
+                            aria-label={pr.deductionAria.replace('{name}', empOf(row.employee_id)?.name || pr.defaultEmpName)}
                             onChange={(e) => patchRow(row, { deduction: Number(e.target.value) || 0 })} />
                         ) : rupiah(row.deduction)}
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}><b>{rupiah(row.total)}</b></td>
                       <td>
-                        <span className={`badge ${st.cls}`}>{st.label}</span>
+                        <span className={`badge ${st.cls}`}>{statusLabel(row.status)}</span>
                         {row.paid_at && <div className="muted-sm">{fmtDate(row.paid_at)}</div>}
                       </td>
                       <td>
                         <div className="row-actions">
                           {draft && (
                             <>
-                              <button className="linklike" onClick={() => openPay(row)}>Bayar</button>
-                              <button className="linklike" style={{ color: 'var(--red)' }} onClick={() => removeRow(row)}>Hapus</button>
+                              <button className="linklike" onClick={() => openPay(row)}>{pr.pay}</button>
+                              <button className="linklike" style={{ color: 'var(--red)' }} onClick={() => removeRow(row)}>{pr.del}</button>
                             </>
                           )}
                         </div>
@@ -211,8 +213,8 @@ export default function Payroll() {
             </table>
           </div>
           <p className="muted-sm mt">
-            Total gaji {periodLabel(period)}: <b>{rupiah(totalPeriode)}</b> ·
-            baris draf masih bisa disesuaikan; yang sudah dibayar terkunci & masuk Laba Rugi.
+            {pr.footerTotal.replace('{period}', periodLabel(period))} <b>{rupiah(totalPeriode)}</b> ·
+            {pr.footerNote}
           </p>
         </>
       )}
@@ -221,31 +223,34 @@ export default function Payroll() {
       {payTarget && (
         <Modal onClose={() => setPayTarget(null)} labelledBy="payModalTitle">
             <div className="modal-head">
-              <h3 id="payModalTitle">Bayar Gaji {empOf(payTarget.employee_id)?.name}</h3>
-              <button type="button" className="icon-btn" onClick={() => setPayTarget(null)} aria-label="Tutup">✕</button>
+              <h3 id="payModalTitle">{pr.payTitle.replace('{name}', empOf(payTarget.employee_id)?.name)}</h3>
+              <button type="button" className="icon-btn" onClick={() => setPayTarget(null)} aria-label={pr.close}>✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <p style={{ marginTop: 0 }}>
-                Periode <b>{periodLabel(period)}</b> — total <b>{rupiah(payTarget.total)}</b>
-                {' '}(pokok {rupiah(payTarget.base_amount)} + bonus {rupiah(payTarget.bonus)} − potongan {rupiah(payTarget.deduction)}).
-                Akan tercatat sebagai transaksi pengeluaran.
+                {pr.payDesc
+                  .replace('{period}', periodLabel(period))
+                  .replace('{total}', rupiah(payTarget.total))
+                  .replace('{base}', rupiah(payTarget.base_amount))
+                  .replace('{bonus}', rupiah(payTarget.bonus))
+                  .replace('{deduction}', rupiah(payTarget.deduction))}
               </p>
               <div className="field">
-                <label htmlFor="payroll-category">Kategori pengeluaran</label>
+                <label htmlFor="payroll-category">{pr.lCategory}</label>
                 <select id="payroll-category" className="input" value={payCategory} onChange={(e) => setPayCategory(e.target.value)}>
                   {expenseCats.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 {!expenseCats.includes('Gaji Karyawan') && (
                   <p className="muted-sm" style={{ margin: '6px 0 0' }}>
-                    Tips: buat kategori "Gaji Karyawan" di Pengaturan agar laporan lebih rapi.
+                    {pr.catTip}
                   </p>
                 )}
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn btn-ghost btn-block" onClick={() => setPayTarget(null)}>Batal</button>
+                <button type="button" className="btn btn-ghost btn-block" onClick={() => setPayTarget(null)}>{pr.cancel}</button>
                 <button className="btn btn-primary btn-block" disabled={busy || !payCategory} onClick={doPay}>
-                  {busy ? 'Memproses...' : 'Konfirmasi Bayar'}
+                  {busy ? pr.processing : pr.confirmPay}
                 </button>
               </div>
             </div>

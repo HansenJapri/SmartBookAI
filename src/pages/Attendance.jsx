@@ -7,6 +7,7 @@ import {
 } from '../lib/api'
 import { ATTENDANCE_STATUS, currentPeriod, periodLabel, periodRange } from '../lib/hr'
 import { rupiah, fmtDate } from '../lib/format'
+import { useLang } from '../context/LangContext'
 
 const toISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const todayISO = () => toISO(new Date())
@@ -25,22 +26,23 @@ function listDates(from, to) {
   while (cur <= to && out.length < 62) { out.push(cur); cur = addDays(cur, 1) }
   return out
 }
-const DOW_ID = ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb']
-
-const MODES = [
-  { key: 'hari', label: 'Harian' },
-  { key: 'minggu', label: 'Mingguan' },
-  { key: 'bulan', label: 'Bulanan' },
-  { key: 'rentang', label: 'Rentang' },
-]
-
-const STATUS_BY_KEY = Object.fromEntries(ATTENDANCE_STATUS.map((s) => [s.key, s]))
-const LETTER = { hadir: 'H', izin: 'I', sakit: 'S', cuti: 'C', alpa: 'A' }
 
 // Absensi & Cuti: pilih tampilan (harian/mingguan/bulanan/rentang), klik untuk
 // mengisi atau MEMPERBAIKI status (termasuk mengosongkan salah input), plus
 // aturan bonus/potongan per status yang dipakai otomatis oleh Penggajian.
 export default function Attendance() {
+  const { t } = useLang()
+  const an = t.attendance
+  const statusLabel = (key) => t.hr['status' + key.charAt(0).toUpperCase() + key.slice(1)]
+  const MODES = [
+    { key: 'hari', label: an.modeHari },
+    { key: 'minggu', label: an.modeMinggu },
+    { key: 'bulan', label: an.modeBulan },
+    { key: 'rentang', label: an.modeRentang },
+  ]
+  const STATUS_BY_KEY = Object.fromEntries(ATTENDANCE_STATUS.map((s) => [s.key, s]))
+  const LETTER = an.letters
+  const DOW_ID = an.dow
   const [employees, setEmployees] = useState(null)
   const [mode, setMode] = useState('hari')
   const [anchor, setAnchor] = useState(todayISO())      // hari & minggu
@@ -117,7 +119,7 @@ export default function Attendance() {
 
   const saveEditor = async () => {
     const ed = editor
-    if (!ed?.status) return setErr('Pilih salah satu status dulu.')
+    if (!ed?.status) return setErr(an.chooseStatusErr)
     setBusy(true); setErr('')
     try {
       const saved = await setAttendance(ed.empId, ed.date, ed.status, ed.note.trim() || null)
@@ -133,7 +135,7 @@ export default function Attendance() {
       await deleteAttendance(ed.empId, ed.date)
       applyLocal(ed.empId, ed.date, null)
       setEditor(null)
-      setMsg(`Absensi ${ed.empName} tanggal ${fmtDate(ed.date)} dikosongkan.`)
+      setMsg(an.clearedMsg.replace('{name}', ed.empName).replace('{date}', fmtDate(ed.date)))
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
 
@@ -157,7 +159,7 @@ export default function Attendance() {
         deduction_per_day: field === 'deduction_per_day' ? val : Number(cur.deduction_per_day) || 0,
       })
       setRules((prev) => [...prev.filter((r) => r.status !== status), saved])
-      setMsg('Aturan tersimpan. Dipakai otomatis saat membuat draf gaji berikutnya.')
+      setMsg(an.ruleSavedMsg)
     } catch (e2) { setErr(e2.message) }
   }
 
@@ -173,7 +175,7 @@ export default function Attendance() {
       {msg && (
         <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
           <span>{msg}</span>
-          <button className="icon-btn" onClick={() => setMsg('')} aria-label="Tutup">✕</button>
+          <button className="icon-btn" onClick={() => setMsg('')} aria-label={an.close}>✕</button>
         </div>
       )}
       {err && !editor && <div className="alert alert-err">{err}</div>}
@@ -191,28 +193,28 @@ export default function Attendance() {
         </div>
         {mode !== 'rentang' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button className="icon-btn" onClick={() => shift(-1)} aria-label="Sebelumnya"><ChevronLeft size={16} /></button>
+            <button className="icon-btn" onClick={() => shift(-1)} aria-label={an.prevAria}><ChevronLeft size={16} /></button>
             {mode === 'hari' && (
-              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label="Pilih tanggal absensi" value={anchor}
+              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label={an.dateAria} value={anchor}
                 max={today} onChange={(e) => e.target.value && setAnchor(e.target.value)} />
             )}
             {mode === 'minggu' && (
-              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label="Pilih tanggal dalam minggu" value={anchor}
+              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label={an.weekDateAria} value={anchor}
                 max={today} onChange={(e) => e.target.value && setAnchor(e.target.value)} />
             )}
             {mode === 'bulan' && (
-              <input className="input" type="month" style={{ maxWidth: 165 }} aria-label="Pilih bulan absensi" value={month}
+              <input className="input" type="month" style={{ maxWidth: 165 }} aria-label={an.monthAria} value={month}
                 onChange={(e) => e.target.value && setMonth(e.target.value)} />
             )}
-            <button className="icon-btn" onClick={() => shift(1)} aria-label="Berikutnya"><ChevronRight size={16} /></button>
+            <button className="icon-btn" onClick={() => shift(1)} aria-label={an.nextAria}><ChevronRight size={16} /></button>
           </div>
         )}
         {mode === 'rentang' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label="Tanggal mulai rentang" value={range.from}
+            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label={an.rangeFromAria} value={range.from}
               max={today} onChange={(e) => e.target.value && setRange((r) => ({ ...r, from: e.target.value }))} />
-            <span className="muted-sm">s.d.</span>
-            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label="Tanggal akhir rentang" value={range.to}
+            <span className="muted-sm">{an.rangeSep}</span>
+            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label={an.rangeToAria} value={range.to}
               max={today} onChange={(e) => e.target.value && setRange((r) => ({ ...r, to: e.target.value }))} />
           </div>
         )}
@@ -222,17 +224,17 @@ export default function Attendance() {
       {active.length === 0 ? (
         <div className="card"><div className="empty">
           <div className="ee"><CalendarDays size={36} /></div>
-          <h3>Belum ada karyawan aktif</h3>
-          <p>Tambahkan karyawan di menu Data Karyawan terlebih dulu.</p>
+          <h3>{an.emptyEmpTitle}</h3>
+          <p>{an.emptyEmpDesc}</p>
         </div></div>
       ) : tooWide ? (
-        <div className="alert alert-err">Rentang maksimal 31 hari. Persempit tanggalnya, atau gunakan tampilan Bulanan.</div>
+        <div className="alert alert-err">{an.tooWide}</div>
       ) : mode === 'hari' ? (
         /* ---------- TAMPILAN HARIAN: tombol status besar, mudah diklik ---------- */
         <div className="table-wrap">
           <table className="tbl">
             <thead><tr>
-              <th>Karyawan</th><th>Status {fmtDate(anchor)}</th><th style={{ textAlign: 'right' }}>Catatan</th>
+              <th>{an.colEmployee}</th><th>{an.colStatusPrefix} {fmtDate(anchor)}</th><th style={{ textAlign: 'right' }}>{an.colNote}</th>
             </tr></thead>
             <tbody>
               {active.map((emp) => {
@@ -249,17 +251,17 @@ export default function Attendance() {
                               ? { border: '1px solid transparent', cursor: 'pointer' }
                               : { background: 'transparent', color: 'var(--muted)', border: '1px solid var(--line)', cursor: 'pointer' }}
                             onClick={() => quickMark(emp.id, anchor, s.key)}>
-                            {s.label}
+                            {statusLabel(s.key)}
                           </button>
                         ))}
-                        <button type="button" className="icon-btn" title="Catatan / kosongkan"
-                          aria-label={`Ubah absensi ${emp.name}`} onClick={() => openEditor(emp, anchor)}>
+                        <button type="button" className="icon-btn" title={an.colNote}
+                          aria-label={an.editAttAria.replace('{name}', emp.name)} onClick={() => openEditor(emp, anchor)}>
                           <Pencil size={14} />
                         </button>
                       </div>
                     </td>
                     <td className="muted-sm" style={{ textAlign: 'right', maxWidth: 220 }}>
-                      {cur?.note || (cur ? '' : 'belum diisi')}
+                      {cur?.note || (cur ? '' : an.notFilledYet)}
                     </td>
                   </tr>
                 )
@@ -273,7 +275,7 @@ export default function Attendance() {
           <table className="tbl att-grid">
             <thead>
               <tr>
-                <th>Karyawan</th>
+                <th>{an.colEmployee}</th>
                 {dates.map((d) => {
                   const day = new Date(d + 'T12:00:00')
                   return (
@@ -282,7 +284,7 @@ export default function Attendance() {
                     </th>
                   )
                 })}
-                <th style={{ textAlign: 'right' }}>H / I / S / C / A</th>
+                <th style={{ textAlign: 'right' }}>{an.colRecap}</th>
               </tr>
             </thead>
             <tbody>
@@ -299,8 +301,8 @@ export default function Attendance() {
                         <td key={d} className={`att-cell ${d === today ? 'att-today' : ''}`}>
                           <button type="button" disabled={future}
                             className={`att-dot ${st ? st.cls : ''}`}
-                            title={`${emp.name} · ${fmtDate(d)}${st ? ` · ${st.label}` : ' · belum diisi'}${cur?.note ? ` · ${cur.note}` : ''}`}
-                            aria-label={`Ubah absensi ${emp.name} tanggal ${fmtDate(d)}${st ? `, status ${st.label}` : ', belum diisi'}`}
+                            title={`${emp.name} · ${fmtDate(d)}${st ? ` · ${statusLabel(st.key)}` : ` · ${an.notFilledYet}`}${cur?.note ? ` · ${cur.note}` : ''}`}
+                            aria-label={st ? an.editAttDateAria.replace('{name}', emp.name).replace('{date}', fmtDate(d)).replace('{status}', statusLabel(st.key)) : an.editAttDateNoneAria.replace('{name}', emp.name).replace('{date}', fmtDate(d))}
                             onClick={() => openEditor(emp, d)}>
                             {st ? LETTER[cur.status] : '·'}
                           </button>
@@ -318,45 +320,39 @@ export default function Attendance() {
         </div>
       )}
 
-      <p className="muted-sm mt">
-        H = Hadir · I = Izin · S = Sakit · C = Cuti · A = Alpa. Klik status (atau sel tanggal) untuk mengisi;
-        klik ikon pensil / sel yang sama untuk menambah catatan atau <b>mengosongkan salah input</b>.
-        Jumlah hari <b>Hadir</b> dipakai otomatis untuk gaji karyawan harian.
-      </p>
+      <p className="muted-sm mt">{an.legend}</p>
 
       {/* ---------- ATURAN BONUS & POTONGAN PER STATUS ---------- */}
       <div className="card card-pad" style={{ marginTop: 16 }}>
-        <h3 className="card-title">Aturan Bonus & Potongan Absensi</h3>
-        <div className="card-sub">
-          Isi nilai per hari untuk status yang mau diberi efek gaji — kosongkan (0) bila tidak ada.
-          Dipakai otomatis saat membuat draf gaji; angkanya tetap bisa Anda ubah manual per karyawan di menu Penggajian.
-        </div>
+        <h3 className="card-title">{an.ruleTitle}</h3>
+        <div className="card-sub">{an.ruleSub}</div>
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="tbl">
             <thead><tr>
-              <th>Status</th><th>Bonus per hari (Rp)</th><th>Potongan per hari (Rp)</th><th>Contoh dampak</th>
+              <th>{an.colStatus}</th><th>{an.colBonus}</th><th>{an.colDeduction}</th><th>{an.colImpact}</th>
             </tr></thead>
             <tbody>
               {ATTENDANCE_STATUS.map((s) => {
                 const r = ruleOf(s.key)
                 const b = Number(r.bonus_per_day) || 0
                 const d = Number(r.deduction_per_day) || 0
+                const label = statusLabel(s.key)
                 return (
                   <tr key={s.key}>
-                    <td><span className={`badge ${s.cls}`}>{s.label}</span></td>
+                    <td><span className={`badge ${s.cls}`}>{label}</span></td>
                     <td style={{ maxWidth: 160 }}>
                       <input className="input" type="number" min="0" step="any" defaultValue={b || ''}
-                        aria-label={`Bonus per hari untuk status ${s.label}`}
+                        aria-label={an.bonusAria.replace('{status}', label)}
                         placeholder="0" onBlur={(e) => patchRule(s.key, 'bonus_per_day', e.target.value)} />
                     </td>
                     <td style={{ maxWidth: 160 }}>
                       <input className="input" type="number" min="0" step="any" defaultValue={d || ''}
-                        aria-label={`Potongan per hari untuk status ${s.label}`}
+                        aria-label={an.deductionAria.replace('{status}', label)}
                         placeholder="0" onBlur={(e) => patchRule(s.key, 'deduction_per_day', e.target.value)} />
                     </td>
                     <td className="muted-sm">
-                      {b === 0 && d === 0 ? 'tidak memengaruhi gaji'
-                        : `5 hari ${s.label.toLowerCase()} = ${b > 0 ? `bonus ${rupiah(b * 5)}` : ''}${b > 0 && d > 0 ? ' & ' : ''}${d > 0 ? `potongan ${rupiah(d * 5)}` : ''}`}
+                      {b === 0 && d === 0 ? an.noImpact
+                        : `${an.impactDays.replace('{status}', label.toLowerCase())} ${b > 0 ? an.impactBonus.replace('{v}', rupiah(b * 5)) : ''}${b > 0 && d > 0 ? an.impactAnd : ''}${d > 0 ? an.impactDeduction.replace('{v}', rupiah(d * 5)) : ''}`}
                     </td>
                   </tr>
                 )
@@ -371,12 +367,12 @@ export default function Attendance() {
         <Modal onClose={() => setEditor(null)} labelledBy="attEditorModalTitle">
             <div className="modal-head">
               <h3 id="attEditorModalTitle">{editor.empName} · {fmtDate(editor.date)}</h3>
-              <button type="button" className="icon-btn" onClick={() => setEditor(null)} aria-label="Tutup">✕</button>
+              <button type="button" className="icon-btn" onClick={() => setEditor(null)} aria-label={an.close}>✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label id="att-status-label">Status</label>
+                <label id="att-status-label">{an.colStatus}</label>
                 <div className="row-actions" role="group" aria-labelledby="att-status-label" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: 6 }}>
                   {ATTENDANCE_STATUS.map((s) => (
                     <button key={s.key} type="button"
@@ -386,13 +382,13 @@ export default function Attendance() {
                         ? { border: '1px solid transparent', cursor: 'pointer' }
                         : { background: 'transparent', color: 'var(--muted)', border: '1px solid var(--line)', cursor: 'pointer' }}
                       onClick={() => setEditor((ed) => ({ ...ed, status: s.key }))}>
-                      {s.label}
+                      {statusLabel(s.key)}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="field">
-                <label htmlFor="att-note">Catatan <span className="muted-sm">(opsional — mis. "izin acara keluarga")</span></label>
+                <label htmlFor="att-note">{an.colNote} <span className="muted-sm">{an.editorNoteHint}</span></label>
                 <input id="att-note" className="input" value={editor.note}
                   onChange={(e) => setEditor((ed) => ({ ...ed, note: e.target.value }))} />
               </div>
@@ -400,12 +396,12 @@ export default function Attendance() {
                 {editor.exists && (
                   <button type="button" className="btn btn-ghost btn-block" style={{ color: 'var(--red)' }}
                     disabled={busy} onClick={clearEditor}>
-                    Kosongkan
+                    {an.clear}
                   </button>
                 )}
-                <button type="button" className="btn btn-ghost btn-block" onClick={() => setEditor(null)}>Batal</button>
+                <button type="button" className="btn btn-ghost btn-block" onClick={() => setEditor(null)}>{an.cancel}</button>
                 <button type="button" className="btn btn-primary btn-block" disabled={busy || !editor.status} onClick={saveEditor}>
-                  {busy ? 'Menyimpan...' : 'Simpan'}
+                  {busy ? an.saving : an.save}
                 </button>
               </div>
             </div>

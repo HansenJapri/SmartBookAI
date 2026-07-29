@@ -5,12 +5,15 @@ import {
   daysOutstanding, isOverdue, agingBucketKey, buildAgingSummary, AGING_BUCKETS, waReminderLink,
 } from '../lib/aging'
 import { rupiah, rupiahShort, fmtDate } from '../lib/format'
+import { useLang } from '../context/LangContext'
 
 // Piutang & Utang: semua transaksi berstatus "belum lunas".
 //   Piutang = pemasukan yang uangnya belum diterima (tagihan ke pelanggan)
 //   Utang   = pengeluaran yang belum dibayar (kewajiban ke pemasok/pihak lain)
 // Umur tagihan dihitung deterministik dari tanggal transaksi; jatuh tempo dari due_date.
 export default function Receivables() {
+  const { t } = useLang()
+  const rc = t.receivables
   const [tx, setTx] = useState(null)
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState('in') // 'in' = piutang, 'out' = utang
@@ -33,13 +36,13 @@ export default function Receivables() {
   const active = tab === 'in' ? sumIn : sumOut
 
   const markPaid = async (t) => {
-    const who = t.customer_name ? ` dari ${t.customer_name}` : ''
-    if (!confirm(`Tandai lunas ${rupiah(t.amount)}${who}?\n"${t.description}"`)) return
+    const who = t.customer_name ? rc.fromWho.replace('{name}', t.customer_name) : ''
+    if (!confirm(rc.confirmMarkPaid.replace('{amount}', rupiah(t.amount)).replace('{who}', who).replace('{desc}', t.description))) return
     setErr('')
     try {
       const upd = await updateTransaction(t.id, { payment_status: 'lunas' })
       setTx((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
-      setMsg(`Lunas dicatat: ${rupiah(t.amount)} — "${t.description}".`)
+      setMsg(rc.paidMsg.replace('{amount}', rupiah(t.amount)).replace('{desc}', t.description))
     } catch (e) { setErr(e.message) }
   }
 
@@ -50,7 +53,7 @@ export default function Receivables() {
       {msg && (
         <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
           <span>{msg}</span>
-          <button className="icon-btn" onClick={() => setMsg('')} aria-label="Tutup">✕</button>
+          <button className="icon-btn" onClick={() => setMsg('')} aria-label={rc.close}>✕</button>
         </div>
       )}
       {err && <div className="alert alert-err">{err}</div>}
@@ -58,31 +61,31 @@ export default function Receivables() {
       {/* KPI ringkas: posisi piutang, utang, dan yang lewat jatuh tempo */}
       <div className="grid-kpi" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
         <div className="card">
-          <div className="kpi-l">Piutang belum lunas</div>
+          <div className="kpi-l">{rc.kpiReceivable}</div>
           <div className="kpi-v amt-in">{rupiahShort(sumIn.total)}</div>
-          <div className="kpi-d muted-sm">{sumIn.count} tagihan ke pelanggan</div>
+          <div className="kpi-d muted-sm">{rc.kpiReceivableSub.replace('{n}', sumIn.count)}</div>
         </div>
         <div className="card">
-          <div className="kpi-l">Utang belum dibayar</div>
+          <div className="kpi-l">{rc.kpiPayable}</div>
           <div className="kpi-v amt-out">{rupiahShort(sumOut.total)}</div>
-          <div className="kpi-d muted-sm">{sumOut.count} kewajiban ke pemasok/pihak lain</div>
+          <div className="kpi-d muted-sm">{rc.kpiPayableSub.replace('{n}', sumOut.count)}</div>
         </div>
         <div className="card">
-          <div className="kpi-l">Lewat jatuh tempo</div>
+          <div className="kpi-l">{rc.kpiOverdue}</div>
           <div className="kpi-v" style={{ color: (sumIn.overdueCount + sumOut.overdueCount) > 0 ? 'var(--red)' : 'inherit' }}>
             {sumIn.overdueCount + sumOut.overdueCount}
           </div>
-          <div className="kpi-d muted-sm">senilai {rupiahShort(sumIn.overdueTotal + sumOut.overdueTotal)}</div>
+          <div className="kpi-d muted-sm">{rc.kpiOverdueSub.replace('{v}', rupiahShort(sumIn.overdueTotal + sumOut.overdueTotal))}</div>
         </div>
       </div>
 
       <div className="toolbar">
         <div className="seg" style={{ maxWidth: 360, flex: 1 }}>
           <button type="button" className={tab === 'in' ? 'on-in' : ''} onClick={() => setTab('in')}>
-            Piutang ({sumIn.count})
+            {rc.tabReceivable} ({sumIn.count})
           </button>
           <button type="button" className={tab === 'out' ? 'on-out' : ''} onClick={() => setTab('out')}>
-            Utang ({sumOut.count})
+            {rc.tabPayable} ({sumOut.count})
           </button>
         </div>
       </div>
@@ -95,9 +98,9 @@ export default function Receivables() {
             return (
               <div className="scn-chip" key={b.key}
                 style={cell.count > 0 && (b.key === 'b90' || b.key === 'b90p') ? { borderColor: 'rgba(220,38,38,.45)' } : {}}>
-                <span>{b.label}</span>
+                <span>{rc.agingBuckets[b.key]}</span>
                 <b>{cell.count > 0 ? rupiahShort(cell.total) : '-'}</b>
-                <span>{cell.count} tagihan</span>
+                <span>{cell.count} {rc.billsUnit}</span>
               </div>
             )
           })}
@@ -107,19 +110,17 @@ export default function Receivables() {
       {rows.length === 0 ? (
         <div className="card"><div className="empty">
           <div className="ee">{tab === 'in' ? <HandCoins size={36} /> : <CheckCircle2 size={36} />}</div>
-          <h3>{tab === 'in' ? 'Tidak ada piutang' : 'Tidak ada utang'}</h3>
+          <h3>{tab === 'in' ? rc.emptyReceivableTitle : rc.emptyPayableTitle}</h3>
           <p>
-            {tab === 'in'
-              ? 'Semua penjualan sudah dibayar. Piutang muncul saat transaksi pemasukan disimpan dengan status "Belum Lunas".'
-              : 'Semua pengeluaran sudah dibayar. Utang muncul saat pengeluaran (atau penerimaan PO) dicatat "Belum Lunas".'}
+            {tab === 'in' ? rc.emptyReceivableDesc : rc.emptyPayableDesc}
           </p>
         </div></div>
       ) : (
         <div className="table-wrap">
           <table className="tbl">
             <thead><tr>
-              <th>Tanggal</th><th>Deskripsi</th><th>{tab === 'in' ? 'Pelanggan' : 'Pemasok/Pihak'}</th>
-              <th>Umur</th><th>Jatuh tempo</th><th>Nominal</th><th></th>
+              <th>{rc.thDate}</th><th>{rc.thDesc}</th><th>{tab === 'in' ? rc.thCustomer : rc.thSupplier}</th>
+              <th>{rc.thAge}</th><th>{rc.thDue}</th><th>{rc.thAmount}</th><th></th>
             </tr></thead>
             <tbody>
               {rows.map((t) => {
@@ -133,12 +134,12 @@ export default function Receivables() {
                     <td><b>{t.description}</b></td>
                     <td className="muted-sm">{t.customer_name || '-'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
-                      {days} hari <span className="pill pill-cat" style={{ marginLeft: 4 }}>{bucket.label}</span>
+                      {rc.ageDays.replace('{n}', days)} <span className="pill pill-cat" style={{ marginLeft: 4 }}>{rc.agingBuckets[bucket.key]}</span>
                     </td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {t.due_date
                         ? late
-                          ? <span className="badge badge-red">terlambat · {fmtDate(t.due_date)}</span>
+                          ? <span className="badge badge-red">{rc.overdue} · {fmtDate(t.due_date)}</span>
                           : fmtDate(t.due_date)
                         : <span className="muted-sm">-</span>}
                     </td>
@@ -147,13 +148,13 @@ export default function Receivables() {
                       <div className="row-actions">
                         {wa && (
                           <a className="linklike" href={wa} target="_blank" rel="noreferrer"
-                            title="Kirim pengingat pembayaran via WhatsApp">
-                            <MessageCircle size={13} style={{ verticalAlign: '-2px' }} /> Ingatkan
+                            title={rc.remindTitle}>
+                            <MessageCircle size={13} style={{ verticalAlign: '-2px' }} /> {rc.remind}
                           </a>
                         )}
                         <button className="linklike" onClick={() => markPaid(t)}
-                          title={tab === 'in' ? 'Uang sudah diterima' : 'Utang sudah dibayar'}>
-                          Tandai Lunas
+                          title={tab === 'in' ? rc.markPaidTitleIn : rc.markPaidTitleOut}>
+                          {rc.markPaid}
                         </button>
                       </div>
                     </td>
@@ -166,8 +167,7 @@ export default function Receivables() {
       )}
 
       <p className="muted-sm mt">
-        Umur dihitung dari tanggal transaksi. Tambahkan tanggal jatuh tempo saat mencatat transaksi
-        "Belum Lunas" agar pengingat lebih akurat.
+        {rc.footerHint}
       </p>
     </>
   )

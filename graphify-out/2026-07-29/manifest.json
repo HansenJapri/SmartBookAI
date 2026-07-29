@@ -445,8 +445,8 @@
     "semantic_hash": ""
   },
   "src/lib/ai.js": {
-    "mtime": 1785320103.2485929,
-    "ast_hash": "0eb2c762ca4cebd1deec15b4c26af7a1",
+    "mtime": 1785143534.1620896,
+    "ast_hash": "84a5c503f3e25f468eaca15347220dd0",
     "semantic_hash": ""
   },
   "src/lib/aiSummary.js": {
@@ -505,8 +505,8 @@
     "semantic_hash": ""
   },
   "src/lib/i18n.js": {
-    "mtime": 1785320256.837906,
-    "ast_hash": "a39ed4a39e36ad673dc4392be983286e",
+    "mtime": 1785317628.9657874,
+    "ast_hash": "1cee39a40e45ff6364700d28aa4aefea",
     "semantic_hash": ""
   },
   "src/lib/imageCompress.js": {
@@ -620,8 +620,8 @@
     "semantic_hash": ""
   },
   "src/pages/Dashboard.jsx": {
-    "mtime": 1785320283.2731037,
-    "ast_hash": "4b708b417b8a1d9cee761504120e77f9",
+    "mtime": 1785293422.8003025,
+    "ast_hash": "6e99ee52646686173add3f0a88d051e4",
     "semantic_hash": ""
   },
   "src/pages/Employees.jsx": {
@@ -725,8 +725,8 @@
     "semantic_hash": ""
   },
   "src/pages/Stok.jsx": {
-    "mtime": 1785320320.970505,
-    "ast_hash": "1cfbfd492772e67b21513593e513955e",
+    "mtime": 1785314547.762005,
+    "ast_hash": "f23ef1e01367442cbf807fd4a46ab9eb",
     "semantic_hash": ""
   },
   "src/pages/StokHistori.jsx": {
@@ -785,8 +785,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/ai-narasi/index.ts": {
-    "mtime": 1785320176.6883965,
-    "ast_hash": "8881e3741e605bfaa8117db990ffe4a0",
+    "mtime": 1785294293.6313283,
+    "ast_hash": "c16582569f411b3691911cd0613409ad",
     "semantic_hash": ""
   },
   "supabase/functions/ai-struk/index.ts": {
@@ -1130,8 +1130,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/ai-stok-insight/index.ts": {
-    "mtime": 1785320236.0113785,
-    "ast_hash": "93d2cdf0130b362dd0c48617a6e269b7",
+    "mtime": 1785294303.7099545,
+    "ast_hash": "5f3e6bb6bba567c4d57c1773d039cc4c",
     "semantic_hash": ""
   }
 }

@@ -6,10 +6,14 @@ import {
 } from '../lib/api'
 import { nextDocNumber, buildOpnameItems, opnameDiff, opnameSummary, SO_STATUS } from '../lib/gudang'
 import { fmtDate } from '../lib/format'
+import { useLang } from '../context/LangContext'
 
 // Stock Opname bersesi: Draf (isi hitung fisik, bisa disimpan berkali-kali)
 // -> Posting (stok sistem DISET = hasil hitung; sesi terkunci) / Batal.
 export default function Opname() {
+  const { t } = useLang()
+  const op = t.opname
+  const soStatusLabel = (key) => ({ draft: op.statusDraft, posted: op.statusPosted, cancelled: op.statusCancelled }[key])
   const [list, setList] = useState(null)
   const [detail, setDetail] = useState(null)   // sesi yang sedang dibuka
   const [confirmPost, setConfirmPost] = useState(false)
@@ -28,7 +32,7 @@ export default function Opname() {
     setBusy(true)
     try {
       const products = await fetchProducts()
-      if (!products.length) { setErr('Belum ada produk. Tambahkan produk di menu Stok Produk dulu.'); return }
+      if (!products.length) { setErr(op.errNoProducts); return }
       const created = await addOpname({
         opname_number: nextDocNumber('SO', (list || []).map((x) => x.opname_number)),
         status: 'draft',
@@ -36,7 +40,7 @@ export default function Opname() {
       })
       setList((prev) => [created, ...(prev || [])])
       setDetail(created)
-      setMsg(`${created.opname_number} dimulai. Isi kolom "Stok fisik" sesuai hasil hitung di gudang.`)
+      setMsg(op.startedMsg.replace('{num}', created.opname_number))
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
 
@@ -53,7 +57,7 @@ export default function Opname() {
       const upd = await updateOpname(detail.id, { items: detail.items })
       setDetail(upd)
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
-      setMsg('Draf tersimpan. Anda bisa melanjutkan hitung kapan saja.')
+      setMsg(op.draftSavedMsg)
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
 
@@ -66,15 +70,15 @@ export default function Opname() {
       setConfirmPost(false)
       setMsg(
         res.changes.length === 0
-          ? `${res.opname.opname_number} diposting. Tidak ada selisih — stok sistem sudah akurat. 👍`
-          : `${res.opname.opname_number} diposting. Stok dikoreksi: ` +
+          ? op.postedNoDiffMsg.replace('{num}', res.opname.opname_number)
+          : op.postedMsg.replace('{num}', res.opname.opname_number) + ' ' +
             res.changes.map((c) => `${c.name} ${c.before} → ${c.after} ${c.unit}`).join('; ') + '.'
       )
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
 
   const cancelSession = async (s) => {
-    if (!confirm(`Batalkan ${s.opname_number}? Hasil hitung di sesi ini dibuang, stok tidak berubah.`)) return
+    if (!confirm(op.confirmCancelSession.replace('{num}', s.opname_number))) return
     try {
       const upd = await updateOpname(s.id, { status: 'cancelled' })
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
@@ -83,7 +87,7 @@ export default function Opname() {
   }
 
   const removeSession = async (s) => {
-    if (!confirm(`Hapus ${s.opname_number} dari riwayat?`)) return
+    if (!confirm(op.confirmDelSession.replace('{num}', s.opname_number))) return
     try {
       await deleteOpname(s.id)
       setList((prev) => prev.filter((x) => x.id !== s.id))
@@ -99,22 +103,22 @@ export default function Opname() {
     const sum = opnameSummary(detail.items)
     return (
       <>
-        {msg && <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{msg}</span><button className="icon-btn" onClick={() => setMsg('')} aria-label="Tutup">✕</button></div>}
+        {msg && <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{msg}</span><button className="icon-btn" onClick={() => setMsg('')} aria-label={op.close}>✕</button></div>}
         {err && <div className="alert alert-err">{err}</div>}
 
         <div className="toolbar">
           <button className="btn btn-ghost" onClick={() => { setDetail(null); setMsg('') }}>
-            <ArrowLeft size={15} style={{ verticalAlign: '-3px', marginRight: 4 }} />Kembali
+            <ArrowLeft size={15} style={{ verticalAlign: '-3px', marginRight: 4 }} />{op.back}
           </button>
           <b style={{ fontSize: 16 }}>{detail.opname_number}</b>
-          <span className={`badge ${(SO_STATUS[detail.status] || SO_STATUS.draft).cls}`}>{(SO_STATUS[detail.status] || SO_STATUS.draft).label}</span>
+          <span className={`badge ${(SO_STATUS[detail.status] || SO_STATUS.draft).cls}`}>{soStatusLabel(detail.status)}</span>
           <span className="muted-sm">{fmtDate(detail.created_at)}</span>
           <div style={{ flex: 1 }} />
           {editable && (
             <>
-              <button className="btn btn-ghost" onClick={saveDraft} disabled={busy}>Simpan Draf</button>
+              <button className="btn btn-ghost" onClick={saveDraft} disabled={busy}>{op.saveDraft}</button>
               <button className="btn btn-primary" onClick={() => { setErr(''); setConfirmPost(true) }} disabled={busy || sum.counted === 0}>
-                Posting Opname
+                {op.postOpname}
               </button>
             </>
           )}
@@ -123,8 +127,8 @@ export default function Opname() {
         <div className="table-wrap">
           <table className="tbl">
             <thead><tr>
-              <th>Produk</th><th>Satuan</th><th style={{ textAlign: 'right' }}>Stok sistem</th>
-              <th>Stok fisik (hasil hitung)</th><th style={{ textAlign: 'right' }}>Selisih</th>
+              <th>{op.thProduct}</th><th>{op.thUnit}</th><th style={{ textAlign: 'right' }}>{op.thSystemStock}</th>
+              <th>{op.thPhysicalStock}</th><th style={{ textAlign: 'right' }}>{op.thDiff}</th>
             </tr></thead>
             <tbody>
               {detail.items.map((it) => {
@@ -137,10 +141,10 @@ export default function Opname() {
                     <td style={{ maxWidth: 160 }}>
                       {editable ? (
                         <input className="input" type="number" min="0" step="any"
-                          value={it.counted_qty ?? ''} placeholder="belum dihitung"
+                          value={it.counted_qty ?? ''} placeholder={op.notCountedPh}
                           onChange={(e) => setCounted(it.product_id, e.target.value)} />
                       ) : (
-                        <span>{it.counted_qty ?? <span className="muted-sm">tidak dihitung</span>}</span>
+                        <span>{it.counted_qty ?? <span className="muted-sm">{op.notCounted}</span>}</span>
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
@@ -155,23 +159,23 @@ export default function Opname() {
           </table>
         </div>
         <p className="muted-sm mt">
-          {sum.counted} dari {sum.total} produk sudah dihitung · selisih lebih: {sum.plus} · selisih kurang: {sum.minus}.
-          {editable && ' Baris yang tidak diisi akan dilewati saat posting (stok tidak berubah).'}
+          {op.summary.replace('{counted}', sum.counted).replace('{total}', sum.total).replace('{plus}', sum.plus).replace('{minus}', sum.minus)}
+          {editable && op.summarySkipHint}
         </p>
 
         {/* Konfirmasi posting: tampilkan HANYA selisih agar keputusan jelas (HCI rule 4 & 5) */}
         {confirmPost && (
           <Modal onClose={() => setConfirmPost(false)} labelledBy="opnamePostModalTitle">
               <div className="modal-head">
-                <h3 id="opnamePostModalTitle">Posting {detail.opname_number}?</h3>
-                <button type="button" className="icon-btn" onClick={() => setConfirmPost(false)} aria-label="Tutup">✕</button>
+                <h3 id="opnamePostModalTitle">{op.postConfirmTitle.replace('{num}', detail.opname_number)}</h3>
+                <button type="button" className="icon-btn" onClick={() => setConfirmPost(false)} aria-label={op.close}>✕</button>
               </div>
               <div className="modal-body">
                 {sum.diffs.length === 0 ? (
-                  <p style={{ marginTop: 0 }}>Tidak ada selisih — stok sistem sudah sesuai hitung fisik. Sesi akan dikunci sebagai arsip.</p>
+                  <p style={{ marginTop: 0 }}>{op.postConfirmNoDiff}</p>
                 ) : (
                   <>
-                    <p style={{ marginTop: 0 }}>Stok sistem akan <b>diset mengikuti hasil hitung fisik</b> untuk {sum.diffs.length} produk:</p>
+                    <p style={{ marginTop: 0 }}>{op.postConfirmWillSet.replace('{n}', sum.diffs.length)}</p>
                     <ul style={{ margin: '0 0 12px', paddingLeft: 18 }}>
                       {sum.diffs.map((x) => (
                         <li key={x.product_id} style={{ marginBottom: 4 }}>
@@ -182,11 +186,11 @@ export default function Opname() {
                     </ul>
                   </>
                 )}
-                <p className="muted-sm">Setelah diposting, sesi terkunci dan menjadi arsip pembanding opname berikutnya.</p>
+                <p className="muted-sm">{op.postConfirmFooter}</p>
                 <div className="modal-foot">
-                  <button type="button" className="btn btn-ghost btn-block" onClick={() => setConfirmPost(false)}>Batal</button>
+                  <button type="button" className="btn btn-ghost btn-block" onClick={() => setConfirmPost(false)}>{op.cancel}</button>
                   <button className="btn btn-primary btn-block" disabled={busy} onClick={doPost}>
-                    {busy ? 'Memproses...' : 'Ya, Posting'}
+                    {busy ? op.processing : op.yesPost}
                   </button>
                 </div>
               </div>
@@ -199,30 +203,30 @@ export default function Opname() {
   // ---------- TAMPILAN DAFTAR SESI ----------
   return (
     <>
-      {msg && <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{msg}</span><button className="icon-btn" onClick={() => setMsg('')} aria-label="Tutup">✕</button></div>}
+      {msg && <div className="alert alert-ok" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{msg}</span><button className="icon-btn" onClick={() => setMsg('')} aria-label={op.close}>✕</button></div>}
       {err && <div className="alert alert-err">{err}</div>}
 
       <div className="toolbar">
         <p className="muted-sm" style={{ flex: 1, margin: 0 }}>
-          Hitung stok fisik di gudang, cocokkan dengan sistem, lalu posting untuk mengoreksi stok. Satu sesi draf dalam satu waktu.
+          {op.hint}
         </p>
         <button className="btn btn-primary" onClick={start} disabled={busy}>
-          {draft ? 'Lanjutkan Draf' : '+ Mulai Opname'}
+          {draft ? op.continueDraft : op.startOpname}
         </button>
       </div>
 
       {list.length === 0 ? (
         <div className="card"><div className="empty">
           <div className="ee"><ClipboardCheck size={36} /></div>
-          <h3>Belum ada sesi opname</h3>
-          <p>Opname rutin (mis. tiap akhir bulan) menjaga stok sistem tetap sama dengan stok nyata di gudang.</p>
-          <button className="btn btn-primary" onClick={start} disabled={busy}>+ Mulai Opname Pertama</button>
+          <h3>{op.emptyTitle}</h3>
+          <p>{op.emptyDesc}</p>
+          <button className="btn btn-primary" onClick={start} disabled={busy}>{op.startFirst}</button>
         </div></div>
       ) : (
         <div className="table-wrap">
           <table className="tbl">
             <thead><tr>
-              <th>No. Opname</th><th>Tanggal</th><th>Produk dihitung</th><th>Selisih</th><th>Status</th><th></th>
+              <th>{op.thNumber}</th><th>{op.thDate}</th><th>{op.thCounted}</th><th>{op.thDiff}</th><th>{op.thStatus}</th><th></th>
             </tr></thead>
             <tbody>
               {list.map((s) => {
@@ -235,20 +239,20 @@ export default function Opname() {
                     <td>{sum.counted} / {sum.total}</td>
                     <td>
                       {sum.diffs.length === 0
-                        ? <span className="muted-sm">tidak ada</span>
-                        : <span>{sum.plus > 0 && <span className="amt-in">+{sum.plus} produk</span>}{sum.plus > 0 && sum.minus > 0 && ' · '}{sum.minus > 0 && <span className="amt-out">−{sum.minus} produk</span>}</span>}
+                        ? <span className="muted-sm">{op.noDiff}</span>
+                        : <span>{sum.plus > 0 && <span className="amt-in">+{sum.plus} {op.productsUnit}</span>}{sum.plus > 0 && sum.minus > 0 && ' · '}{sum.minus > 0 && <span className="amt-out">−{sum.minus} {op.productsUnit}</span>}</span>}
                     </td>
-                    <td><span className={`badge ${st.cls}`}>{st.label}</span></td>
+                    <td><span className={`badge ${st.cls}`}>{soStatusLabel(s.status)}</span></td>
                     <td>
                       <div className="row-actions">
                         <button className="linklike" onClick={() => { setMsg(''); setErr(''); setDetail(s) }}>
-                          {s.status === 'draft' ? 'Lanjutkan' : 'Lihat'}
+                          {s.status === 'draft' ? op.continueLink : op.viewLink}
                         </button>
                         {s.status === 'draft' && (
-                          <button className="icon-btn danger" title="Batalkan sesi" aria-label="Batalkan sesi" onClick={() => cancelSession(s)}><Trash2 size={15} /></button>
+                          <button className="icon-btn danger" title={op.cancelSessionTitle} aria-label={op.cancelSessionTitle} onClick={() => cancelSession(s)}><Trash2 size={15} /></button>
                         )}
                         {s.status === 'cancelled' && (
-                          <button className="icon-btn danger" title="Hapus dari riwayat" aria-label="Hapus dari riwayat" onClick={() => removeSession(s)}><Trash2 size={15} /></button>
+                          <button className="icon-btn danger" title={op.delHistoryTitle} aria-label={op.delHistoryTitle} onClick={() => removeSession(s)}><Trash2 size={15} /></button>
                         )}
                       </div>
                     </td>

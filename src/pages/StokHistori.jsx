@@ -7,6 +7,7 @@ import {
 import { fetchProducts, fetchTransactions } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { rupiah, fmtDateTime } from '../lib/format'
+import { useLang } from '../context/LangContext'
 import './stok.css'
 import './stok-histori.css'
 
@@ -16,13 +17,14 @@ import './stok-histori.css'
 //   3. stock_opnames yang sudah 'posted' (penyesuaian manual)
 // Semua diurut menurun berdasarkan waktu.
 
-const TYPE_META = {
-  penjualan: { label: 'Penjualan', tag: 's2h-tag-out', ic: ArrowDownCircle, sign: '-' },
-  pembelian: { label: 'Pembelian / PO', tag: 's2h-tag-in', ic: ArrowUpCircle, sign: '+' },
-  opname:    { label: 'Stock Opname', tag: 's2h-tag-adj', ic: ClipboardCheck, sign: '±' },
-}
-
 export default function StokHistori() {
+  const { t } = useLang()
+  const sh = t.stokHistori
+  const TYPE_META = {
+    penjualan: { label: sh.typeSale, tag: 's2h-tag-out', ic: ArrowDownCircle, sign: '-' },
+    pembelian: { label: sh.typePurchase, tag: 's2h-tag-in', ic: ArrowUpCircle, sign: '+' },
+    opname:    { label: sh.typeOpname, tag: 's2h-tag-adj', ic: ClipboardCheck, sign: '±' },
+  }
   const [rows, setRows] = useState(null)
   const [products, setProducts] = useState([])
   const [q, setQ] = useState('')
@@ -61,7 +63,7 @@ export default function StokHistori() {
             id: `tx-${t.id}`,
             at: t.occurred_at,
             type: t.direction === 'in' ? 'penjualan' : 'pembelian',
-            product: prodMap.get(t.product_id) || { name: '(produk dihapus)', unit: '' },
+            product: prodMap.get(t.product_id) || { name: sh.deletedProduct, unit: '' },
             qty: Number(t.qty) || 0,
             amount: Number(t.amount) || 0,
             ref: t.description || '',
@@ -74,7 +76,7 @@ export default function StokHistori() {
             id: `po-${po.id}`,
             at: po.received_at || po.created_at,
             type: 'pembelian',
-            product: prodMap.get(po.product_id) || { name: '(produk dihapus)', unit: '' },
+            product: prodMap.get(po.product_id) || { name: sh.deletedProduct, unit: '' },
             qty: Number(po.qty) || 0,
             amount: (Number(po.qty) || 0) * (Number(po.unit_price) || 0),
             ref: po.po_number,
@@ -90,7 +92,7 @@ export default function StokHistori() {
               id: `op-${op.id}-${it.product_id}`,
               at: op.posted_at || op.created_at,
               type: 'opname',
-              product: prodMap.get(it.product_id) || { name: '(produk dihapus)', unit: '' },
+              product: prodMap.get(it.product_id) || { name: sh.deletedProduct, unit: '' },
               qty: Math.abs(diff),
               qty_signed: diff,
               amount: 0,
@@ -139,12 +141,12 @@ export default function StokHistori() {
     <div className="s2" ref={rootRef}>
       <div className="s2-head s2-rv">
         <div>
-          <span className="s2-eyebrow"><HistoryIcon size={16} />Histori Pergerakan Stok</span>
-          <h1>Semua Histori</h1>
-          <p>Rekam jejak setiap barang masuk, keluar, dan penyesuaian stok.</p>
+          <span className="s2-eyebrow"><HistoryIcon size={16} />{sh.eyebrow}</span>
+          <h1>{sh.title}</h1>
+          <p>{sh.subtitle}</p>
         </div>
         <div className="s2-head-actions">
-          <Link to="/app/stok" className="s2-btn-outline"><ArrowLeft size={16} />Kembali ke Stok</Link>
+          <Link to="/app/stok" className="s2-btn-outline"><ArrowLeft size={16} />{sh.backToStock}</Link>
         </div>
       </div>
 
@@ -152,19 +154,19 @@ export default function StokHistori() {
       <div className="s2-kpi-grid s2h-summary s2-rv">
         <div className="s2-kpi s2-kpi-primary">
           <div className="s2-kpi-ic s2-kpi-ic-primary"><ArrowUpCircle size={20} /></div>
-          <div><p className="s2-kpi-l">Barang Masuk</p><p className="s2-kpi-v">{Math.round(totals.masuk)}</p></div>
+          <div><p className="s2-kpi-l">{sh.kpiIn}</p><p className="s2-kpi-v">{Math.round(totals.masuk)}</p></div>
         </div>
         <div className="s2-kpi s2-kpi-secondary">
           <div className="s2-kpi-ic s2-kpi-ic-secondary"><ArrowDownCircle size={20} /></div>
-          <div><p className="s2-kpi-l">Barang Keluar</p><p className="s2-kpi-v">{Math.round(totals.keluar)}</p></div>
+          <div><p className="s2-kpi-l">{sh.kpiOut}</p><p className="s2-kpi-v">{Math.round(totals.keluar)}</p></div>
         </div>
         <div className="s2-kpi s2-kpi-tertiary">
           <div className="s2-kpi-ic s2-kpi-ic-tertiary"><ClipboardCheck size={20} /></div>
-          <div><p className="s2-kpi-l">Penyesuaian Opname</p><p className="s2-kpi-v">{Math.round(totals.adj)}</p></div>
+          <div><p className="s2-kpi-l">{sh.kpiAdj}</p><p className="s2-kpi-v">{Math.round(totals.adj)}</p></div>
         </div>
         <div className="s2-kpi s2-kpi-primary">
           <div className="s2-kpi-ic s2-kpi-ic-primary"><HistoryIcon size={20} /></div>
-          <div><p className="s2-kpi-l">Total Baris</p><p className="s2-kpi-v">{filtered.length}</p></div>
+          <div><p className="s2-kpi-l">{sh.kpiTotalRows}</p><p className="s2-kpi-v">{filtered.length}</p></div>
         </div>
       </div>
 
@@ -172,30 +174,30 @@ export default function StokHistori() {
       <div className="s2-log s2-rv">
         <div className="s2-log-head">
           <div>
-            <h3>Filter Pergerakan</h3>
-            <p>Persempit hasil menurut jenis, produk, atau rentang tanggal.</p>
+            <h3>{sh.filterTitle}</h3>
+            <p>{sh.filterSub}</p>
           </div>
         </div>
         <div className="s2h-filters">
           <label className="s2-search">
             <Search size={16} aria-hidden="true" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari produk atau nomor referensi..." aria-label="Cari" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={sh.searchPh} aria-label={sh.searchAria} />
           </label>
-          <select className="s2-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Jenis pergerakan">
-            <option value="all">Semua Jenis</option>
-            <option value="pembelian">Pembelian / PO</option>
-            <option value="penjualan">Penjualan</option>
-            <option value="opname">Stock Opname</option>
+          <select className="s2-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label={sh.typeAria}>
+            <option value="all">{sh.allTypes}</option>
+            <option value="pembelian">{sh.typePurchase}</option>
+            <option value="penjualan">{sh.typeSale}</option>
+            <option value="opname">{sh.typeOpname}</option>
           </select>
-          <select className="s2-select" value={prodFilter} onChange={(e) => setProdFilter(e.target.value)} aria-label="Filter produk">
-            <option value="">Semua Produk</option>
+          <select className="s2-select" value={prodFilter} onChange={(e) => setProdFilter(e.target.value)} aria-label={sh.productAria}>
+            <option value="">{sh.allProducts}</option>
             {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <label className="s2h-date">
             <Calendar size={14} aria-hidden="true" />
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Dari" />
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label={sh.fromAria} />
             <span>—</span>
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Sampai" />
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label={sh.toAria} />
           </label>
         </div>
       </div>
@@ -206,18 +208,18 @@ export default function StokHistori() {
           <table className="s2-log-tbl">
             <thead>
               <tr>
-                <th>Waktu</th>
-                <th>Produk</th>
-                <th>Jenis</th>
-                <th>Qty</th>
-                <th className="s2-right">Nominal</th>
-                <th>Referensi</th>
+                <th>{sh.thTime}</th>
+                <th>{sh.thProduct}</th>
+                <th>{sh.thType}</th>
+                <th>{sh.thQty}</th>
+                <th className="s2-right">{sh.thAmount}</th>
+                <th>{sh.thRef}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: 'var(--s2-on-surface-variant)' }}>
-                  Belum ada histori yang cocok. Coba ubah filter atau tambah pergerakan lewat menu Transaksi / Purchase Order / Stock Opname.
+                  {sh.emptyHistory}
                 </td></tr>
               ) : filtered.map((r) => {
                 const meta = TYPE_META[r.type]

@@ -15,6 +15,7 @@ import {
 import { stokInsightAI } from '../lib/ai'
 import { rupiah, rupiahShort } from '../lib/format'
 import { ConfirmModal, KelolaModal } from '../components/StokDialogs'
+import { useLang } from '../context/LangContext'
 import './stok.css'
 
 const emptyForm = { name: '', category: '', unit: 'pcs', stock: '', min_stock: '', price: '', cost_price: '', supplier_id: '', image_url: '' }
@@ -38,6 +39,8 @@ function stockLevel(p) {
 
 export default function Stok() {
   const nav = useNavigate()
+  const { t, lang } = useLang()
+  const sk = t.stok
   const [products, setProducts] = useState(null)
   const [units, setUnits] = useState([])
   const [cats, setCats] = useState([])
@@ -58,7 +61,7 @@ export default function Stok() {
   const [ai, setAi] = useState({ loading: true, content: '', err: '' })
   const loadAI = (force = false) => {
     setAi((s) => ({ ...s, loading: true, err: '' }))
-    stokInsightAI(force)
+    stokInsightAI(force, lang)
       .then((d) => setAi({ loading: false, content: d.content || '', err: '' }))
       .catch((e) => setAi({ loading: false, content: '', err: e.message }))
   }
@@ -73,8 +76,9 @@ export default function Stok() {
       try { await ensureInventorySeed() } catch { /* tabel belum dimigrasi */ }
       try { await loadAll() } catch { setProducts([]) }
     })()
-    loadAI(false)
   }, [loadAll])
+
+  useEffect(() => { loadAI(false) }, [lang]) // eslint-disable-line
 
   const reloadUnits = () => fetchUnits().then(setUnits).catch(() => {})
   const reloadCats = () => fetchProductCategories().then(setCats).catch(() => {})
@@ -112,7 +116,7 @@ export default function Stok() {
 
   const submit = async (e) => {
     e.preventDefault(); setErr('')
-    if (!form.name.trim()) { setErr('Nama produk wajib diisi.'); return }
+    if (!form.name.trim()) { setErr(sk.errName); return }
     const payload = {
       name: form.name.trim(),
       category: form.category || null,
@@ -192,13 +196,13 @@ export default function Stok() {
 
   // Kalimat pembuka & sisanya untuk AI card.
   const aiHead = (() => {
-    if (ai.err) return 'Insight AI tidak tersedia'
-    if (ai.loading || !ai.content) return critical ? `${critical.name} Perlu Diisi Ulang` : 'Menyusun insight AI…'
+    if (ai.err) return sk.aiUnavailable
+    if (ai.loading || !ai.content) return critical ? sk.needRestock.replace('{name}', critical.name) : sk.composing
     const firstDot = ai.content.indexOf('.')
-    return firstDot > 20 ? ai.content.slice(0, firstDot + 1) : 'Insight AI Stok'
+    return firstDot > 20 ? ai.content.slice(0, firstDot + 1) : sk.aiTitle
   })()
   const aiBody = (() => {
-    if (ai.loading) return 'Menyiapkan analisis stok Anda…'
+    if (ai.loading) return sk.preparing
     if (ai.err) return ai.err
     if (!ai.content) return ''
     const firstDot = ai.content.indexOf('.')
@@ -210,16 +214,16 @@ export default function Stok() {
       {/* Header */}
       <div className="s2-head s2-rv">
         <div>
-          <span className="s2-eyebrow"><Package size={16} />Persediaan Barang</span>
-          <h1>Stok Produk</h1>
-          <p>Kelola inventaris Anda dengan cerdas — dilengkapi prediksi berbasis pola stok minimum.</p>
+          <span className="s2-eyebrow"><Package size={16} />{sk.eyebrow}</span>
+          <h1>{sk.title}</h1>
+          <p>{sk.subtitle}</p>
         </div>
         <div className="s2-head-actions">
           <button className="s2-btn-outline" type="button" onClick={() => setShowKelola(true)}>
-            <Layers size={16} />Kelola satuan & kategori
+            <Layers size={16} />{sk.manageUnitsCats}
           </button>
           <button className="s2-btn-primary" type="button" onClick={() => { setEditId(null); setForm(emptyForm); setShowForm((v) => !v) }}>
-            <Plus size={18} />{showForm ? 'Tutup form' : 'Tambah Produk'}
+            <Plus size={18} />{showForm ? sk.closeForm : sk.addProduct}
           </button>
         </div>
       </div>
@@ -227,31 +231,29 @@ export default function Stok() {
       {/* Form Tambah/Ubah */}
       {showForm && (
         <form className="s2-form s2-rv" onSubmit={submit}>
-          <h3>{editId ? 'Ubah Produk' : 'Tambah Produk'}</h3>
-          <p style={{ margin: 0, color: 'var(--s2-on-surface-variant)', fontSize: 13 }}>
-            Isi detail produk. Stok minimum dipakai untuk pemicu peringatan otomatis.
-          </p>
+          <h3>{editId ? sk.formEdit : sk.formAdd}</h3>
+          <p style={{ margin: 0, color: 'var(--s2-on-surface-variant)', fontSize: 13 }}>{sk.formHint}</p>
           {err && <div className="s2-alert" style={{ marginTop: 12 }}><AlertTriangle size={16} />{err}</div>}
 
           <div style={{ marginTop: 14 }}>
-            <label style={{ display: 'block', font: '600 12.5px Inter, sans-serif', color: 'var(--s2-on-surface-variant)', marginBottom: 6 }}>Foto produk</label>
+            <label style={{ display: 'block', font: '600 12.5px Inter, sans-serif', color: 'var(--s2-on-surface-variant)', marginBottom: 6 }}>{sk.photo}</label>
             <div className="s2-photo">
               <div className="s2-photo-thumb">
                 {form.image_url
-                  ? <img src={form.image_url} alt="Pratinjau foto produk" />
+                  ? <img src={form.image_url} alt={sk.photo} />
                   : <ImagePlus size={30} />}
               </div>
               <div className="s2-photo-copy">
-                <p><b>{form.image_url ? 'Foto sudah terunggah.' : 'Belum ada foto.'}</b> JPG/PNG/WEBP, maks 5 MB.</p>
-                <p>Foto akan tampil di kartu produk & tabel inventaris.</p>
+                <p><b>{form.image_url ? sk.photoUploaded : sk.photoNone}</b> {sk.photoSpec}</p>
+                <p>{sk.photoNote}</p>
                 <div className="s2-photo-actions">
                   <label className="s2-photo-file" aria-disabled={uploading}>
-                    <span><ImagePlus size={14} />{uploading ? 'Mengunggah…' : (form.image_url ? 'Ganti foto' : 'Unggah foto')}</span>
+                    <span><ImagePlus size={14} />{uploading ? sk.uploading : (form.image_url ? sk.changePhoto : sk.uploadPhoto)}</span>
                     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePickPhoto(f); e.target.value = '' }} disabled={uploading} />
                   </label>
                   {form.image_url && (
                     <button type="button" className="s2-photo-remove" onClick={handleRemovePhoto} disabled={uploading}>
-                      <ImageOff size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />Hapus foto
+                      <ImageOff size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{sk.removePhoto}
                     </button>
                   )}
                 </div>
@@ -260,35 +262,35 @@ export default function Stok() {
           </div>
 
           <div className="s2-form-grid">
-            <div className="s2-field"><label htmlFor="stok-name">Nama produk</label>
-              <input id="stok-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Indomie Goreng" /></div>
-            <div className="s2-field"><label htmlFor="stok-cat">Kategori</label>
+            <div className="s2-field"><label htmlFor="stok-name">{sk.fName}</label>
+              <input id="stok-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={sk.namePh} /></div>
+            <div className="s2-field"><label htmlFor="stok-cat">{sk.fCat}</label>
               <select id="stok-cat" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                <option value="">(tanpa kategori)</option>
+                <option value="">{sk.noCat}</option>
                 {cats.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select></div>
-            <div className="s2-field"><label htmlFor="stok-unit">Satuan</label>
+            <div className="s2-field"><label htmlFor="stok-unit">{sk.fUnit}</label>
               <select id="stok-unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
                 {units.length === 0 && <option value="pcs">pcs</option>}
                 {units.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
               </select></div>
-            <div className="s2-field"><label htmlFor="stok-price">Harga jual (Rp)</label>
+            <div className="s2-field"><label htmlFor="stok-price">{sk.fPrice}</label>
               <input id="stok-price" type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" /></div>
-            <div className="s2-field"><label htmlFor="stok-cost">Harga modal / HPP (Rp)</label>
+            <div className="s2-field"><label htmlFor="stok-cost">{sk.fCost}</label>
               <input id="stok-cost" type="number" min="0" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} placeholder="0" /></div>
-            <div className="s2-field"><label htmlFor="stok-stock">Stok saat ini</label>
+            <div className="s2-field"><label htmlFor="stok-stock">{sk.fStock}</label>
               <input id="stok-stock" type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="0" /></div>
-            <div className="s2-field"><label htmlFor="stok-min">Stok minimum</label>
+            <div className="s2-field"><label htmlFor="stok-min">{sk.fMin}</label>
               <input id="stok-min" type="number" min="0" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: e.target.value })} placeholder="0" /></div>
-            <div className="s2-field"><label htmlFor="stok-supplier">Pemasok</label>
+            <div className="s2-field"><label htmlFor="stok-supplier">{sk.fSupplier}</label>
               <select id="stok-supplier" value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}>
-                <option value="">(tanpa pemasok)</option>
+                <option value="">{sk.noSupplier}</option>
                 {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select></div>
           </div>
           <div className="s2-form-actions">
-            <button type="submit" className="s2-btn-primary" disabled={uploading}>{editId ? 'Simpan Perubahan' : 'Tambah Produk'}</button>
-            <button type="button" className="s2-btn-outline" onClick={cancelForm}>Batal</button>
+            <button type="submit" className="s2-btn-primary" disabled={uploading}>{editId ? sk.saveChanges : sk.addProduct}</button>
+            <button type="button" className="s2-btn-outline" onClick={cancelForm}>{sk.cancel}</button>
           </div>
         </form>
       )}
@@ -301,12 +303,12 @@ export default function Stok() {
           <div className="s2-ai-grid">
             <div className="s2-ai-copy">
               <div className="s2-ai-badge-row">
-                <span className="s2-ai-badge"><Sparkles size={12} />AI PREDIKSI STOK</span>
-                <span className="s2-ai-ts">{ai.loading ? 'Memuat…' : 'Diperbarui dari catatan Anda'}</span>
+                <span className="s2-ai-badge"><Sparkles size={12} />{sk.aiBadge}</span>
+                <span className="s2-ai-ts">{ai.loading ? sk.loading : sk.aiUpdated}</span>
                 <button
                   type="button" className="s2-ai-refresh"
                   onClick={() => loadAI(true)} disabled={ai.loading}
-                  aria-label="Perbarui insight AI" title="Perbarui insight AI"
+                  aria-label={sk.aiRefresh} title={sk.aiRefresh}
                 >
                   <RefreshCw size={16} className={ai.loading ? 's2-spin' : ''} />
                 </button>
@@ -315,22 +317,22 @@ export default function Stok() {
               <p className="s2-ai-desc">{aiBody}</p>
               <div className="s2-ai-mini">
                 <div className="s2-ai-mini-card">
-                  <p>Status Kritis</p>
+                  <p>{sk.criticalStatus}</p>
                   <div className="s2-ai-mini-row">
                     <div className="s2-ai-mini-ic s2-ai-mini-ic-danger" aria-hidden="true"><AlertTriangle size={20} /></div>
                     <div>
-                      <b>{critical ? `Sisa ${Number(critical.stock)} ${critical.unit || 'pcs'}` : 'Semua aman'}</b>
-                      <small className="s2-hi-cyan">{lowStock.length} produk perlu perhatian</small>
+                      <b>{critical ? sk.remaining.replace('{n}', Number(critical.stock)).replace('{unit}', critical.unit || 'pcs') : sk.allSafe}</b>
+                      <small className="s2-hi-cyan">{sk.needAttention.replace('{n}', lowStock.length)}</small>
                     </div>
                   </div>
                 </div>
                 <div className="s2-ai-mini-card">
-                  <p>Potensi Margin</p>
+                  <p>{sk.marginPotential}</p>
                   <div className="s2-ai-mini-row">
                     <div className="s2-ai-mini-ic s2-ai-mini-ic-up" aria-hidden="true"><TrendingUp size={20} /></div>
                     <div>
                       <b>{potential?.name || '—'}</b>
-                      <small className="s2-hi-cyan">Selisih HPP tertinggi</small>
+                      <small className="s2-hi-cyan">{sk.highestMargin}</small>
                     </div>
                   </div>
                 </div>
@@ -339,7 +341,7 @@ export default function Stok() {
             {critical && (
               <button type="button" className="s2-ai-cta" onClick={() => nav('/app/po', { state: { productId: critical.id } })}>
                 <div className="s2-ai-cta-ic"><ShoppingCart size={26} /></div>
-                <span>Pesan Sekarang</span>
+                <span>{sk.orderNow}</span>
               </button>
             )}
           </div>
@@ -349,28 +351,28 @@ export default function Stok() {
           <div className="s2-kpi s2-kpi-primary s2-rv">
             <div className="s2-kpi-ic s2-kpi-ic-primary"><Boxes size={20} /></div>
             <div>
-              <p className="s2-kpi-l">Total Produk</p>
+              <p className="s2-kpi-l">{sk.kTotal}</p>
               <p className="s2-kpi-v">{products.length}</p>
             </div>
           </div>
           <div className="s2-kpi s2-kpi-danger s2-rv">
             <div className="s2-kpi-ic s2-kpi-ic-danger"><AlertTriangle size={20} /></div>
             <div>
-              <p className="s2-kpi-l s2-kpi-l-danger">Stok Rendah</p>
+              <p className="s2-kpi-l s2-kpi-l-danger">{sk.kLow}</p>
               <p className="s2-kpi-v s2-kpi-v-danger">{String(lowStock.length).padStart(2, '0')}</p>
             </div>
           </div>
           <div className="s2-kpi s2-kpi-secondary s2-rv">
             <div className="s2-kpi-ic s2-kpi-ic-secondary"><Layers size={20} /></div>
             <div>
-              <p className="s2-kpi-l">Kategori</p>
+              <p className="s2-kpi-l">{sk.kCat}</p>
               <p className="s2-kpi-v">{categories.length}</p>
             </div>
           </div>
           <div className="s2-kpi s2-kpi-tertiary s2-rv">
             <div className="s2-kpi-ic s2-kpi-ic-tertiary"><Gauge size={20} /></div>
             <div>
-              <p className="s2-kpi-l">Turnover</p>
+              <p className="s2-kpi-l">{sk.kTurnover}</p>
               <p className="s2-kpi-v">{turnover}<small>x</small></p>
             </div>
           </div>
@@ -380,18 +382,18 @@ export default function Stok() {
       {/* Daftar Inventaris */}
       <div>
         <div className="s2-section-head s2-rv">
-          <h3>Daftar Inventaris</h3>
+          <h3>{sk.inventoryList}</h3>
           <div className="s2-toolbar">
             <label className="s2-search">
               <Search size={16} aria-hidden="true" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari produk atau kategori..." aria-label="Cari produk" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={sk.searchPh} aria-label={sk.searchPh} />
             </label>
-            <div className="s2-view-toggle" role="group" aria-label="Ubah tampilan">
-              <button type="button" className={view === 'grid' ? 'is-on' : ''} onClick={() => setView('grid')} aria-label="Tampilan grid" title="Grid"><Grid3x3 size={18} /></button>
-              <button type="button" className={view === 'list' ? 'is-on' : ''} onClick={() => setView('list')} aria-label="Tampilan tabel" title="Tabel"><List size={18} /></button>
+            <div className="s2-view-toggle" role="group" aria-label={sk.gridView}>
+              <button type="button" className={view === 'grid' ? 'is-on' : ''} onClick={() => setView('grid')} aria-label={sk.gridView} title={sk.gridView}><Grid3x3 size={18} /></button>
+              <button type="button" className={view === 'list' ? 'is-on' : ''} onClick={() => setView('list')} aria-label={sk.listView} title={sk.listView}><List size={18} /></button>
             </div>
-            <select className="s2-select" value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="Filter kategori">
-              <option value="">Semua Kategori</option>
+            <select className="s2-select" value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label={sk.allCats}>
+              <option value="">{sk.allCats}</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -399,8 +401,8 @@ export default function Stok() {
 
         {filtered.length === 0 ? (
           <div className="s2-empty s2-rv">
-            <h3>Belum ada produk yang cocok</h3>
-            <p>{q || catFilter ? 'Coba ubah kata kunci atau filter kategori.' : 'Tambah produk pertama Anda dengan tombol di atas.'}</p>
+            <h3>{sk.emptyTitle}</h3>
+            <p>{q || catFilter ? sk.emptyFilter : sk.emptyAdd}</p>
           </div>
         ) : view === 'grid' ? (
           <div className="s2-grid">
@@ -410,8 +412,8 @@ export default function Stok() {
               return (
                 <article className="s2-card s2-rv" key={p.id}>
                   <div className="s2-card-img">
-                    {lv.variant === 'danger' && <span className="s2-card-tag s2-card-tag-danger">Stok Rendah</span>}
-                    {lv.variant === 'ok' && Number(p.stock) > (Number(p.min_stock) || 0) * 3 && <span className="s2-card-tag s2-card-tag-ok">Stok Aman</span>}
+                    {lv.variant === 'danger' && <span className="s2-card-tag s2-card-tag-danger">{sk.tagLow}</span>}
+                    {lv.variant === 'ok' && Number(p.stock) > (Number(p.min_stock) || 0) * 3 && <span className="s2-card-tag s2-card-tag-ok">{sk.tagSafe}</span>}
                     {p.image_url
                       ? <img src={p.image_url} alt={p.name} loading="lazy" />
                       : <Ic size={78} strokeWidth={1.4} aria-hidden="true" />}
@@ -419,16 +421,16 @@ export default function Stok() {
                   <div className="s2-card-body">
                     <div className="s2-card-head">
                       <div>
-                        <div className="s2-card-cat">{p.category || 'Umum'}</div>
+                        <div className="s2-card-cat">{p.category || sk.general}</div>
                         <h4 className="s2-card-name" title={p.name}>{p.name}</h4>
                       </div>
                       <div className="s2-card-actions">
-                        <button className="s2-card-btn" type="button" onClick={() => startEdit(p)} aria-label={`Ubah ${p.name}`} title="Ubah produk"><Pencil size={16} /></button>
-                        <button className="s2-card-btn s2-card-btn-danger" type="button" onClick={() => askDelete(p)} aria-label={`Hapus ${p.name}`} title="Hapus produk"><Trash2 size={16} /></button>
+                        <button className="s2-card-btn" type="button" onClick={() => startEdit(p)} aria-label={sk.editAria.replace('{name}', p.name)} title={sk.editProduct}><Pencil size={16} /></button>
+                        <button className="s2-card-btn s2-card-btn-danger" type="button" onClick={() => askDelete(p)} aria-label={sk.delAria.replace('{name}', p.name)} title={sk.delProduct}><Trash2 size={16} /></button>
                       </div>
                     </div>
                     <div className="s2-card-row">
-                      <span>{Number(p.stock)} {p.unit || 'pcs'} Sisa</span>
+                      <span>{Number(p.stock)} {p.unit || 'pcs'} {sk.remainingSuffix}</span>
                       <span className="s2-card-price">{rupiahShort(p.price)}</span>
                     </div>
                     <div className={`s2-card-bar s2-card-bar-${lv.variant}`}>
@@ -445,11 +447,11 @@ export default function Stok() {
               <table className="s2-log-tbl">
                 <thead>
                   <tr>
-                    <th>Produk</th>
-                    <th>Kategori</th>
-                    <th>Status</th>
-                    <th>Sisa Stok</th>
-                    <th className="s2-right">Tindakan</th>
+                    <th>{sk.thProduct}</th>
+                    <th>{sk.thCat}</th>
+                    <th>{sk.thStatus}</th>
+                    <th>{sk.thStock}</th>
+                    <th className="s2-right">{sk.thAction}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -457,7 +459,7 @@ export default function Stok() {
                     const Ic = iconFor(p.category)
                     const lv = stockLevel(p)
                     const tagCls = lv.variant === 'danger' ? 's2-tag-danger' : lv.variant === 'warn' ? 's2-tag-warn' : 's2-tag-ok'
-                    const tagText = lv.variant === 'danger' ? 'KRITIS' : lv.variant === 'warn' ? 'MENIPIS' : 'STABIL'
+                    const tagText = lv.variant === 'danger' ? sk.tagCritical : lv.variant === 'warn' ? sk.tagThin : sk.tagStable
                     return (
                       <tr key={p.id}>
                         <td>
@@ -471,8 +473,8 @@ export default function Stok() {
                         <td className={`s2-log-stock ${lv.variant === 'danger' ? 's2-log-stock-danger' : ''}`}>{Number(p.stock)} {p.unit || 'pcs'}</td>
                         <td>
                           <div className="s2-log-actions">
-                            <button className="s2-icon-btn" title="Ubah" onClick={() => startEdit(p)}><Pencil size={18} /></button>
-                            <button className="s2-icon-btn s2-icon-btn-danger" title="Hapus" onClick={() => askDelete(p)}><Trash2 size={18} /></button>
+                            <button className="s2-icon-btn" title={sk.edit} onClick={() => startEdit(p)}><Pencil size={18} /></button>
+                            <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
                           </div>
                         </td>
                       </tr>
@@ -489,22 +491,22 @@ export default function Stok() {
       <div className="s2-log s2-rv">
         <div className="s2-log-head">
           <div>
-            <h3>Log Pergerakan Stok</h3>
-            <p>Ringkasan status produk yang terakhir Anda kelola.</p>
+            <h3>{sk.logTitle}</h3>
+            <p>{sk.logSub}</p>
           </div>
           <Link to="/app/stok/histori" className="s2-log-link">
-            Lihat Semua Histori <ChevronRight size={18} />
+            {sk.seeAllHistory} <ChevronRight size={18} />
           </Link>
         </div>
         <div className="s2-log-wrap">
           <table className="s2-log-tbl">
             <thead>
               <tr>
-                <th>Informasi Produk</th>
-                <th>SKU Produk</th>
-                <th>Status Inventori</th>
-                <th>Sisa Stok</th>
-                <th className="s2-right">Tindakan</th>
+                <th>{sk.thProdInfo}</th>
+                <th>{sk.thSku}</th>
+                <th>{sk.thInvStatus}</th>
+                <th>{sk.thStock}</th>
+                <th className="s2-right">{sk.thAction}</th>
               </tr>
             </thead>
             <tbody>
@@ -512,7 +514,7 @@ export default function Stok() {
                 const Ic = iconFor(p.category)
                 const lv = stockLevel(p)
                 const tagCls = lv.variant === 'danger' ? 's2-tag-danger' : lv.variant === 'warn' ? 's2-tag-warn' : 's2-tag-ok'
-                const tagText = lv.variant === 'danger' ? 'KRITIS' : lv.variant === 'warn' ? 'MENIPIS' : 'STABIL'
+                const tagText = lv.variant === 'danger' ? sk.tagCritical : lv.variant === 'warn' ? sk.tagThin : sk.tagStable
                 const sku = p.sku || `${(p.category || 'PRD').slice(0, 3).toUpperCase()}-${String(p.id || '').replace(/-/g, '').slice(0, 6).toUpperCase()}`
                 return (
                   <tr key={p.id}>
@@ -527,8 +529,8 @@ export default function Stok() {
                     <td className={`s2-log-stock ${lv.variant === 'danger' ? 's2-log-stock-danger' : ''}`}>{Number(p.stock)} {p.unit || 'pcs'}</td>
                     <td>
                       <div className="s2-log-actions">
-                        <button className="s2-icon-btn" title="Ubah" onClick={() => startEdit(p)}><Pencil size={18} /></button>
-                        <button className="s2-icon-btn s2-icon-btn-danger" title="Hapus" onClick={() => askDelete(p)}><Trash2 size={18} /></button>
+                        <button className="s2-icon-btn" title={sk.edit} onClick={() => startEdit(p)}><Pencil size={18} /></button>
+                        <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
                       </div>
                     </td>
                   </tr>
@@ -544,9 +546,9 @@ export default function Stok() {
         open={!!delTarget}
         onClose={() => setDelTarget(null)}
         onConfirm={doDelete}
-        title="Hapus produk?"
-        message={delTarget ? `Produk "${delTarget.name}" akan dihapus permanen beserta fotonya. Aksi ini tidak dapat dibatalkan.` : ''}
-        confirmLabel="Hapus"
+        title={sk.delTitle}
+        message={delTarget ? sk.delMsg.replace('{name}', delTarget.name) : ''}
+        confirmLabel={sk.delConfirm}
         busy={busyDel}
       />
 

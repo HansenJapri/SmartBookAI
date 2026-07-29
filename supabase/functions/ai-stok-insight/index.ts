@@ -54,6 +54,27 @@ function templateNarrative(m: any): string {
   return parts.join(' ')
 }
 
+// English fallback template — same structure & fields as templateNarrative.
+function templateNarrativeEn(m: any): string {
+  const parts: string[] = []
+  if (m.total_products === 0) {
+    return 'No products registered yet. Add products along with a minimum stock level so the system can warn you when stock runs low.'
+  }
+  if (m.out_names?.length) {
+    parts.push(`${m.out_count} product(s) OUT OF STOCK: ${m.out_names.slice(0, 4).join(', ')}${m.out_count > 4 ? ', etc.' : ''}. Restock soon to avoid lost sales.`)
+  }
+  if (m.low_names?.length) {
+    parts.push(`${m.low_count} product(s) running low (below minimum stock): ${m.low_names.slice(0, 4).join(', ')}${m.low_count > 4 ? ', etc.' : ''}.`)
+  }
+  if (!m.out_names?.length && !m.low_names?.length) {
+    parts.push(`Stock is healthy: ${m.healthy_count} of ${m.total_products} products are above the minimum threshold.`)
+  }
+  if (m.watch_count > 0) parts.push(`${m.watch_count} product(s) are starting to run low (near the minimum threshold) — keep an eye on them over the next few days.`)
+  if (m.inventory_value > 0) parts.push(`Current inventory value is roughly ${rupiah(m.inventory_value)}.`)
+  if (m.no_min_count > 0) parts.push(`${m.no_min_count} product(s) don't have a minimum stock set yet, so they can't be auto-flagged — worth setting one.`)
+  return parts.join(' ')
+}
+
 serve(async (req) => {
   const origin = req.headers.get('Origin')
   const cors = corsHeaders(origin)
@@ -71,7 +92,10 @@ serve(async (req) => {
     if (!userData?.user) return json({ error: 'Sesi tidak valid.' }, 401)
 
     let force = false
-    try { const b = await req.json(); force = b?.force === true } catch { /* body kosong tak apa */ }
+    let lang = 'id'
+    try { const b = await req.json(); force = b?.force === true; if (b?.lang === 'en') lang = 'en' } catch { /* body kosong tak apa */ }
+    const isEn = lang === 'en'
+    const kind = isEn ? 'stok_en' : 'stok'
 
     const today = todayWIB()
 
@@ -79,7 +103,7 @@ serve(async (req) => {
     if (!force) {
       const { data: cached } = await supabase
         .from('ai_insights').select('content, payload')
-        .eq('insight_date', today).eq('kind', 'stok').maybeSingle()
+        .eq('insight_date', today).eq('kind', kind).maybeSingle()
       if (cached?.content) return json({ content: cached.content, metrics: cached.payload, cached: true })
     }
 
@@ -132,7 +156,24 @@ serve(async (req) => {
     let content = ''
     if (GEMINI_API_KEY && metrics.total_products > 0) {
       try {
-        const PROMPT = `Kamu asisten manajemen stok untuk UMKM Indonesia yang praktis.
+        const PROMPT = isEn ? `You are a practical stock-management assistant for a small Indonesian business (UMKM).
+Summarize this shop's STOCK CONDITION in plain everyday English.
+
+DATA (the only source of numbers & product names you may mention):
+${JSON.stringify(metrics)}
+
+HOW TO STRUCTURE IT (must follow this order):
+1) First sentence = warning about OUT-OF-STOCK products (out_names) if any; if none, products RUNNING LOW (low_names). Name the products.
+2) If present, mention products starting to run low (watch) as an early warning.
+3) If both are empty, say stock is healthy/safe.
+4) Last sentence = 1 concrete action tip (e.g. create a Purchase Order for the most critical product, or set a minimum stock level for products missing one).
+
+HARD RULES:
+- Maximum 4 sentences. Concise and direct.
+- PLAIN TEXT with no markdown (no *, #, _, no bullets).
+- ONLY mention product names & numbers that ARE in DATA. Never invent products or numbers.
+- A 0/empty field means it doesn't exist — don't discuss it.
+- Tone: firm but helpful, like a coworker giving you a heads-up.` : `Kamu asisten manajemen stok untuk UMKM Indonesia yang praktis.
 Simpulkan KONDISI STOK toko ini dalam Bahasa Indonesia sehari-hari.
 
 DATA (satu-satunya sumber angka & nama produk yang boleh kamu sebut):
@@ -173,11 +214,11 @@ ATURAN KERAS:
       } catch { /* jatuh ke template */ }
     }
     const usedAI = Boolean(content)
-    if (!content) content = templateNarrative(metrics)
+    if (!content) content = isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics)
 
     try {
       await supabase.from('ai_insights').upsert({
-        user_id: userData.user.id, insight_date: today, kind: 'stok',
+        user_id: userData.user.id, insight_date: today, kind,
         content, payload: metrics,
       }, { onConflict: 'user_id,insight_date,kind' })
     } catch { /* cache gagal bukan masalah fatal */ }

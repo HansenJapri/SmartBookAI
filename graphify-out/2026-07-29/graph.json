@@ -2067,8 +2067,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "package",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "package.json"
     },
     {
@@ -2078,8 +2078,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "package_name",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "name"
     },
     {
@@ -2089,8 +2089,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "package_private",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "private"
     },
     {
@@ -2100,8 +2100,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "package_version",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "version"
     },
     {
@@ -2111,8 +2111,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "package_type",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "type"
     },
     {
@@ -2122,8 +2122,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "package_scripts",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "scripts"
     },
     {
@@ -2133,8 +2133,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "package_scripts_dev",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "dev"
     },
     {
@@ -2144,8 +2144,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "package_scripts_build",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "build"
     },
     {
@@ -2155,8 +2155,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "package_scripts_preview",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "preview"
     },
     {
@@ -2166,8 +2166,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "package_scripts_test",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "test"
     },
     {
@@ -2177,8 +2177,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "package_scripts_test_e2e",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "test:e2e"
     },
     {
@@ -2188,8 +2188,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "package_scripts_eval_ai",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "eval:ai"
     },
     {
@@ -2199,8 +2199,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "package_scripts_seed_uji",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "seed:uji"
     },
     {
@@ -2210,8 +2210,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "package_scripts_seed_uji_bersih",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 155,
+      "community_name": "scripts",
       "norm_label": "seed:uji:bersih"
     },
     {
@@ -2430,8 +2430,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "package_dependencies_xlsx",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 156,
+      "community_name": "xlsx",
       "norm_label": "xlsx"
     },
     {
@@ -2441,8 +2441,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "xlsx",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 156,
+      "community_name": "xlsx",
       "norm_label": "xlsx"
     },
     {
@@ -2452,8 +2452,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "package_devdependencies",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "devdependencies"
     },
     {
@@ -2463,8 +2463,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "package_devdependencies_playwright_test",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "@playwright/test"
     },
     {
@@ -2474,8 +2474,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "playwright_test",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "@playwright/test"
     },
     {
@@ -2485,8 +2485,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_devdependencies_vitejs_plugin_react",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -2496,8 +2496,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_json_vitejs_plugin_react",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "@vitejs/plugin-react"
     },
     {
@@ -2507,8 +2507,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "package_devdependencies_vite",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "vite"
     },
     {
@@ -2518,8 +2518,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "package_json_vite",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "vite"
     },
     {
@@ -2529,8 +2529,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "package_devdependencies_vitest",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "vitest"
     },
     {
@@ -2540,8 +2540,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "vitest",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 149,
+      "community_name": "package.json",
       "norm_label": "vitest"
     },
     {
@@ -3090,8 +3090,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_authside",
-      "community": 42,
-      "community_name": "Feedback.jsx",
+      "community": 24,
+      "community_name": "fetchProfile",
       "norm_label": "authside.jsx"
     },
     {
@@ -3101,8 +3101,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_components_authside_authside",
-      "community": 42,
-      "community_name": "Feedback.jsx",
+      "community": 24,
+      "community_name": "fetchProfile",
       "norm_label": "authside()"
     },
     {
@@ -3387,8 +3387,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "modal.jsx"
     },
     {
@@ -3398,8 +3398,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "modal()"
     },
     {
@@ -3651,8 +3651,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_authcontext",
-      "community": 42,
-      "community_name": "Feedback.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "authcontext.jsx"
     },
     {
@@ -3662,8 +3662,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_context_authcontext_authctx",
-      "community": 42,
-      "community_name": "Feedback.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "authctx"
     },
     {
@@ -3695,8 +3695,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_catalogcontext",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "catalogcontext.jsx"
     },
     {
@@ -3706,8 +3706,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_context_catalogcontext_catalogctx",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "catalogctx"
     },
     {
@@ -3717,8 +3717,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_context_catalogcontext_builtin_ch",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "builtin_ch"
     },
     {
@@ -3728,8 +3728,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_context_catalogcontext_palette",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "palette"
     },
     {
@@ -3739,8 +3739,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_context_catalogcontext_colorfor",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "colorfor()"
     },
     {
@@ -3750,8 +3750,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_context_catalogcontext_catalogprovider",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "catalogprovider()"
     },
     {
@@ -3926,8 +3926,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_gudang_test",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "gudang.test.js"
     },
     {
@@ -3948,8 +3948,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_kpi_test",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "kpi.test.js"
     },
     {
@@ -3970,8 +3970,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_masa_depan_test",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "masa_depan.test.js"
     },
     {
@@ -3981,8 +3981,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_lib_tests_masa_depan_test_tx",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "tx()"
     },
     {
@@ -3992,8 +3992,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_tests_masa_depan_test_sampletx",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "sampletx()"
     },
     {
@@ -4253,7 +4253,7 @@
       "label": "narasiAI()",
       "file_type": "code",
       "source_file": "src/lib/ai.js",
-      "source_location": "L56",
+      "source_location": "L55",
       "_origin": "ast",
       "id": "src_lib_ai_narasiai",
       "community": 2,
@@ -4264,7 +4264,7 @@
       "label": "stokInsightAI()",
       "file_type": "code",
       "source_file": "src/lib/ai.js",
-      "source_location": "L63",
+      "source_location": "L62",
       "_origin": "ast",
       "id": "src_lib_ai_stokinsightai",
       "community": 2,
@@ -4275,7 +4275,7 @@
       "label": "hppDraftAI()",
       "file_type": "code",
       "source_file": "src/lib/ai.js",
-      "source_location": "L70",
+      "source_location": "L69",
       "_origin": "ast",
       "id": "src_lib_ai_hppdraftai",
       "community": 2,
@@ -4286,7 +4286,7 @@
       "label": "makroRefresh()",
       "file_type": "code",
       "source_file": "src/lib/ai.js",
-      "source_location": "L77",
+      "source_location": "L76",
       "_origin": "ast",
       "id": "src_lib_ai_makrorefresh",
       "community": 2,
@@ -4297,7 +4297,7 @@
       "label": "hargaDaerah()",
       "file_type": "code",
       "source_file": "src/lib/ai.js",
-      "source_location": "L85",
+      "source_location": "L84",
       "_origin": "ast",
       "id": "src_lib_ai_hargadaerah",
       "community": 2,
@@ -4308,7 +4308,7 @@
       "label": "fileToBase64()",
       "file_type": "code",
       "source_file": "src/lib/ai.js",
-      "source_location": "L91",
+      "source_location": "L90",
       "_origin": "ast",
       "id": "src_lib_ai_filetobase64",
       "community": 2,
@@ -4319,7 +4319,7 @@
       "label": "readReceipt()",
       "file_type": "code",
       "source_file": "src/lib/ai.js",
-      "source_location": "L102",
+      "source_location": "L101",
       "_origin": "ast",
       "id": "src_lib_ai_readreceipt",
       "community": 2,
@@ -4608,8 +4608,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_lib_api_addtransaction",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "addtransaction()"
     },
     {
@@ -4663,8 +4663,8 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_lib_api_addrule",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "addrule()"
     },
     {
@@ -4674,8 +4674,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "src_lib_api_deleterule",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "deleterule()"
     },
     {
@@ -4685,8 +4685,8 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "src_lib_api_fetchcategories",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "fetchcategories()"
     },
     {
@@ -4696,8 +4696,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_lib_api_addcategory",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "addcategory()"
     },
     {
@@ -4707,8 +4707,8 @@
       "source_location": "L129",
       "_origin": "ast",
       "id": "src_lib_api_updatecategory",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "updatecategory()"
     },
     {
@@ -4718,8 +4718,8 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "src_lib_api_deletecategory",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "deletecategory()"
     },
     {
@@ -4729,8 +4729,8 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "src_lib_api_fetchchannels",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "fetchchannels()"
     },
     {
@@ -4740,8 +4740,8 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "src_lib_api_addchannel",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "addchannel()"
     },
     {
@@ -4751,8 +4751,8 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "src_lib_api_updatechannel",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "updatechannel()"
     },
     {
@@ -4762,8 +4762,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "src_lib_api_deletechannel",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "deletechannel()"
     },
     {
@@ -4795,8 +4795,8 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_lib_api_ensureseeddata",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 148,
+      "community_name": "CatalogContext.jsx",
       "norm_label": "ensureseeddata()"
     },
     {
@@ -4806,8 +4806,8 @@
       "source_location": "L205",
       "_origin": "ast",
       "id": "src_lib_api_receipt_types",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "receipt_types"
     },
     {
@@ -4817,8 +4817,8 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "src_lib_api_uploadreceipt",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "uploadreceipt()"
     },
     {
@@ -4850,8 +4850,8 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "src_lib_api_updateprofile",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "updateprofile()"
     },
     {
@@ -4872,8 +4872,8 @@
       "source_location": "L257",
       "_origin": "ast",
       "id": "src_lib_api_exportmydata",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "exportmydata()"
     },
     {
@@ -4883,8 +4883,8 @@
       "source_location": "L276",
       "_origin": "ast",
       "id": "src_lib_api_deletemydata",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "deletemydata()"
     },
     {
@@ -4894,8 +4894,8 @@
       "source_location": "L297",
       "_origin": "ast",
       "id": "src_lib_api_track",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "track()"
     },
     {
@@ -4905,8 +4905,8 @@
       "source_location": "L307",
       "_origin": "ast",
       "id": "src_lib_api_fetchfeedback",
-      "community": 24,
-      "community_name": "fetchProfile",
+      "community": 42,
+      "community_name": "Feedback.jsx",
       "norm_label": "fetchfeedback()"
     },
     {
@@ -4916,8 +4916,8 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "src_lib_api_addfeedback",
-      "community": 24,
-      "community_name": "fetchProfile",
+      "community": 42,
+      "community_name": "Feedback.jsx",
       "norm_label": "addfeedback()"
     },
     {
@@ -4927,8 +4927,8 @@
       "source_location": "L344",
       "_origin": "ast",
       "id": "src_lib_api_deletefeedback",
-      "community": 24,
-      "community_name": "fetchProfile",
+      "community": 42,
+      "community_name": "Feedback.jsx",
       "norm_label": "deletefeedback()"
     },
     {
@@ -4982,8 +4982,8 @@
       "source_location": "L372",
       "_origin": "ast",
       "id": "src_lib_api_fetchproducts",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 153,
+      "community_name": "src/pages/Transactions.jsx",
       "norm_label": "fetchproducts()"
     },
     {
@@ -5004,8 +5004,8 @@
       "source_location": "L384",
       "_origin": "ast",
       "id": "src_lib_api_updateproduct",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "updateproduct()"
     },
     {
@@ -5059,8 +5059,8 @@
       "source_location": "L442",
       "_origin": "ast",
       "id": "src_lib_api_fetchpurchaseorders",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "fetchpurchaseorders()"
     },
     {
@@ -5070,8 +5070,8 @@
       "source_location": "L449",
       "_origin": "ast",
       "id": "src_lib_api_addpurchaseorder",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "addpurchaseorder()"
     },
     {
@@ -5081,8 +5081,8 @@
       "source_location": "L458",
       "_origin": "ast",
       "id": "src_lib_api_updatepurchaseorder",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "updatepurchaseorder()"
     },
     {
@@ -5092,8 +5092,8 @@
       "source_location": "L465",
       "_origin": "ast",
       "id": "src_lib_api_deletepurchaseorder",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "deletepurchaseorder()"
     },
     {
@@ -5103,8 +5103,8 @@
       "source_location": "L474",
       "_origin": "ast",
       "id": "src_lib_api_receivepurchaseorder",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "receivepurchaseorder()"
     },
     {
@@ -5114,8 +5114,8 @@
       "source_location": "L488",
       "_origin": "ast",
       "id": "src_lib_api_fetchopnames",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "fetchopnames()"
     },
     {
@@ -5125,8 +5125,8 @@
       "source_location": "L495",
       "_origin": "ast",
       "id": "src_lib_api_addopname",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "addopname()"
     },
     {
@@ -5136,8 +5136,8 @@
       "source_location": "L504",
       "_origin": "ast",
       "id": "src_lib_api_updateopname",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "updateopname()"
     },
     {
@@ -5147,8 +5147,8 @@
       "source_location": "L511",
       "_origin": "ast",
       "id": "src_lib_api_deleteopname",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "deleteopname()"
     },
     {
@@ -5158,8 +5158,8 @@
       "source_location": "L520",
       "_origin": "ast",
       "id": "src_lib_api_postopname",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "postopname()"
     },
     {
@@ -5169,8 +5169,8 @@
       "source_location": "L532",
       "_origin": "ast",
       "id": "src_lib_api_fetchstaff",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "fetchstaff()"
     },
     {
@@ -5235,8 +5235,8 @@
       "source_location": "L590",
       "_origin": "ast",
       "id": "src_lib_api_fetchauditlogs",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "fetchauditlogs()"
     },
     {
@@ -5246,8 +5246,8 @@
       "source_location": "L600",
       "_origin": "ast",
       "id": "src_lib_api_fetchtasks",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "fetchtasks()"
     },
     {
@@ -5290,8 +5290,8 @@
       "source_location": "L625",
       "_origin": "ast",
       "id": "src_lib_api_fetchemployees",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "fetchemployees()"
     },
     {
@@ -5301,8 +5301,8 @@
       "source_location": "L630",
       "_origin": "ast",
       "id": "src_lib_api_addemployee",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "addemployee()"
     },
     {
@@ -5312,8 +5312,8 @@
       "source_location": "L637",
       "_origin": "ast",
       "id": "src_lib_api_updateemployee",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "updateemployee()"
     },
     {
@@ -5323,8 +5323,8 @@
       "source_location": "L643",
       "_origin": "ast",
       "id": "src_lib_api_deleteemployee",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "deleteemployee()"
     },
     {
@@ -5400,8 +5400,8 @@
       "source_location": "L698",
       "_origin": "ast",
       "id": "src_lib_api_fetchkpicriteria",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "fetchkpicriteria()"
     },
     {
@@ -5411,8 +5411,8 @@
       "source_location": "L704",
       "_origin": "ast",
       "id": "src_lib_api_addkpicriteria",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "addkpicriteria()"
     },
     {
@@ -5422,8 +5422,8 @@
       "source_location": "L710",
       "_origin": "ast",
       "id": "src_lib_api_updatekpicriteria",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "updatekpicriteria()"
     },
     {
@@ -5433,8 +5433,8 @@
       "source_location": "L716",
       "_origin": "ast",
       "id": "src_lib_api_deletekpicriteria",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "deletekpicriteria()"
     },
     {
@@ -5444,8 +5444,8 @@
       "source_location": "L721",
       "_origin": "ast",
       "id": "src_lib_api_fetchkpiscores",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "fetchkpiscores()"
     },
     {
@@ -5455,8 +5455,8 @@
       "source_location": "L727",
       "_origin": "ast",
       "id": "src_lib_api_savekpiscores",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "savekpiscores()"
     },
     {
@@ -5466,8 +5466,8 @@
       "source_location": "L738",
       "_origin": "ast",
       "id": "src_lib_api_fetchkpibonusrules",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "fetchkpibonusrules()"
     },
     {
@@ -5477,8 +5477,8 @@
       "source_location": "L744",
       "_origin": "ast",
       "id": "src_lib_api_addkpibonusrule",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "addkpibonusrule()"
     },
     {
@@ -5488,8 +5488,8 @@
       "source_location": "L750",
       "_origin": "ast",
       "id": "src_lib_api_updatekpibonusrule",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "updatekpibonusrule()"
     },
     {
@@ -5499,8 +5499,8 @@
       "source_location": "L756",
       "_origin": "ast",
       "id": "src_lib_api_deletekpibonusrule",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "deletekpibonusrule()"
     },
     {
@@ -5785,8 +5785,8 @@
       "source_location": "L955",
       "_origin": "ast",
       "id": "src_lib_api_fetchingredients",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "fetchingredients()"
     },
     {
@@ -5818,8 +5818,8 @@
       "source_location": "L974",
       "_origin": "ast",
       "id": "src_lib_api_fetchbom",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "fetchbom()"
     },
     {
@@ -5829,8 +5829,8 @@
       "source_location": "L986",
       "_origin": "ast",
       "id": "src_lib_api_savebom",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "savebom()"
     },
     {
@@ -6126,8 +6126,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_lib_csvimport_parseamount",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "parseamount()"
     },
     {
@@ -6192,8 +6192,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_lib_csvimport_buildfromaoa",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 156,
+      "community_name": "xlsx",
       "norm_label": "buildfromaoa()"
     },
     {
@@ -6225,8 +6225,8 @@
       "source_location": "L168",
       "_origin": "ast",
       "id": "src_lib_csvimport_parsedate",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "parsedate()"
     },
     {
@@ -6236,8 +6236,8 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "src_lib_csvimport_parsecsvfile",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 156,
+      "community_name": "xlsx",
       "norm_label": "parsecsvfile()"
     },
     {
@@ -6247,8 +6247,8 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "src_lib_csvimport_parseexcelfile",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 156,
+      "community_name": "xlsx",
       "norm_label": "parseexcelfile()"
     },
     {
@@ -6258,8 +6258,8 @@
       "source_location": "L197",
       "_origin": "ast",
       "id": "src_lib_csvimport_parseimportfile",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "parseimportfile()"
     },
     {
@@ -6302,8 +6302,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "src/lib/format.js"
     },
     {
@@ -6313,8 +6313,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format_rupiah",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "rupiah()"
     },
     {
@@ -6324,8 +6324,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_lib_format_rupiahshort",
-      "community": 104,
-      "community_name": "25. Feedback",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "rupiahshort()"
     },
     {
@@ -6335,8 +6335,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_format_months",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "months"
     },
     {
@@ -6346,8 +6346,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_lib_format_fmtdate",
-      "community": 152,
-      "community_name": "Import.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "fmtdate()"
     },
     {
@@ -6379,8 +6379,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_lib_format_monthkey",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "monthkey()"
     },
     {
@@ -6390,8 +6390,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_gudang",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "gudang.js"
     },
     {
@@ -6401,8 +6401,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_lib_gudang_nextdocnumber",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "nextdocnumber()"
     },
     {
@@ -6412,8 +6412,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_gudang_buildopnameitems",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "buildopnameitems()"
     },
     {
@@ -6423,8 +6423,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_lib_gudang_opnamediff",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "opnamediff()"
     },
     {
@@ -6434,8 +6434,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_lib_gudang_opnamesummary",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "opnamesummary()"
     },
     {
@@ -6445,8 +6445,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_lib_gudang_po_status",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "po_status"
     },
     {
@@ -6456,8 +6456,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_lib_gudang_so_status",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "so_status"
     },
     {
@@ -6467,8 +6467,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_hpp",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "hpp.js"
     },
     {
@@ -6478,8 +6478,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_hpp_commodities",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "commodities"
     },
     {
@@ -6489,8 +6489,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_lib_hpp_commodity_label",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "commodity_label"
     },
     {
@@ -6500,8 +6500,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_lib_hpp_exposure_factor",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "exposure_factor"
     },
     {
@@ -6511,8 +6511,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_lib_hpp_computehpp",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "computehpp()"
     },
     {
@@ -6522,8 +6522,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_lib_hpp_marginpct",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "marginpct()"
     },
     {
@@ -6533,8 +6533,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_lib_hpp_priceformargin",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "priceformargin()"
     },
     {
@@ -6544,8 +6544,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_lib_hpp_applyadjustments",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "applyadjustments()"
     },
     {
@@ -6555,8 +6555,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_lib_hpp_applymacroscenario",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "applymacroscenario()"
     },
     {
@@ -6566,8 +6566,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_lib_hpp_applykursscenario",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "applykursscenario()"
     },
     {
@@ -6599,8 +6599,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_lib_hr_salary_types",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "salary_types"
     },
     {
@@ -6742,8 +6742,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_imagecompress",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "imagecompress.js"
     },
     {
@@ -6753,8 +6753,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_lib_imagecompress_compressimage",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "compressimage()"
     },
     {
@@ -6973,8 +6973,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_kpi",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "kpi.js"
     },
     {
@@ -6984,8 +6984,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_kpi_kpi_sources",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "kpi_sources"
     },
     {
@@ -6995,8 +6995,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_kpi_clamp100",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "clamp100()"
     },
     {
@@ -7006,8 +7006,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_lib_kpi_attendancescore",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "attendancescore()"
     },
     {
@@ -7017,8 +7017,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_lib_kpi_taskscore",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "taskscore()"
     },
     {
@@ -7028,8 +7028,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_lib_kpi_weightedtotal",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "weightedtotal()"
     },
     {
@@ -7039,8 +7039,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_lib_kpi_applybonustier",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "applybonustier()"
     },
     {
@@ -7050,8 +7050,8 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_lib_kpi_attendanceadjustments",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "attendanceadjustments()"
     },
     {
@@ -7061,8 +7061,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_lib_kpi_recapattendance",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "recapattendance()"
     },
     {
@@ -7072,8 +7072,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_lib_kpi_default_criteria",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "default_criteria"
     },
     {
@@ -7138,8 +7138,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_marketplacefees",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "marketplacefees.js"
     },
     {
@@ -7149,8 +7149,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_lib_marketplacefees_platform_label",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "platform_label"
     },
     {
@@ -7160,8 +7160,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_lib_marketplacefees_col",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "col"
     },
     {
@@ -7171,8 +7171,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_lib_marketplacefees_lc",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "lc()"
     },
     {
@@ -7182,8 +7182,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_lib_marketplacefees_findcol",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "findcol()"
     },
     {
@@ -7193,8 +7193,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_lib_marketplacefees_expandmarketplacerows",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 152,
+      "community_name": "Import.jsx",
       "norm_label": "expandmarketplacerows()"
     },
     {
@@ -7633,8 +7633,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_regression",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "regression.js"
     },
     {
@@ -7644,8 +7644,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_regression_dailyincomeseries",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "dailyincomeseries()"
     },
     {
@@ -7655,8 +7655,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_lib_regression_dowindex",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "dowindex()"
     },
     {
@@ -7666,8 +7666,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_lib_regression_olsfit",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "olsfit()"
     },
     {
@@ -7677,8 +7677,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_lib_regression_percentile",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "percentile()"
     },
     {
@@ -7688,8 +7688,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_lib_regression_buildmodel",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "buildmodel()"
     },
     {
@@ -7699,8 +7699,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_lib_regression_predictday",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "predictday()"
     },
     {
@@ -7710,8 +7710,8 @@
       "source_location": "L120",
       "_origin": "ast",
       "id": "src_lib_regression_forecasttarget",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "forecasttarget()"
     },
     {
@@ -8029,8 +8029,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_supabase",
-      "community": 42,
-      "community_name": "Feedback.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "src/lib/supabase.js"
     },
     {
@@ -8040,8 +8040,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_usemodala11y",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "usemodala11y.js"
     },
     {
@@ -8051,8 +8051,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_lib_usemodala11y_focusable",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "focusable"
     },
     {
@@ -8062,8 +8062,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_lib_usemodala11y_usemodala11y",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "usemodala11y()"
     },
     {
@@ -8238,8 +8238,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_audit",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "audit.jsx"
     },
     {
@@ -8249,8 +8249,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_pages_audit_action_cls",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "action_cls"
     },
     {
@@ -8260,8 +8260,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_pages_audit_audit",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 104,
+      "community_name": "25. Feedback",
       "norm_label": "audit()"
     },
     {
@@ -8356,7 +8356,7 @@
       "label": "computeTargetProgress()",
       "file_type": "code",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L450",
+      "source_location": "L448",
       "_origin": "ast",
       "id": "src_pages_dashboard_computetargetprogress",
       "community": 115,
@@ -8367,18 +8367,18 @@
       "label": "TargetMetric()",
       "file_type": "code",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L483",
+      "source_location": "L481",
       "_origin": "ast",
       "id": "src_pages_dashboard_targetmetric",
-      "community": 104,
-      "community_name": "25. Feedback",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "targetmetric()"
     },
     {
       "label": "TargetCard()",
       "file_type": "code",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L496",
+      "source_location": "L494",
       "_origin": "ast",
       "id": "src_pages_dashboard_targetcard",
       "community": 115,
@@ -8392,8 +8392,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_employees",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "employees.jsx"
     },
     {
@@ -8403,8 +8403,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_pages_employees_blankform",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "blankform()"
     },
     {
@@ -8414,8 +8414,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_employees_employees",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "employees()"
     },
     {
@@ -8425,8 +8425,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_feedback",
-      "community": 24,
-      "community_name": "fetchProfile",
+      "community": 42,
+      "community_name": "Feedback.jsx",
       "norm_label": "feedback.jsx"
     },
     {
@@ -8436,8 +8436,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_pages_feedback_status_cls",
-      "community": 24,
-      "community_name": "fetchProfile",
+      "community": 42,
+      "community_name": "Feedback.jsx",
       "norm_label": "status_cls"
     },
     {
@@ -8447,8 +8447,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_pages_feedback_stars",
-      "community": 24,
-      "community_name": "fetchProfile",
+      "community": 42,
+      "community_name": "Feedback.jsx",
       "norm_label": "stars()"
     },
     {
@@ -8458,8 +8458,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_pages_feedback_feedback",
-      "community": 24,
-      "community_name": "fetchProfile",
+      "community": 42,
+      "community_name": "Feedback.jsx",
       "norm_label": "feedback()"
     },
     {
@@ -8491,8 +8491,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_hpp",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "hpp.jsx"
     },
     {
@@ -8502,8 +8502,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_hpp_blankrow",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "blankrow()"
     },
     {
@@ -8513,8 +8513,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_pages_hpp_hpp",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "hpp()"
     },
     {
@@ -8557,8 +8557,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_kpi",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "kpi.jsx"
     },
     {
@@ -8568,8 +8568,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_pages_kpi_kpi",
-      "community": 1,
-      "community_name": "Payroll.jsx",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "kpi()"
     },
     {
@@ -8623,8 +8623,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 42,
-      "community_name": "Feedback.jsx",
+      "community": 24,
+      "community_name": "fetchProfile",
       "norm_label": "src/pages/login.jsx"
     },
     {
@@ -8634,8 +8634,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 42,
-      "community_name": "Feedback.jsx",
+      "community": 24,
+      "community_name": "fetchProfile",
       "norm_label": "login()"
     },
     {
@@ -8645,8 +8645,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_opname",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "opname.jsx"
     },
     {
@@ -8656,8 +8656,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_pages_opname_opname",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "opname()"
     },
     {
@@ -8711,8 +8711,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_purchaseorders",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "purchaseorders.jsx"
     },
     {
@@ -8722,8 +8722,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_pages_purchaseorders_blankform",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "blankform()"
     },
     {
@@ -8733,8 +8733,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_pages_purchaseorders_purchaseorders",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 38,
+      "community_name": "Opname.jsx",
       "norm_label": "purchaseorders()"
     },
     {
@@ -8909,8 +8909,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_settings",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "settings.jsx"
     },
     {
@@ -8920,8 +8920,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_pages_settings_slug",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "slug()"
     },
     {
@@ -8931,8 +8931,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_pages_settings_resizeimagetodataurl",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "resizeimagetodataurl()"
     },
     {
@@ -8942,8 +8942,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_pages_settings_catlist",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "catlist()"
     },
     {
@@ -8953,8 +8953,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_pages_settings_settings",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 34,
+      "community_name": "Settings.jsx",
       "norm_label": "settings()"
     },
     {
@@ -9074,8 +9074,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_struk",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "struk.jsx"
     },
     {
@@ -9085,8 +9085,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_pages_struk_blankitem",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "blankitem()"
     },
     {
@@ -9096,8 +9096,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_struk_struk",
-      "community": 153,
-      "community_name": "src/pages/Transactions.jsx",
+      "community": 29,
+      "community_name": "7. Modul F \u2014 Manajemen Keuangan",
       "norm_label": "struk()"
     },
     {
@@ -9640,17 +9640,6 @@
       "norm_label": "templatenarrative()"
     },
     {
-      "label": "templateNarrativeEn()",
-      "file_type": "code",
-      "source_file": "supabase/functions/ai-narasi/index.ts",
-      "source_location": "L73",
-      "_origin": "ast",
-      "id": "supabase_functions_ai_narasi_index_templatenarrativeen",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
-      "norm_label": "templatenarrativeen()"
-    },
-    {
       "label": "ai-stok-insight/index.ts",
       "file_type": "code",
       "source_file": "supabase/functions/ai-stok-insight/index.ts",
@@ -9726,17 +9715,6 @@
       "community": 26,
       "community_name": "Dashboard.jsx",
       "norm_label": "templatenarrative()"
-    },
-    {
-      "label": "templateNarrativeEn()",
-      "file_type": "code",
-      "source_file": "supabase/functions/ai-stok-insight/index.ts",
-      "source_location": "L58",
-      "_origin": "ast",
-      "id": "supabase_functions_ai_stok_insight_index_templatenarrativeen",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
-      "norm_label": "templatenarrativeen()"
     },
     {
       "label": "ai-struk/index.ts",
@@ -29419,18 +29397,6 @@
       "target": "src_context_langcontext_uselang"
     },
     {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L383",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_pages_dashboard_insightcard",
-      "target": "src_context_langcontext_uselang",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -31643,7 +31609,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L91",
+      "source_location": "L90",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai",
@@ -31654,7 +31620,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L85",
+      "source_location": "L84",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai",
@@ -31665,7 +31631,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L70",
+      "source_location": "L69",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai",
@@ -31687,7 +31653,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L77",
+      "source_location": "L76",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai",
@@ -31698,7 +31664,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L56",
+      "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai",
@@ -31709,7 +31675,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L102",
+      "source_location": "L101",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai",
@@ -31720,7 +31686,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L63",
+      "source_location": "L62",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai",
@@ -31852,7 +31818,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L86",
+      "source_location": "L85",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai_hargadaerah",
@@ -31864,7 +31830,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L71",
+      "source_location": "L70",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai_hppdraftai",
@@ -31876,7 +31842,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L78",
+      "source_location": "L77",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai_makrorefresh",
@@ -31888,7 +31854,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L57",
+      "source_location": "L56",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai_narasiai",
@@ -31900,7 +31866,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L64",
+      "source_location": "L63",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai_stokinsightai",
@@ -31924,7 +31890,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L388",
+      "source_location": "L386",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_insightcard",
@@ -32032,7 +31998,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/ai.js",
-      "source_location": "L103",
+      "source_location": "L102",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_ai_readreceipt",
@@ -36155,7 +36121,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L139",
+      "source_location": "L138",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -36203,7 +36169,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L137",
+      "source_location": "L136",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -36251,7 +36217,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L170",
+      "source_location": "L169",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -36275,7 +36241,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L106",
+      "source_location": "L105",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -36299,7 +36265,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L105",
+      "source_location": "L104",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -37715,7 +37681,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L561",
+      "source_location": "L560",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -37739,7 +37705,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L562",
+      "source_location": "L561",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -37763,7 +37729,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L563",
+      "source_location": "L562",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -37811,7 +37777,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L564",
+      "source_location": "L563",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -37835,7 +37801,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L565",
+      "source_location": "L564",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -37859,7 +37825,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L566",
+      "source_location": "L565",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -37930,7 +37896,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L504",
+      "source_location": "L502",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_targetcard",
@@ -37954,7 +37920,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L515",
+      "source_location": "L513",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_targetcard",
@@ -37978,7 +37944,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L524",
+      "source_location": "L522",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_targetcard",
@@ -40037,7 +40003,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L491",
+      "source_location": "L489",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_targetmetric",
@@ -40110,7 +40076,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L434",
+      "source_location": "L433",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -40169,7 +40135,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L529",
+      "source_location": "L527",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_targetcard",
@@ -44894,7 +44860,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L450",
+      "source_location": "L448",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard",
@@ -44971,7 +44937,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L496",
+      "source_location": "L494",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard",
@@ -44982,7 +44948,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L483",
+      "source_location": "L481",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard",
@@ -45030,7 +44996,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Dashboard.jsx",
-      "source_location": "L505",
+      "source_location": "L503",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_dashboard_targetcard",
@@ -45543,7 +45509,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L410",
+      "source_location": "L409",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -45555,7 +45521,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L411",
+      "source_location": "L410",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -46306,17 +46272,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "supabase/functions/ai-narasi/index.ts",
-      "source_location": "L73",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_ai_narasi_index",
-      "target": "supabase_functions_ai_narasi_index_templatenarrativeen",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/ai-narasi/index.ts",
       "source_location": "L36",
       "weight": 1.0,
       "_origin": "ast",
@@ -46344,18 +46299,6 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "supabase_functions_ai_narasi_index_templatenarrative",
-      "target": "supabase_functions_ai_narasi_index_rupiah",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/ai-narasi/index.ts",
-      "source_location": "L76",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_ai_narasi_index_templatenarrativeen",
       "target": "supabase_functions_ai_narasi_index_rupiah",
       "confidence_score": 1.0
     },
@@ -46418,17 +46361,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "supabase/functions/ai-stok-insight/index.ts",
-      "source_location": "L58",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_ai_stok_insight_index",
-      "target": "supabase_functions_ai_stok_insight_index_templatenarrativeen",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/ai-stok-insight/index.ts",
       "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
@@ -46445,18 +46377,6 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "supabase_functions_ai_stok_insight_index_templatenarrative",
-      "target": "supabase_functions_ai_stok_insight_index_rupiah",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/ai-stok-insight/index.ts",
-      "source_location": "L73",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_ai_stok_insight_index_templatenarrativeen",
       "target": "supabase_functions_ai_stok_insight_index_rupiah",
       "confidence_score": 1.0
     },
