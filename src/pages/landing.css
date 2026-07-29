@@ -33,21 +33,8 @@
   background: var(--lp-surface);
   font-family: 'Inter', system-ui, sans-serif;
 }
-[data-theme="dark"] .lp2 {
-  --lp-surface: #0b0d17;
-  --lp-surface-alt: #131627;
-  --lp-surface-container: #171a2c;
-  --lp-surface-container-high: #1e2137;
-  --lp-on-surface: #ececf5;
-  --lp-on-surface-variant: #a8adc4;
-  --lp-outline: #4b4f66;
-  --lp-outline-variant: #2c2f45;
-  --lp-primary-soft: rgba(43, 67, 247, 0.18);
-  --lp-inverse-surface: #05070f;
-  --lp-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --lp-shadow-2: 0 12px 24px rgba(0, 0, 0, 0.5);
-  --lp-shadow-3: 0 24px 60px rgba(28, 54, 238, 0.35);
-}
+/* Landing sengaja selalu mode terang — tidak ada override tema gelap di sini
+   (halaman ini memaksa data-theme="light" saat aktif). */
 
 .lp2 * { box-sizing: border-box; }
 .lp2 img { max-width: 100%; }

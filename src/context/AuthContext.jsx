@@ -55,6 +55,10 @@ export function AuthProvider({ children }) {
       options: { data: {
         business_name: businessName, owner_name: ownerName, phone,
         accepted_terms: true,
+        // Persetujuan mencakup Syarat & Ketentuan DAN Kebijakan Privasi
+        // (TERMS_VERSION adalah versi gabungan kedua dokumen). Dicatat eksplisit
+        // sebagai jejak persetujuan sesuai UU PDP.
+        accepted_privacy: true,
         accepted_terms_at: new Date().toISOString(),
         terms_version: TERMS_VERSION,
       } },

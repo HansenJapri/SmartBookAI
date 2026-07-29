@@ -140,7 +140,7 @@ export default function AppLayout() {
         <header className="topbar">
           <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Menu"><Menu size={22} /></button>
           <h1>{title}</h1>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="topbar-tools">
             <ThemeToggle />
             <LangToggle />
           </div>

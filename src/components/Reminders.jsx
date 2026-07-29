@@ -2,16 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bell, Plus } from 'lucide-react'
 import Modal from './Modal'
 import { fetchReminders, addReminder, updateReminder, deleteReminder } from '../lib/api'
-import { normalizePhone } from '../lib/aging'
 import { fmtDateTime } from '../lib/format'
 
 // Pengingat penting (mis. "ambil stok jam 3 sore"). Yang sudah jatuh waktu
 // tampil sebagai notifikasi di atas Dashboard TERUS-MENERUS sampai pengguna
-// menekan silang. Tombol WA membuka WhatsApp ke nomor sendiri dengan teks
-// pengingat siap kirim (diatur per pengingat).
+// menekan silang. Pengingat murni tampil di dalam aplikasi (dashboard).
 export default function Reminders() {
   const [list, setList] = useState(null)
-  const [form, setForm] = useState(null) // {title, note, remind_at(datetime-local), wa_number}
+  const [form, setForm] = useState(null) // {title, note, remind_at(datetime-local)}
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [tick, setTick] = useState(0) // supaya status "jatuh waktu" ikut bergerak
@@ -49,13 +47,6 @@ export default function Reminders() {
     } catch (e) { setErr(e.message) }
   }
 
-  const waHref = (r) => {
-    const ph = normalizePhone(r.wa_number || '')
-    if (!ph) return null
-    const text = `Pengingat: ${r.title}${r.note ? ` — ${r.note}` : ''} (${fmtDateTime(r.remind_at)})`
-    return `https://wa.me/${ph}?text=${encodeURIComponent(text)}`
-  }
-
   const save = async (e) => {
     e.preventDefault()
     setErr('')
@@ -67,7 +58,6 @@ export default function Reminders() {
         title: form.title.trim(),
         note: form.note.trim() || null,
         remind_at: new Date(form.remind_at).toISOString(),
-        wa_number: form.wa_number.trim() || null,
       })
       setList((prev) => [...(prev || []), created].sort((a, b) => a.remind_at < b.remind_at ? -1 : 1))
       setForm(null)
@@ -87,9 +77,6 @@ export default function Reminders() {
           <span style={{ flex: 1, minWidth: 200 }}>
             <b>{r.title}</b>{r.note ? ` — ${r.note}` : ''} · {fmtDateTime(r.remind_at)}
           </span>
-          {waHref(r) && (
-            <a className="linklike" href={waHref(r)} target="_blank" rel="noreferrer noopener">Kirim ke WA</a>
-          )}
           <button className="icon-btn" onClick={() => dismiss(r)} aria-label={`Tutup pengingat ${r.title}`}>✕</button>
         </div>
       ))}
@@ -99,9 +86,9 @@ export default function Reminders() {
         <div className="flex between" style={{ alignItems: 'center' }}>
           <div>
             <h3 className="card-title"><Bell size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />Pengingat</h3>
-            <div className="card-sub">Muncul terus di sini saat jatuh waktu, sampai Anda menutupnya. Bisa dikirim ke WA sendiri.</div>
+            <div className="card-sub">Muncul terus di sini saat jatuh waktu, sampai Anda menutupnya.</div>
           </div>
-          <button className="btn btn-ghost" onClick={() => { setErr(''); setForm({ title: '', note: '', remind_at: '', wa_number: '' }) }}>
+          <button className="btn btn-ghost" onClick={() => { setErr(''); setForm({ title: '', note: '', remind_at: '' }) }}>
             <Plus size={15} style={{ verticalAlign: '-2px' }} /> Pengingat
           </button>
         </div>
@@ -140,21 +127,13 @@ export default function Reminders() {
                 <input id="rem-note" className="input" value={form.note} placeholder="cth: bawa mobil box"
                   onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
-              <div className="grid-2">
-                <div className="field">
-                  <label htmlFor="rem-remind-at">Tanggal &amp; jam</label>
-                  <input id="rem-remind-at" className="input" type="datetime-local" value={form.remind_at}
-                    onChange={(e) => setForm({ ...form, remind_at: e.target.value })} />
-                </div>
-                <div className="field">
-                  <label htmlFor="rem-wa">No. WA sendiri <span className="muted-sm">(opsional)</span></label>
-                  <input id="rem-wa" className="input" value={form.wa_number} placeholder="08xxxxxxxxxx"
-                    onChange={(e) => setForm({ ...form, wa_number: e.target.value })} />
-                </div>
+              <div className="field">
+                <label htmlFor="rem-remind-at">Tanggal &amp; jam</label>
+                <input id="rem-remind-at" className="input" type="datetime-local" value={form.remind_at}
+                  onChange={(e) => setForm({ ...form, remind_at: e.target.value })} />
               </div>
               <p className="muted-sm" style={{ margin: 0 }}>
-                Bila No. WA diisi, saat pengingat jatuh waktu akan ada tombol "Kirim ke WA" — sekali tekan, teks
-                pengingat terkirim ke WhatsApp Anda sendiri.
+                Pengingat akan muncul otomatis di Dashboard saat jatuh waktu, dan bertahan sampai Anda menutupnya.
               </p>
               <div className="modal-foot">
                 <button type="button" className="btn btn-ghost btn-block" onClick={() => setForm(null)}>Batal</button>

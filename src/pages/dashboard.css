@@ -57,9 +57,29 @@
   --d2-error-container: rgba(186, 26, 26, 0.18);
   --d2-on-error-container: #ffb4ab;
   --d2-primary-fixed: rgba(188, 194, 255, 0.14);
-  --d2-primary-fixed-dim: rgba(188, 194, 255, 0.22);
+  /* PENTING: 'dim' dipakai sebagai WARNA TEKS terang di dark mode (judul insight,
+     nilai target, KPI, link). Harus SOLID — kalau translucent, teksnya pudar. */
+  --d2-primary-fixed-dim: #bcc2ff;
+  --d2-success: #4ade80;
+  --d2-tertiary-fixed-dim: #6fe3f5;
   --d2-success-container: rgba(30, 142, 62, 0.16);
 }
+
+/* Dark mode: WARNA TEKS/IKON (bukan latar) yang tadinya biru/merah gelap
+   diterangkan agar terbaca jelas. Latar tombol tetap biru pekat + teks putih. */
+[data-theme="dark"] .d2-period svg,
+[data-theme="dark"] .d2-refresh,
+[data-theme="dark"] .d2-info,
+[data-theme="dark"] .d2-insight-cta,
+[data-theme="dark"] .d2-kpi-ic-wallet,
+[data-theme="dark"] .d2-tag-in { color: var(--d2-primary-fixed-dim); }
+[data-theme="dark"] .d2-kpi-v-down,
+[data-theme="dark"] .d2-kpi-ic-down,
+[data-theme="dark"] .d2-amt-out,
+[data-theme="dark"] .d2-tag-out,
+[data-theme="dark"] .d2-tgt-pace-behind { color: #ff6b6b; }
+/* Dropdown periode: render popup native gelap dgn teks terang. */
+[data-theme="dark"] .d2-period select { color-scheme: dark; }
 
 /* ---------- Greeting ---------- */
 .d2-greet { display: flex; flex-direction: column; gap: 12px; }
@@ -252,6 +272,22 @@
 .d2-btn-primary:hover { background: var(--d2-primary-container); }
 .d2-btn-primary:active { transform: scale(0.97); }
 .d2-btn-primary:disabled { opacity: 0.6; cursor: wait; }
+
+/* Target penjualan (redesain): rentang, bar omset/profit, status jalur */
+.d2-tgt-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 380px) { .d2-tgt-row { grid-template-columns: 1fr; } }
+.d2-tgt-range { font-size: 12px; color: var(--d2-on-surface-variant); margin: 2px 0 10px; }
+.d2-tgt-metric { margin-bottom: 12px; }
+.d2-tgt-metric-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.d2-tgt-metric-top span { font-size: 12.5px; font-weight: 600; color: var(--d2-on-surface-variant); }
+.d2-tgt-metric-top b { font-size: 15px; font-weight: 700; color: var(--d2-primary); font-variant-numeric: tabular-nums; }
+[data-theme="dark"] .d2-tgt-metric-top b { color: var(--d2-primary-fixed-dim); }
+.d2-tgt-metric-sub { margin-top: 5px; font-size: 12.5px; font-weight: 700; color: var(--d2-on-surface); font-variant-numeric: tabular-nums; }
+.d2-tgt-metric-sub span { font-weight: 500; color: var(--d2-on-surface-variant); }
+.d2-tgt-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--d2-on-surface-variant); margin: 6px 0 12px; }
+.d2-tgt-pace-ok { font-weight: 700; color: #0f9d58; }
+.d2-tgt-pace-behind { font-weight: 700; color: var(--d2-error); }
+[data-theme="dark"] .d2-tgt-pace-ok { color: #4ade80; }
 
 /* ---------- KPI ---------- */
 .d2-kpi-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }

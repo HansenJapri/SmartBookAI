@@ -11,10 +11,9 @@ import {
 } from 'recharts'
 import { fetchTransactions, fetchLowStock, fetchTxCount, fetchActiveTarget, addTarget, deactivateTarget, fetchProfile } from '../lib/api'
 import { narasiAI } from '../lib/ai'
-import { forecastTarget } from '../lib/regression'
 import { sampleTransactions } from '../lib/sampleData'
 import { rupiah, rupiahShort, fmtDateTime, fmtDate } from '../lib/format'
-import { summarize, trendDaily, channelMix, expenseByCategory } from '../lib/analytics'
+import { summarize, trendForRange, channelMix, expenseByCategory } from '../lib/analytics'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
 import AIDisclaimer from '../components/AIDisclaimer'
@@ -114,7 +113,8 @@ export default function Dashboard() {
     const margin = sum.income > 0 ? Math.round((sum.profit / sum.income) * 100) : 0
     const mix = channelMix(scoped)
     const byCat = expenseByCategory(scoped).slice(0, 6)
-    const trend = trendDaily(tx, 14)
+    // Grafik tren mengikuti periode yang dipilih (hari ini → per jam; lainnya → per hari).
+    const trend = trendForRange(tx, range.start, range.end)
     const unpaid = scoped.filter((t) => t.direction === 'in' && t.payment_status === 'belum')
     const unpaidTotal = unpaid.reduce((s, t) => s + Number(t.amount), 0)
     const topProduct = computeTopProduct(scoped)
@@ -229,7 +229,7 @@ export default function Dashboard() {
               <div className="d2-panel-head">
                 <div>
                   <h4 className="d2-panel-title">{d.trend}</h4>
-                  <div className="d2-panel-sub">{d.trend14}</div>
+                  <div className="d2-panel-sub">{periodLabel}</div>
                 </div>
                 <div className="d2-legend">
                   <span className="d2-legend-item"><span className="d2-legend-dot" style={{ background: '#001ec1' }} />{d.legIncome}</span>
@@ -443,40 +443,104 @@ function InsightCard({ extras }) {
   )
 }
 
+// Progres target dihitung dari transaksi dalam RENTANG target sendiri
+// (start_date..deadline) — sengaja TIDAK terpengaruh filter periode dashboard.
+function computeTargetProgress(tx, target) {
+  if (!target || !tx) return null
+  const startStr = target.start_date || new Date().toISOString().slice(0, 10)
+  const start = new Date(startStr + 'T00:00:00').getTime()
+  const end = target.deadline ? new Date(target.deadline + 'T23:59:59').getTime() : null
+  let income = 0, expense = 0
+  for (const t of tx) {
+    const ts = new Date(t.occurred_at).getTime()
+    if (ts < start || (end && ts > end)) continue
+    if (t.direction === 'in') income += Number(t.amount) || 0
+    else expense += Number(t.amount) || 0
+  }
+  const profit = income - expense
+  const rev = target.revenue_target != null ? Number(target.revenue_target) : null
+  const prof = target.profit_target != null ? Number(target.profit_target) : null
+  const now = Date.now()
+  const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
+  const totalDays = end ? Math.max(1, Math.ceil((end - start) / 86400000)) : null
+  const remainingDays = end ? Math.max(0, Math.ceil((end - now) / 86400000)) : null
+  const elapsedDays = Math.max(0, Math.floor((Math.min(now, end || now) - start) / 86400000))
+  const timePct = totalDays ? Math.min(100, Math.round((elapsedDays / totalDays) * 100)) : null
+  const pcts = [pct(income, rev), pct(profit, prof)].filter((x) => x != null)
+  return {
+    income, expense, profit, rev, prof,
+    revPct: pct(income, rev), profPct: pct(profit, prof),
+    minPct: pcts.length ? Math.min(...pcts) : 0,
+    done: pcts.length > 0 && pcts.every((p) => p >= 100),
+    totalDays, remainingDays, timePct,
+    started: now >= start, ended: end ? now > end : false,
+  }
+}
+
+// Satu baris progres (omset / profit) dengan bar & rasio capaian.
+function TargetMetric({ label, achieved, target, pct }) {
+  return (
+    <div className="d2-tgt-metric">
+      <div className="d2-tgt-metric-top">
+        <span>{label}</span>
+        <b>{pct != null ? `${Math.min(999, pct)}%` : '—'}</b>
+      </div>
+      <div className="d2-progress"><div style={{ width: `${Math.min(100, pct || 0)}%` }} /></div>
+      <div className="d2-tgt-metric-sub">{rupiahShort(achieved)} <span>/ {rupiahShort(target)}</span></div>
+    </div>
+  )
+}
+
 function TargetCard({ tx }) {
   const [target, setTarget] = useState(undefined)
-  const [form, setForm] = useState({ name: '', amount: '', start_date: new Date().toISOString().slice(0, 10) })
+  const today = new Date().toISOString().slice(0, 10)
+  const emptyForm = { name: '', start_date: today, end_date: '', revenue_target: '', profit_target: '' }
+  const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
   useEffect(() => { fetchActiveTarget().then(setTarget).catch(() => setTarget(null)) }, [])
-  const fc = useMemo(() => (target && tx ? forecastTarget(tx, target) : null), [target, tx])
+  const prog = useMemo(() => (target && tx ? computeTargetProgress(tx, target) : null), [target, tx])
 
   const create = async (e) => {
     e.preventDefault()
-    if (!(Number(form.amount) > 0)) { setErr('Isi nominal target dulu.'); return }
+    const rev = Number(form.revenue_target) || 0
+    const prof = Number(form.profit_target) || 0
+    if (rev <= 0 && prof <= 0) { setErr('Isi minimal salah satu: target omset atau target profit.'); return }
+    if (form.end_date && form.end_date < form.start_date) { setErr('Tanggal akhir tidak boleh sebelum tanggal mulai.'); return }
     setBusy(true); setErr('')
     try {
-      setTarget(await addTarget({ name: form.name || 'Target omzet', amount: Number(form.amount), start_date: form.start_date }))
+      setTarget(await addTarget({
+        name: form.name, start_date: form.start_date, deadline: form.end_date || null,
+        revenue_target: rev > 0 ? rev : null, profit_target: prof > 0 ? prof : null,
+      }))
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
   const stop = async () => {
     if (!target) return
     setBusy(true)
-    try { await deactivateTarget(target.id); setTarget(null) } catch { /* abaikan */ } finally { setBusy(false) }
+    try { await deactivateTarget(target.id); setTarget(null); setForm(emptyForm) }
+    catch { /* abaikan */ } finally { setBusy(false) }
   }
-  const dateLabel = (d) => (d ? fmtDate(d) : '> 1 tahun')
+
+  const rangeLabel = target
+    ? `${fmtDate(target.start_date)} → ${target.deadline ? fmtDate(target.deadline) : 'tanpa batas'}`
+    : ''
+  const pace = prog && prog.timePct != null && !prog.ended && !prog.done
+    ? (prog.minPct >= prog.timePct ? 'ok' : 'behind') : null
 
   return (
     <div className="d2-target d2-rv">
       <div className="d2-target-head">
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h4><TargetIcon size={14} style={{ verticalAlign: '-2px', marginRight: 6, color: 'var(--d2-primary)' }} />Target Penjualan</h4>
-          <div className="d2-tv">{target?.amount ? rupiahShort(target.amount) : 'Rp —'}</div>
+          <div className="d2-tv" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {target ? (target.name || 'Target') : 'Rp —'}
+          </div>
         </div>
         {target && (
           <>
-            <span className="d2-target-pct">{fc?.progressPct ?? 0}%</span>
+            <span className="d2-target-pct">{prog?.minPct ?? 0}%</span>
             <button className="d2-refresh" onClick={stop} disabled={busy} title="Hapus target" aria-label="Hapus target" style={{ color: 'var(--d2-error)', background: 'color-mix(in srgb, var(--d2-error) 10%, transparent)' }}>
               <Trash2 size={15} />
             </button>
@@ -492,37 +556,54 @@ function TargetCard({ tx }) {
         <form onSubmit={create}>
           <div>
             <label htmlFor="d2-target-name">Nama target</label>
-            <input id="d2-target-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Omzet Juli" />
+            <input id="d2-target-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Target Kuartal 3" />
           </div>
-          <div>
-            <label htmlFor="d2-target-amount">Nominal (Rp)</label>
-            <input id="d2-target-amount" type="number" min="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="10000000" />
+          <div className="d2-tgt-row">
+            <div>
+              <label htmlFor="d2-target-start">Tanggal mulai</label>
+              <input id="d2-target-start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+            </div>
+            <div>
+              <label htmlFor="d2-target-end">Tanggal akhir</label>
+              <input id="d2-target-end" type="date" value={form.end_date} min={form.start_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+            </div>
           </div>
-          <div>
-            <label htmlFor="d2-target-start">Dihitung sejak</label>
-            <input id="d2-target-start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+          <div className="d2-tgt-row">
+            <div>
+              <label htmlFor="d2-target-rev">Target omset (Rp)</label>
+              <input id="d2-target-rev" type="number" min="0" inputMode="numeric" value={form.revenue_target} onChange={(e) => setForm({ ...form, revenue_target: e.target.value })} placeholder="cth: 50.000.000" />
+            </div>
+            <div>
+              <label htmlFor="d2-target-prof">Target profit bersih (Rp)</label>
+              <input id="d2-target-prof" type="number" min="0" inputMode="numeric" value={form.profit_target} onChange={(e) => setForm({ ...form, profit_target: e.target.value })} placeholder="cth: 15.000.000" />
+            </div>
           </div>
+          <p style={{ fontSize: 11.5, color: 'var(--d2-on-surface-variant)', margin: 0 }}>Isi salah satu atau keduanya. Progres dihitung dari transaksi dalam rentang tanggal ini saja.</p>
           <button className="d2-btn-primary" disabled={busy}>{busy ? '...' : 'Buat Target'}</button>
         </form>
       ) : (
         <>
-          <div className="d2-progress"><div style={{ width: `${Math.min(100, fc?.progressPct || 0)}%` }} /></div>
+          <div className="d2-tgt-range">{rangeLabel}</div>
+          {prog?.rev != null && <TargetMetric label="Omset" achieved={prog.income} target={prog.rev} pct={prog.revPct} />}
+          {prog?.prof != null && <TargetMetric label="Profit bersih" achieved={prog.profit} target={prog.prof} pct={prog.profPct} />}
 
-          {fc?.done ? (
-            <div className="d2-info">Target tercapai! Hapus target ini untuk membuat target baru.</div>
-          ) : !fc?.ready ? (
-            <p style={{ fontSize: 13, color: 'var(--d2-on-surface-variant)' }}>
-              Prediksi aktif setelah <b>{fc?.model?.daysNeed ?? 14} hari</b> data dan <b>{fc?.model?.txNeed ?? 10} transaksi</b> pemasukan.
-            </p>
+          {prog?.done ? (
+            <div className="d2-info" style={{ marginTop: 4 }}><CheckCircle2 size={15} /> Target tercapai! Mantap.</div>
           ) : (
-            <div className="d2-scenarios">
-              <span className="d2-scen-lbl">Prediksi AI tercapai:</span>
-              <div className="d2-scen-row"><span><span className="d2-scen-dot d2-scen-dot-opt" />Optimis</span><b>{dateLabel(fc.scenarios.optimis)}</b></div>
-              <div className="d2-scen-row"><span><span className="d2-scen-dot d2-scen-dot-real" />Realistis</span><b>{dateLabel(fc.scenarios.realistis)}</b></div>
-              <div className="d2-scen-row"><span><span className="d2-scen-dot d2-scen-dot-pes" />Pesimis</span><b>{dateLabel(fc.scenarios.pesimis)}</b></div>
+            <div className="d2-tgt-foot">
+              <span>
+                {prog?.ended
+                  ? 'Periode target selesai'
+                  : prog?.remainingDays != null ? `${prog.remainingDays} hari tersisa` : 'Tanpa batas akhir'}
+              </span>
+              {pace && (
+                <span className={pace === 'ok' ? 'd2-tgt-pace-ok' : 'd2-tgt-pace-behind'}>
+                  {pace === 'ok' ? '✓ Sesuai jalur' : '⚡ Perlu dikebut'}
+                </span>
+              )}
             </div>
           )}
-          <button className="d2-btn-outline" onClick={stop} disabled={busy}>Ubah Target</button>
+          <button className="d2-btn-outline" onClick={stop} disabled={busy}>Ganti Target</button>
         </>
       )}
     </div>

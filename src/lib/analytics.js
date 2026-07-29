@@ -70,6 +70,47 @@ export function trendDaily(transactions, days = 14) {
   return out
 }
 
+// Tren arus kas mengikuti RENTANG periode yang dipilih pengguna.
+// - Rentang ≤ 1 hari (mis. "Hari ini") → dipecah per JAM (0..23).
+// - Rentang multi-hari → per HARI; bila sangat panjang, diagregasi per beberapa
+//   hari agar jumlah titik tetap ≤ ~60 dan grafik enak dibaca.
+// start/end boleh null (mis. preset "Semua") → default 30 hari terakhir.
+export function trendForRange(transactions, start, end) {
+  const txs = transactions || []
+  const endBase = end ? new Date(end) : new Date()
+  const startBase = start ? new Date(start) : new Date(endBase.getTime() - 29 * 86400000)
+  const s0 = new Date(startBase); s0.setHours(0, 0, 0, 0)
+  const e0 = new Date(endBase); e0.setHours(0, 0, 0, 0)
+  const spanDays = Math.round((e0 - s0) / 86400000)
+
+  // Satu hari → per jam.
+  if (spanDays <= 0) {
+    const out = []
+    for (let h = 0; h < 24; h++) {
+      const hourTx = txs.filter((t) => {
+        const d = new Date(t.occurred_at)
+        return isSameDay(d, s0) && d.getHours() === h
+      })
+      const { income, expense } = summarize(hourTx)
+      out.push({ label: `${String(h).padStart(2, '0')}:00`, omzet: Math.round(income), pengeluaran: Math.round(expense), profit: Math.round(income - expense) })
+    }
+    return out
+  }
+
+  // Multi-hari → per hari (atau per blok bila rentang panjang).
+  const totalDays = spanDays + 1
+  const step = Math.max(1, Math.ceil(totalDays / 60))
+  const out = []
+  for (let i = 0; i < totalDays; i += step) {
+    const d = new Date(s0); d.setDate(d.getDate() + i)
+    const blockEnd = new Date(d.getTime() + step * 86400000)
+    const bucketTx = txs.filter((t) => { const td = new Date(t.occurred_at); return td >= d && td < blockEnd })
+    const { income, expense } = summarize(bucketTx)
+    out.push({ label: `${d.getDate()}/${d.getMonth() + 1}`, omzet: Math.round(income), pengeluaran: Math.round(expense), profit: Math.round(income - expense) })
+  }
+  return out
+}
+
 // Distribusi per channel (pemasukan)
 export function channelMix(transactions) {
   const palette = {

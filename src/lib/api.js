@@ -923,13 +923,23 @@ export async function fetchActiveTarget() {
   return (data && data[0]) || null
 }
 
-export async function addTarget({ name, amount, start_date, deadline }) {
-  const { data: { user } } = await supabase.auth.getUser()
+// Target penjualan: nama, rentang (start_date..deadline), dan target omset
+// (revenue_target) dan/atau laba bersih (profit_target). `amount` tetap diisi
+// (= revenue_target ?? profit_target) demi kcompat kode/insight lama.
+export async function addTarget({ name, start_date, deadline, revenue_target = null, profit_target = null }) {
+  const rev = revenue_target != null && revenue_target !== '' ? Number(revenue_target) : null
+  const prof = profit_target != null && profit_target !== '' ? Number(profit_target) : null
   // Hanya satu target aktif: nonaktifkan yang lama dulu.
   await supabase.from('sales_targets').update({ is_active: false }).eq('is_active', true)
   const { data, error } = await supabase
     .from('sales_targets')
-    .insert({ name: name.trim(), amount, start_date, deadline: deadline || null, user_id: await effectiveOwnerId() })
+    .insert({
+      name: (name || '').trim() || 'Target penjualan',
+      revenue_target: rev, profit_target: prof,
+      amount: rev ?? prof ?? 0,
+      start_date, deadline: deadline || null,
+      user_id: await effectiveOwnerId(),
+    })
     .select().single()
   if (error) throw error
   track('target_added')

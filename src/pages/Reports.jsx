@@ -5,11 +5,13 @@ import { summarize, monthlyBreakdown, expenseByCategory, taxSummaryForYear, TAX 
 import Accordion from '../components/Accordion'
 import { Landmark, Receipt, FileText } from 'lucide-react'
 import { EDU } from '../lib/eduContent'
-
-const MONTH_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-const monthLabel = (k) => { const [y, m] = k.split('-'); return `${MONTH_ID[Number(m) - 1]} ${y}` }
+import { useLang } from '../context/LangContext'
 
 export default function Reports() {
+  const { t } = useLang()
+  const r = t.reports
+  const MONTHS = t.common.months
+  const monthLabel = (k) => { const [y, m] = k.split('-'); return `${MONTHS[Number(m) - 1]} ${y}` }
   const [tx, setTx] = useState(null)
   const [profile, setProfile] = useState(null)
   const [period, setPeriod] = useState('all')
@@ -45,15 +47,17 @@ export default function Reports() {
     [monthly, taxYear, taxpayerType]
   )
   const pphFinal = taxInfo.pphTotal
-  const periodLabel = period === 'all' ? 'Seluruh Periode' : monthLabel(period)
-  const bizName = profile?.business_name || 'Usaha Saya'
+  const periodLabel = period === 'all' ? r.allPeriods : monthLabel(period)
+  const bizName = profile?.business_name || t.app.business
+  const wpLabelOn = taxpayerType === 'pribadi' ? r.wpPribadi : r.wpBadan
+  const yearLabel = taxYear === 'all' ? r.taxTotal : taxYear
 
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   if (tx.length === 0) {
     return <div className="card"><div className="empty">
-      <div className="ee"><FileText size={36} /></div><h3>Belum ada data untuk laporan</h3>
-      <p>Tambahkan atau import transaksi terlebih dahulu untuk menghasilkan laporan.</p>
+      <div className="ee"><FileText size={36} /></div><h3>{r.emptyTitle}</h3>
+      <p>{r.emptyDesc}</p>
     </div></div>
   }
 
@@ -236,19 +240,19 @@ export default function Reports() {
     <>
       {txTotal > tx.length && (
         <div className="alert alert-err" style={{ marginBottom: 16 }}>
-          Laporan dihitung dari {tx.length.toLocaleString('id-ID')} transaksi terbaru dari total {txTotal.toLocaleString('id-ID')}. Untuk periode lama yang lengkap, persempit periode atau hubungi pengelola.
+          {r.truncWarn.replace('{loaded}', tx.length.toLocaleString()).replace('{total}', txTotal.toLocaleString())}
         </div>
       )}
       <div className="card card-pad" style={{ marginBottom: 18 }}>
         <div className="flex between gap" style={{ flexWrap: 'wrap' }}>
           <div>
-            <h3 className="card-title">Laporan Keuangan</h3>
-            <div className="card-sub">Dihitung otomatis dari data transaksi nyata Anda.</div>
+            <h3 className="card-title">{r.title}</h3>
+            <div className="card-sub">{r.sub}</div>
           </div>
           <div className="flex gap" style={{ alignItems: 'center' }}>
-            <label className="muted-sm">Periode:</label>
-            <select className="input" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Pilih periode laporan">
-              <option value="all">Seluruh Periode</option>
+            <label className="muted-sm">{r.period}</label>
+            <select className="input" style={{ width: 'auto' }} value={period} onChange={(e) => setPeriod(e.target.value)} aria-label={r.period}>
+              <option value="all">{r.allPeriods}</option>
               {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
             </select>
           </div>
@@ -256,59 +260,119 @@ export default function Reports() {
       </div>
 
       <div className="grid-kpi">
-        <div className="card"><div className="kpi-l">Pendapatan</div><div className="kpi-v" style={{ color: 'var(--green)' }}>{rupiah(sum.income)}</div></div>
-        <div className="card"><div className="kpi-l">Pengeluaran</div><div className="kpi-v" style={{ color: 'var(--red)' }}>{rupiah(sum.expense)}</div></div>
-        <div className="card"><div className="kpi-l">Laba Bersih</div><div className="kpi-v">{rupiah(sum.profit)}</div></div>
+        <div className="card"><div className="kpi-l">{r.kIncome}</div><div className="kpi-v" style={{ color: 'var(--green)' }}>{rupiah(sum.income)}</div></div>
+        <div className="card"><div className="kpi-l">{r.kExpense}</div><div className="kpi-v" style={{ color: 'var(--red)' }}>{rupiah(sum.expense)}</div></div>
+        <div className="card"><div className="kpi-l">{r.kProfit}</div><div className="kpi-v">{rupiah(sum.profit)}</div></div>
         <div className="card">
-          <div className="kpi-l">Est. PPh Final ({taxYear === 'all' ? 'total' : taxYear})</div>
+          <div className="kpi-l">{r.kTax.replace('{year}', yearLabel)}</div>
           <div className="kpi-v">{rupiah(pphFinal)}</div>
-          <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>WP {taxpayerType === 'pribadi' ? 'Orang Pribadi' : 'Badan'}</div>
+          <div className="kpi-d muted-sm" style={{ color: 'var(--muted)' }}>{r.wpPrefix} {wpLabelOn}</div>
         </div>
       </div>
 
       {!taxInfo.eligibleFinal && (
-        <div className="alert alert-err mt">
-          Peredaran bruto tahun ini <b>melebihi Rp 4,8 miliar</b>, sehingga usaha tidak lagi memakai tarif final 0,5%
-          melainkan tarif PPh normal (wajib pembukuan). Estimasi 0,5% tidak berlaku. Konsultasikan dengan DJP atau konsultan.
-        </div>
+        <div className="alert alert-err mt">{r.alertOver}</div>
       )}
       {taxpayerType === 'pribadi' && taxInfo.annualTurnover <= TAX.OMZET_BEBAS_PAJAK && taxInfo.annualTurnover > 0 && (
-        <div className="alert alert-ok mt">
-          Omzet tahun ini masih di bawah <b>Rp 500 juta</b>. Sebagai WP Orang Pribadi, <b>estimasi PPh Final = Rp 0</b>
-          (memanfaatkan fasilitas omzet tidak kena pajak). Tetap catat dan laporkan SPT Tahunan.
-        </div>
+        <div className="alert alert-ok mt">{r.alertUnder}</div>
       )}
 
       <div className="rep-grid mt">
         <div className="rep-card">
-          <div className="rh"><div className="ri"><Landmark size={22} /></div><div><h4>Laporan Laba Rugi</h4><p>Format SAK EMKM, lengkap dan siap dilampirkan saat mengajukan KUR</p></div></div>
-          <div className="rep-line"><span>Total Pendapatan</span><b>{rupiah(sum.income)}</b></div>
-          <div className="rep-line"><span>Total Beban</span><b>{rupiah(sum.expense)}</b></div>
-          <div className="rep-line"><span>Laba (Rugi) Bersih</span><b>{rupiah(sum.profit)}</b></div>
+          <div className="rh"><div className="ri"><Landmark size={22} /></div><div><h4>{r.cardPnlTitle}</h4><p>{r.cardPnlDesc}</p></div></div>
+          <div className="rep-line"><span>{r.lTotalIncome}</span><b>{rupiah(sum.income)}</b></div>
+          <div className="rep-line"><span>{r.lTotalExpense}</span><b>{rupiah(sum.expense)}</b></div>
+          <div className="rep-line"><span>{r.lNetProfit}</span><b>{rupiah(sum.profit)}</b></div>
           <div className="flex gap" style={{ marginTop: 16 }}>
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={generateLabaRugi}>Unduh PDF</button>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={generateExcel}>Unduh Excel</button>
+            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={generateLabaRugi}>{r.downloadPdf}</button>
+            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={generateExcel}>{r.downloadExcel}</button>
           </div>
         </div>
 
         <div className="rep-card">
-          <div className="rh"><div className="ri"><Receipt size={22} /></div><div><h4>Rekap Pajak (PPh Final 0,5%)</h4><p>Sesuai PP 55/2022 dan UU 7/2021 (HPP)</p></div></div>
-          <div className="rep-line"><span>Peredaran bruto ({taxYear === 'all' ? 'total' : taxYear})</span><b>{rupiah(taxInfo.annualTurnover)}</b></div>
-          <div className="rep-line"><span>Omzet bebas pajak (OP)</span><b>{rupiah(taxInfo.exemption)}</b></div>
-          <div className="rep-line"><span>Dasar kena pajak</span><b>{rupiah(taxInfo.taxable)}</b></div>
-          <div className="rep-line"><span>Estimasi PPh Final 0,5%</span><b>{rupiah(taxInfo.pphTotal)}</b></div>
+          <div className="rh"><div className="ri"><Receipt size={22} /></div><div><h4>{r.cardTaxTitle}</h4><p>{r.cardTaxDesc}</p></div></div>
+          <div className="rep-line"><span>{r.lGrossTurnover.replace('{year}', yearLabel)}</span><b>{rupiah(taxInfo.annualTurnover)}</b></div>
+          <div className="rep-line"><span>{r.lExemptOP}</span><b>{rupiah(taxInfo.exemption)}</b></div>
+          <div className="rep-line"><span>{r.lTaxable}</span><b>{rupiah(taxInfo.taxable)}</b></div>
+          <div className="rep-line"><span>{r.lPphEst}</span><b>{rupiah(taxInfo.pphTotal)}</b></div>
           <div className="flex gap" style={{ marginTop: 16 }}>
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={generateSPT}>Unduh PDF</button>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={generateTaxExcel}>Unduh Excel</button>
+            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={generateSPT}>{r.downloadPdf}</button>
+            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={generateTaxExcel}>{r.downloadExcel}</button>
           </div>
         </div>
       </div>
 
-      <p className="disclaimer mt">Estimasi pajak mengacu PP 55/2022; untuk pelaporan resmi, verifikasi dengan konsultan atau DJP. Laporan ini adalah bahan lampiran. Keputusan KUR ditentukan bank berdasarkan penilaian dan riwayat kredit (SLIK OJK), bukan oleh aplikasi ini.</p>
+      {/* ISI LAPORAN DI LAYAR — Laba Rugi, Rekap Bulanan, Pengeluaran per Kategori.
+          Sebelumnya isi ini hanya muncul di file PDF/Excel; sekarang bisa dilihat langsung. */}
+      <div className="card card-pad mt">
+        <h3 className="card-title">{r.pnlOnTitle.replace('{period}', periodLabel)}</h3>
+        <div className="card-sub">{r.pnlOnSub}</div>
+        <div className="pnl">
+          <div className="pnl-row pnl-strong"><span>{r.pnlIncome}</span><b className="amt-in">{rupiah(sum.income)}</b></div>
+          <div className="pnl-sub">{r.pnlExpenseHead}</div>
+          {byCat.length ? byCat.map((c) => (
+            <div className="pnl-row" key={c.name}><span>{c.name}</span><b>{rupiah(c.value)}</b></div>
+          )) : (
+            <div className="pnl-row"><span className="muted-sm">{r.pnlNoExpense}</span><b>{rupiah(0)}</b></div>
+          )}
+          <div className="pnl-row pnl-strong pnl-line"><span>{r.pnlTotalExpense}</span><b className="amt-out">{rupiah(sum.expense)}</b></div>
+          <div className="pnl-row pnl-net"><span>{r.pnlNet}</span><b>{rupiah(sum.profit)}</b></div>
+          <div className="pnl-row"><span className="muted-sm">{r.pnlMargin}</span><b>{sum.income ? Math.round(sum.profit / sum.income * 100) : 0}%</b></div>
+        </div>
+      </div>
+
+      {monthly.length > 0 && (
+        <div className="card card-pad mt">
+          <h3 className="card-title">{r.monthlyTitle}</h3>
+          <div className="card-sub">{r.monthlySub}</div>
+          <div className="table-wrap" style={{ marginTop: 12 }}>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>{r.thMonth}</th>
+                  <th style={{ textAlign: 'right' }}>{r.thIncome}</th>
+                  <th style={{ textAlign: 'right' }}>{r.thExpense}</th>
+                  <th style={{ textAlign: 'right' }}>{r.thProfit}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthly.slice().reverse().map((m) => (
+                  <tr key={m.month}>
+                    <td>{monthLabel(m.month)}</td>
+                    <td style={{ textAlign: 'right' }} className="amt-in">{rupiah(m.income)}</td>
+                    <td style={{ textAlign: 'right' }} className="amt-out">{rupiah(m.expense)}</td>
+                    <td style={{ textAlign: 'right' }}><b>{rupiah(m.profit)}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {byCat.length > 0 && (
+        <div className="card card-pad mt">
+          <h3 className="card-title">{r.catTitle.replace('{period}', periodLabel)}</h3>
+          <div className="card-sub">{r.catSub}</div>
+          <div className="cat-bars">
+            {byCat.map((c) => {
+              const pct = sum.expense > 0 ? Math.round(c.value / sum.expense * 100) : 0
+              return (
+                <div className="cat-bar" key={c.name}>
+                  <div className="cat-bar-top"><span>{c.name}</span><b>{rupiah(c.value)} · {pct}%</b></div>
+                  <div className="progress-bar"><div style={{ width: `${pct}%` }} /></div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <p className="disclaimer mt">{r.disclaimer}</p>
 
       <div className="card card-pad mt">
-        <h3 className="card-title">Pelajari: KUR dan Pajak UMKM</h3>
-        <div className="card-sub">Penjelasan ringkas agar Anda paham cara memakai laporan di atas.</div>
+        <h3 className="card-title">{r.eduTitle}</h3>
+        <div className="card-sub">{r.eduSub}</div>
         <Accordion items={EDU} />
       </div>
     </>

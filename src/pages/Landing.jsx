@@ -18,7 +18,6 @@ const InstagramIcon = ({ size = 16 }) => (
 import { CONTACT_EMAIL } from '../lib/legal'
 import { useLang } from '../context/LangContext'
 import LangToggle from '../components/LangToggle'
-import ThemeToggle from '../components/ThemeToggle'
 import './landing.css'
 
 const PROBLEM_ICONS = [ClipboardList, TrendingDown, PackageX]
@@ -26,6 +25,15 @@ const PROBLEM_ICONS = [ClipboardList, TrendingDown, PackageX]
 export default function Landing() {
   const { t } = useLang()
   const L = t.landing2
+
+  // Landing selalu tampil mode terang (tak terpengaruh preferensi tema aplikasi).
+  // Preferensi pengguna dipulihkan saat meninggalkan halaman.
+  useEffect(() => {
+    const html = document.documentElement
+    const prev = html.dataset.theme
+    html.dataset.theme = 'light'
+    return () => { html.dataset.theme = prev || 'light' }
+  }, [])
 
   // Reveal-on-scroll: .lp-rv element gets .in when in viewport.
   useEffect(() => {
@@ -53,7 +61,6 @@ export default function Landing() {
           <div className="lp-nav-cta">
             <div className="lp-nav-tools">
               <LangToggle />
-              <ThemeToggle />
             </div>
             <Link to="/masuk" className="lp-btn lp-btn-ghost">{L.nav.masuk}</Link>
             <Link to="/daftar" className="lp-btn lp-btn-primary">{L.nav.bukaAI}</Link>

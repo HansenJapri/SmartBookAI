@@ -42,6 +42,11 @@
 /* ---------- DARK THEME ---------- */
 [data-theme="dark"] {
   --indigo-50: rgba(19, 123, 231, 0.16);
+  /* PENTING: alias biru brand DITERANGKAN di dark mode. Tanpa ini, semua teks/ikon
+     yang memakai var(--indigo)/var(--indigo-600) (badge channel, link, dll) jadi
+     biru gelap di atas latar gelap dan tidak terbaca. */
+  --indigo: #6ea8ff;
+  --indigo-600: #93c5fd;
   --line-accent: rgba(0, 254, 217, 0.28);
   --glow: 0 0 22px rgba(0, 254, 217, 0.45);
   --green: #4ade80;
@@ -383,6 +388,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .rep-line:last-of-type { border-bottom: none; }
 .rep-line b { font-weight: 700; }
 
+/* ---------- LAPORAN: Laba Rugi di layar + kategori pengeluaran ---------- */
+.pnl { margin-top: 14px; }
+.pnl-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 9px 0; font-size: 14px; color: var(--slate); border-bottom: 1px dashed var(--line); }
+.pnl-row:last-child { border-bottom: none; }
+.pnl-row b { color: var(--ink); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pnl-strong span, .pnl-strong b { font-weight: 700; color: var(--ink); }
+.pnl-sub { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; padding: 12px 0 2px; }
+.pnl-line { border-top: 1px solid var(--line-strong); }
+.pnl-net { background: var(--indigo-50); border-radius: 10px; padding: 12px 14px; margin-top: 8px; border-bottom: none; }
+.pnl-net span { font-weight: 800; color: var(--ink); }
+.pnl-net b { font-size: 17px; color: var(--indigo); }
+.cat-bars { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.cat-bar-top { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; margin-bottom: 6px; }
+.cat-bar-top span { color: var(--slate); }
+.cat-bar-top b { color: var(--ink); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
 /* ---------- METRICS ---------- */
 .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .metric { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; text-align: center; box-shadow: var(--shadow-sm); transition: transform .18s ease-out, border-color .18s ease-out; }
@@ -585,8 +606,10 @@ select.input { cursor: pointer; text-align: center; text-align-last: center; }
   height: 64px; background: var(--card); border-bottom: 1px solid var(--line);
   display: flex; align-items: center; gap: 16px; padding: 0 28px; position: sticky; top: 0; z-index: 20;
 }
-.topbar h1 { font-size: 19px; font-weight: 800; }
+.topbar h1 { font-size: 19px; font-weight: 800; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar .tb-spacer { flex: 1; }
+/* Alat kanan topbar (tema + bahasa) selalu tampil & tak menyusut di semua ukuran layar. */
+.topbar-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
 .page { padding: 28px; max-width: 1180px; }
 
 /* mobile sidebar */
@@ -598,8 +621,16 @@ select.input { cursor: pointer; text-align: center; text-align-last: center; }
   .sidebar.open { transform: none; }
   .menu-btn { display: inline-flex; }
   .side-backdrop.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 55; }
-  .topbar { padding: 0 16px; }
+  .topbar { padding: 0 14px; gap: 10px; }
+  .topbar h1 { font-size: 17px; }
+  .topbar-tools { gap: 6px; }
   .page { padding: 18px 16px; }
+}
+/* HP kecil: judul lebih ringkas, tombol alat tetap muat & bisa diakses. */
+@media (max-width: 420px) {
+  .topbar { padding: 0 10px; gap: 8px; }
+  .topbar h1 { font-size: 15.5px; }
+  .menu-btn { padding: 4px; }
 }
 
 /* ---------- CARDS / KPI (app) ---------- */
@@ -858,7 +889,7 @@ table.tbl tr:hover td { background: var(--bg-soft); }
    FITUR "MASA DEPAN": disclaimer AI, chat mode Catat, kartu draf,
    navigasi bawah mobile, lembar aksi, Radar Harga, Simulasi HPP.
    ============================================================ */
-.ai-note { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: #92400e; background: var(--card)beb; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 9px; margin-top: 8px; }
+.ai-note { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: var(--warn-ink); background: var(--amber-50); border: 1px solid #fde68a; border-radius: 8px; padding: 6px 9px; margin-top: 8px; }
 .ai-note svg { flex: none; margin-top: 1px; }
 .spin { animation: spin 1s linear infinite; }
 
@@ -899,12 +930,16 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .sig-sources { display: flex; flex-direction: column; gap: 3px; }
 .sig-sources a { font-size: 12px; color: var(--indigo); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
 .sig-sources a:hover { text-decoration: underline; }
+/* Perbandingan harga vs sebelumnya (naik/turun %) — pengganti keyakinan & sumber */
+.sig-delta { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 700; margin-top: 4px; }
+.sig-delta-flat { color: var(--muted); font-weight: 500; }
+.sig-forecast { font-size: 13px; color: var(--slate); margin-top: 6px; }
 
 /* Simulasi HPP + Target */
 .scen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .scen-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--bg); }
 .scen-v { font-size: 20px; font-weight: 700; margin: 2px 0; }
-.row-ai td { background: var(--card)beb; }
+.row-ai td { background: var(--amber-50); }
 .progress-bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
 .progress-bar > div { height: 100%; background: linear-gradient(90deg, var(--accent-2), var(--secondary), var(--primary)); border-radius: 999px; }
 .scn-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -993,6 +1028,15 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 [data-theme="dark"] .reveal-sum b { color: #f87171; }
 [data-theme="dark"] .sig-official { color: #4ade80; }
 [data-theme="dark"] .agree input { accent-color: var(--secondary); }
+/* Latar aksen biru berisi teks/ikon PUTIH: kunci ke biru brand PEKAT (--primary,
+   tetap gelap di dark mode) supaya kontras dengan putih tetap tinggi — sebab
+   var(--indigo) kini sengaja diterangkan untuk keperluan teks. */
+[data-theme="dark"] .chat-fab,
+[data-theme="dark"] .chat-send,
+[data-theme="dark"] .chat-msg.user,
+[data-theme="dark"] .lang-toggle button.on { background: var(--primary); color: #fff; }
+/* Nav bawah mobile: label tab aktif diterangkan agar terbaca di latar gelap. */
+[data-theme="dark"] .bn-item.active { color: var(--indigo); }
 
 /* ---------- LANDING: scroll-reveal & stagger (murni transform/opacity) ---------- */
 .rv { opacity: 0; transform: translateY(18px); transition: opacity .55s ease-out, transform .55s ease-out; }

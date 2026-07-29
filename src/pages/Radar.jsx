@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Minus, RefreshCw, ExternalLink, BadgeCheck } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
   fetchMacroSignals, fetchExchangeRates,
@@ -8,8 +8,9 @@ import {
 } from '../lib/api'
 import { makroRefresh, hargaDaerah } from '../lib/ai'
 import { rupiah, fmtDate } from '../lib/format'
-import { signalKeyOf, SP2KP_SITE, SP2KP_SOURCE_NAME } from '../lib/sp2kp'
+import { signalKeyOf } from '../lib/sp2kp'
 import { PROVINCES, PROVINCE_NAME } from '../lib/provinces'
+import { useLang } from '../context/LangContext'
 import AIDisclaimer from '../components/AIDisclaimer'
 
 const DIR = {
@@ -17,41 +18,27 @@ const DIR = {
   turun: { icon: TrendingDown, color: 'var(--green)', bg: 'var(--green-50)', label: 'TURUN' },
   stabil: { icon: Minus, color: 'var(--accent-2)', bg: 'var(--indigo-50)', label: 'STABIL' },
 }
-const CONF = { rendah: 'var(--muted)', sedang: 'var(--warn-ink)', tinggi: 'var(--green)' }
 
 // Kunci "hari data" — batas hari pukul 06.00 WIB, HARUS sama dengan Edge
 // Function makro-harian: sebelum jam 6 pagi, data terbaru = tarikan kemarin.
 const expectedRunKey = () => new Date(Date.now() + (7 - 6) * 3600 * 1000).toISOString().slice(0, 10)
 
-// Blok perkiraan 30 hari (sinyal RAG) — dipakai untuk bapok maupun komoditas lain.
-function SignalBlock({ s, mine }) {
+// Blok perkiraan 30 hari (sinyal RAG). Sengaja minimal: hanya rentang perkiraan.
+// Keyakinan, daftar sumber, dan driver/berita tidak ditampilkan di frontend
+// (data itu tetap dipakai internal untuk menyusun sinyal).
+function SignalBlock({ s }) {
+  const { t } = useLang()
   const range = Number(s.est_pct_min) === 0 && Number(s.est_pct_max) === 0
     ? '±0%'
     : `${Number(s.est_pct_min) > 0 ? '+' : ''}${Number(s.est_pct_min)}% s.d. ${Number(s.est_pct_max) > 0 ? '+' : ''}${Number(s.est_pct_max)}%`
-  const sources = Array.isArray(s.sources) ? s.sources.slice(0, 2) : []
-  const drivers = Array.isArray(s.drivers) ? s.drivers : []
   return (
-    <>
-      <div style={{ fontSize: 15, fontWeight: 600, margin: '4px 0 2px' }}>Perkiraan 30 hari: {range}</div>
-      <div className="muted-sm" style={{ marginBottom: 6 }}>
-        Keyakinan: <b style={{ color: CONF[s.confidence] || '#94a3b8' }}>{s.confidence}</b>
-        {mine && <span className="pill pill-cat" style={{ marginLeft: 8 }}>dipakai usaha Anda</span>}
-      </div>
-      {drivers.length > 0 && <ul className="sig-drivers">{drivers.map((dr, i) => <li key={i}>{dr}</li>)}</ul>}
-      {sources.length > 0 && (
-        <div className="sig-sources">
-          {sources.map((src, i) => (
-            <a key={i} href={src.link || '#'} target="_blank" rel="noreferrer noopener" title={src.title}>
-              <ExternalLink size={11} /> {String(src.title).slice(0, 60)}{String(src.title).length > 60 ? '…' : ''}
-            </a>
-          ))}
-        </div>
-      )}
-    </>
+    <div className="sig-forecast">{t.radar.forecast30} {range}</div>
   )
 }
 
 export default function Radar() {
+  const { t } = useLang()
+  const r = t.radar
   const [signals, setSignals] = useState([])
   const [runDate, setRunDate] = useState(null)
   const [prices, setPrices] = useState([])       // harga bapok nasional SP2KP
@@ -80,7 +67,7 @@ export default function Radar() {
       const res = await hargaDaerah(id)
       if (token !== provReq.current) return // pengguna sudah pindah provinsi lain
       setProvPrices(res?.prices || [])
-      if (!(res?.prices || []).length) setErr(`Harga untuk ${PROVINCE_NAME[id]} belum tersedia hari ini — menampilkan rata-rata nasional.`)
+      if (!(res?.prices || []).length) setErr(r.provNotReady.replace('{prov}', PROVINCE_NAME[id]))
     } catch (e) {
       if (token === provReq.current) setErr(e.message)
     } finally {
@@ -112,7 +99,7 @@ export default function Radar() {
       await makroRefresh()
       await load()
     } catch (e) {
-      setErr('Gagal memperbarui data makro: ' + e.message)
+      setErr(r.errRefresh + e.message)
     } finally {
       setRefreshing(false)
     }
@@ -185,12 +172,12 @@ export default function Radar() {
     <div style={{ maxWidth: 1040 }}>
       <div className="alert alert-info" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <span>
-          <b>Radar Harga Bahan.</b> Harga bahan pokok dari <b>SP2KP Kementerian Perdagangan</b>, diperbarui otomatis <b>setiap pagi pukul 06.00 WIB</b>.
-          {runDate ? ` Data: ${fmtDate(runDate)}.` : ' Belum ada data.'}
+          <b>{r.bannerTitle}</b> {r.bannerA} <b>{r.bannerSrc}</b>{r.bannerB} <b>{r.bannerC}</b>.
+          {runDate ? ` ${r.bannerData} ${fmtDate(runDate)}.` : ` ${r.bannerNoData}`}
         </span>
         <button className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
           <RefreshCw size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} className={refreshing ? 'spin' : ''} />
-          {refreshing ? 'Menarik data (±30-60 dtk)...' : 'Perbarui'}
+          {refreshing ? r.refreshing : r.refresh}
         </button>
       </div>
       {err && <div className="alert alert-err" style={{ marginBottom: 16 }}>{err}</div>}
@@ -198,20 +185,17 @@ export default function Radar() {
       <div className="two-col" style={{ marginBottom: 16 }}>
         {/* KURS */}
         <div className="card card-pad">
-          <h3 className="card-title">Kurs USD/IDR</h3>
-          <div className="card-sub">Pelemahan rupiah menaikkan biaya bahan impor (terigu, kedelai, susu, dll)</div>
-          {!kurs ? <p className="muted-sm">Belum ada data kurs. Tekan Perbarui.</p> : (
+          <h3 className="card-title">{r.kursTitle}</h3>
+          <div className="card-sub">{r.kursSub}</div>
+          {!kurs ? <p className="muted-sm">{r.kursEmpty}</p> : (
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 26, fontWeight: 700 }}>Rp {Math.round(Number(kurs.last.usd_idr)).toLocaleString('id-ID')}</span>
                 <span style={{ color: kurs.pct30 > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 600 }}>
-                  {kurs.pct30 > 0 ? '+' : ''}{kurs.pct30.toFixed(1)}% / 30 hari {kurs.pct30 > 0 ? '(rupiah melemah)' : '(rupiah menguat)'}
+                  {kurs.pct30 > 0 ? '+' : ''}{kurs.pct30.toFixed(1)}% {r.kurs30d} {kurs.pct30 > 0 ? r.kursWeaken : r.kursStrengthen}
                 </span>
               </div>
-              <div className="muted-sm">
-                Kurs acuan gabungan beberapa sumber pasar, data {fmtDate(kurs.last.rate_date)}. Angka di situs lain bisa
-                sedikit berbeda karena beda jam pengambilan.
-              </div>
+              <div className="muted-sm">{r.kursNote.replace('{date}', fmtDate(kurs.last.rate_date))}</div>
               <ResponsiveContainer width="100%" height={140}>
                 <AreaChart data={kurs.chart} margin={{ left: -14, right: 6, top: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" vertical={false} />
@@ -221,31 +205,26 @@ export default function Radar() {
                   <Area type="monotone" dataKey="kurs" stroke="#137be7" strokeWidth={2} fill="rgba(19, 123, 231, 0.12)" />
                 </AreaChart>
               </ResponsiveContainer>
-              <div className="sig-sources" style={{ marginTop: 4 }}>
-                <a href="https://open.er-api.com/v6/latest/USD" target="_blank" rel="noreferrer noopener">
-                  <ExternalLink size={11} /> Sumber: kurs pasar (ER-API, terbuka)
-                </a>
-              </div>
             </>
           )}
         </div>
 
         {/* INFLASI */}
         <div className="card card-pad">
-          <h3 className="card-title">Inflasi (BPS)</h3>
-          <div className="card-sub">Data resmi BPS terbaru, diambil otomatis — bulan datanya tertera di bawah</div>
+          <h3 className="card-title">{r.inflTitle}</h3>
+          <div className="card-sub">{r.inflSub}</div>
           {!config ? (
-            <p className="muted-sm">Data inflasi bulan ini belum diisi admin. Setelah diisi, kenaikan biaya Anda akan dibandingkan dengan inflasi pangan nasional di sini.</p>
+            <p className="muted-sm">{r.inflEmpty}</p>
           ) : (
             <>
               <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 6 }}>
-                <div><div className="muted-sm">Inflasi umum (YoY)</div><div style={{ fontSize: 24, fontWeight: 700 }}>{Number(config.inflation_yoy).toFixed(2)}%</div></div>
-                <div><div className="muted-sm">Inflasi pangan (YoY)</div><div style={{ fontSize: 24, fontWeight: 700 }}>{config.inflation_food_yoy == null ? '-' : Number(config.inflation_food_yoy).toFixed(2) + '%'}</div></div>
-                <div><div className="muted-sm">Periode</div><div style={{ fontSize: 24, fontWeight: 700 }}>{config.month}</div></div>
+                <div><div className="muted-sm">{r.inflGeneral}</div><div style={{ fontSize: 24, fontWeight: 700 }}>{Number(config.inflation_yoy).toFixed(2)}%</div></div>
+                <div><div className="muted-sm">{r.inflFood}</div><div style={{ fontSize: 24, fontWeight: 700 }}>{config.inflation_food_yoy == null ? '-' : Number(config.inflation_food_yoy).toFixed(2) + '%'}</div></div>
+                <div><div className="muted-sm">{r.inflPeriod}</div><div style={{ fontSize: 24, fontWeight: 700 }}>{config.month}</div></div>
               </div>
               {config.note && <p className="muted-sm" style={{ marginTop: 8 }}>{config.note}</p>}
               <p className="muted-sm" style={{ marginTop: 8 }}>
-                Arti praktis: bila laba Anda naik lebih kecil dari {Number(config.inflation_yoy).toFixed(1)}%, daya beli laba Anda sebenarnya turun. Cek juga menu <Link to="/app/hpp" className="linklike">Simulasi HPP</Link>.
+                {r.inflHintA.replace('{x}', Number(config.inflation_yoy).toFixed(1))} <Link to="/app/hpp" className="linklike">{r.inflHintLink}</Link>.
               </p>
             </>
           )}
@@ -256,14 +235,14 @@ export default function Radar() {
       <div className="card card-pad">
         <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
           <div>
-            <h3 className="card-title">Harga Bahan Pokok Terkini & Perkiraan 30 Hari</h3>
+            <h3 className="card-title">{r.bapokTitle}</h3>
             <div className="card-sub">
-              Harga: <b>SP2KP Kementerian Perdagangan</b> (barang kebutuhan pokok) · Arah: berita sepekan terakhir dari media tepercaya
+              {r.bapokSubA} <b>SP2KP Kementerian Perdagangan</b> {r.bapokSubB}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <label className="muted-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              Provinsi:
+              {r.province}
               <select className="input" style={{ maxWidth: 210 }} value={provId}
                 disabled={provLoading}
                 onChange={(e) => changeProvince(Number(e.target.value))}>
@@ -274,23 +253,22 @@ export default function Radar() {
             {relevantKeys.size > 0 && (
               <label className="muted-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} />
-                Hanya bahan usaha saya ({relevantKeys.size})
+                {r.onlyMine.replace('{n}', relevantKeys.size)}
               </label>
             )}
           </div>
         </div>
-        <AIDisclaimer text="Harga bapok bersumber dari SP2KP Kemendag (rata-rata; harga di pasar Anda bisa berbeda). Sinyal arah 30 hari dibuat AI dari berita — bisa keliru." />
+        <AIDisclaimer text={r.disclaimer} />
 
         {!bapokItems.length ? (
           <p className="muted-sm" style={{ marginTop: 12 }}>
-            {prices.length ? 'Tidak ada bahan yang cocok. Matikan filter untuk melihat semua komoditas.' : 'Belum ada data harga. Tekan tombol Perbarui di atas.'}
+            {prices.length ? r.noMatch : r.noPrice}
           </p>
         ) : (
           <div className="sig-grid" style={{ marginTop: 12 }}>
             {bapokItems.map(({ price: p, sigKey, signal: s }) => {
               const d = s ? (DIR[s.direction] || DIR.stabil) : null
               const Icon = d ? d.icon : null
-              const mine = sigKey && relevantKeys.has(sigKey)
               const delta = p.prev_price
                 ? ((Number(p.price) - Number(p.prev_price)) / Number(p.prev_price)) * 100
                 : null
@@ -300,35 +278,36 @@ export default function Radar() {
                     <b>{p.variant_name}</b>
                     {d && (
                       <span className="sig-dir" style={{ color: d.color, background: d.bg }}>
-                        <Icon size={13} /> {d.label}
+                        <Icon size={13} /> {r.dir[s.direction] || r.dir.stabil}
                       </span>
                     )}
                   </div>
 
-                  {/* HARGA TERKINI (SP2KP) */}
+                  {/* HARGA TERKINI (SP2KP) + PERBANDINGAN VS HARGA SEBELUMNYA */}
                   <div style={{ margin: '6px 0' }}>
                     <div style={{ fontSize: 20, fontWeight: 700 }}>
                       {rupiah(p.price)} <span className="muted-sm" style={{ fontWeight: 400 }}>/{String(p.unit).replace('Rp/', '')}</span>
-                      {delta !== null && Math.abs(delta) >= 0.05 && (
-                        <span style={{ fontSize: 12.5, fontWeight: 600, marginLeft: 8, color: delta > 0 ? 'var(--red)' : 'var(--green)' }}>
-                          {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
-                        </span>
-                      )}
                     </div>
                     <div className="muted-sm">
-                      {Number(p.province_id) > 0 ? `rata-rata ${PROVINCE_NAME[p.province_id] || 'provinsi'}` : 'rata-rata nasional (HNT)'}
+                      {Number(p.province_id) > 0 ? r.avgProv.replace('{prov}', PROVINCE_NAME[p.province_id] || r.provinceWord) : r.avgNational}
                       {p.price_date ? `, ${fmtDate(p.price_date)}` : ''}
                     </div>
-                    <a className="sig-official" href={SP2KP_SITE} target="_blank" rel="noreferrer noopener"
-                      title="Buka sumber harga SP2KP Kemendag">
-                      <BadgeCheck size={12} /> Sumber: {SP2KP_SOURCE_NAME}
-                    </a>
+                    {delta === null ? (
+                      <div className="sig-delta sig-delta-flat">{r.noPrev}</div>
+                    ) : Math.abs(delta) < 0.05 ? (
+                      <div className="sig-delta sig-delta-flat"><Minus size={13} /> {r.stable}</div>
+                    ) : (
+                      <div className="sig-delta" style={{ color: delta > 0 ? 'var(--red)' : 'var(--green)' }}>
+                        {delta > 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                        {delta > 0 ? r.up : r.down} {Math.abs(delta).toFixed(1)}% {r.vsPrev}
+                      </div>
+                    )}
                   </div>
 
                   {/* SINYAL 30 HARI (opsional) */}
                   {s
-                    ? <SignalBlock s={s} mine={mine} />
-                    : <div className="muted-sm" style={{ margin: '2px 0 0' }}>Perkiraan arah 30 hari belum tersedia untuk komoditas ini.</div>}
+                    ? <SignalBlock s={s} />
+                    : <div className="muted-sm" style={{ margin: '2px 0 0' }}>{r.noForecast}</div>}
                 </div>
               )
             })}
@@ -338,22 +317,21 @@ export default function Radar() {
         {/* KOMODITAS LAIN (tanpa harga SP2KP) — sinyal perkiraan saja */}
         {otherSignals.length > 0 && (
           <>
-            <h4 className="card-title" style={{ fontSize: 15, marginTop: 22 }}>Komoditas lain (perkiraan arah)</h4>
-            <div className="card-sub" style={{ marginBottom: 8 }}>Komoditas global/energi di luar cakupan SP2KP — hanya sinyal arah dari berita, tanpa harga resmi.</div>
+            <h4 className="card-title" style={{ fontSize: 15, marginTop: 22 }}>{r.otherTitle}</h4>
+            <div className="card-sub" style={{ marginBottom: 8 }}>{r.otherSub}</div>
             <div className="sig-grid">
               {otherSignals.map((s) => {
                 const d = DIR[s.direction] || DIR.stabil
                 const Icon = d.icon
-                const mine = relevantKeys.has(s.commodity_key)
                 return (
                   <div className="sig-card" key={s.commodity_key}>
                     <div className="flex between" style={{ alignItems: 'flex-start' }}>
                       <b>{s.commodity_label}</b>
                       <span className="sig-dir" style={{ color: d.color, background: d.bg }}>
-                        <Icon size={13} /> {d.label}
+                        <Icon size={13} /> {r.dir[s.direction] || r.dir.stabil}
                       </span>
                     </div>
-                    <SignalBlock s={s} mine={mine} />
+                    <SignalBlock s={s} />
                   </div>
                 )
               })}
