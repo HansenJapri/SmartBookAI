@@ -50,22 +50,77 @@ export async function effectiveOwnerId() {
   // Ada pilihan: verifikasi dulu keanggotaannya masih sah (bisa dicabut owner).
   // Pakai limit(1) — BUKAN maybeSingle() — karena satu pengguna sah menjadi
   // staf di lebih dari satu workspace; maybeSingle() akan error pada 2+ baris.
-  try {
-    const { data } = await supabase
-      .from('staff_members')
-      .select('owner_id')
-      .eq('member_id', user.id)
-      .eq('status', 'active')
-      .eq('owner_id', selected)
-      .limit(1)
-    _ownerCache = data?.[0]?.owner_id || user.id
-  } catch { _ownerCache = user.id }
+  //
+  // GAGAL TERTUTUP. Dulu baris ini berbunyi `data?.[0]?.owner_id || user.id`:
+  // saat verifikasi gagal (akses dicabut, jaringan putus, RLS berubah), pemilik
+  // efektif diam-diam berpindah ke workspace pengguna sendiri sementara UI masih
+  // menampilkan workspace orang lain — sehingga tulisan mendarat di tempat yang
+  // salah tanpa satu pun peringatan. Sekarang kesalahan dilempar dan pemilihan
+  // workspace dibersihkan supaya pengguna kembali ke keadaan yang jelas.
+  const { data, error } = await supabase
+    .from('staff_members')
+    .select('owner_id')
+    .eq('member_id', user.id)
+    .eq('status', 'active')
+    .eq('owner_id', selected)
+    .limit(1)
+  if (error) throw error
+  const verified = data?.[0]?.owner_id
+  if (!verified) {
+    setSelectedWorkspace('')
+    throw new Error('Akses Anda ke usaha itu sudah tidak berlaku. Anda dikembalikan ke usaha sendiri.')
+  }
+  _ownerCache = verified
   return _ownerCache
 }
 // Reset cache saat sesi berubah. Optional-chaining penting: saat env Supabase
 // belum diisi (mis. di Vercel tanpa env var), `supabase` bernilai null dan
 // aplikasi harus tetap hidup untuk menampilkan halaman /setup — bukan blank.
 supabase?.auth?.onAuthStateChange(() => { _ownerCache = null })
+
+// ============================================================
+// ISOLASI WORKSPACE — WAJIB DIPAKAI UNTUK SETIAP TABEL BER-user_id
+//
+// RLS di database berbunyi `auth.uid() = user_id OR has_access(user_id, modul)`.
+// `has_access` TIDAK tahu workspace mana yang sedang dibuka klien, jadi begitu
+// seseorang menjadi staf aktif di usaha lain, `select('*')` tanpa filter akan
+// mengembalikan GABUNGAN baris miliknya sendiri dan baris usaha itu — di kedua
+// tampilan workspace. Itulah yang membuat data usaha owner tampak "ter-copy"
+// ke usaha staf. Hal yang sama berlaku untuk update/delete yang hanya
+// memfilter `id`: baris workspace lain ikut bisa diubah/dihapus.
+//
+// Karena itu RLS diperlakukan sebagai batas luar (apa yang BOLEH dilihat),
+// sementara helper di bawah menetapkan batas dalam (apa yang HARUS dilihat
+// sekarang). Semua akses tabel per-workspace lewat sini — jangan panggil
+// supabase.from(<tabel ber-user_id>) langsung.
+// ============================================================
+
+export async function wsOwner() {
+  const ownerId = await effectiveOwnerId()
+  if (!ownerId) throw new Error('Sesi tidak valid. Silakan masuk kembali.')
+  return ownerId
+}
+
+// Ketiga helper ini SINKRON dan menerima owner sebagai argumen pertama —
+// sengaja, bukan kebetulan. Builder PostgREST bersifat *thenable*, jadi kalau
+// helper-nya `async` dan mengembalikan builder, `await helper(...)` akan ikut
+// me-resolve builder itu dan menghasilkan `{data, error}` — bukan builder yang
+// masih bisa di-chain `.order()`/`.eq()`. Pola pemakaiannya:
+//     const owner = await wsOwner()
+//     wsSelect(owner, 'transactions').order(...)
+
+// SELECT terikat workspace aktif.
+function wsSelect(owner, table, columns = '*', opts) {
+  return supabase.from(table).select(columns, opts).eq('user_id', owner)
+}
+// UPDATE terikat workspace aktif — `id` saja tidak cukup.
+function wsUpdate(owner, table, patch) {
+  return supabase.from(table).update(patch).eq('user_id', owner)
+}
+// DELETE terikat workspace aktif.
+function wsDelete(owner, table) {
+  return supabase.from(table).delete().eq('user_id', owner)
+}
 
 // ---------- TRANSAKSI ----------
 // Plafon pengambilan transaksi ke klien. Untuk volume sangat tinggi, ringkasan
@@ -74,9 +129,7 @@ supabase?.auth?.onAuthStateChange(() => { _ownerCache = null })
 export const TX_FETCH_LIMIT = 5000
 
 export async function fetchTransactions({ limit = TX_FETCH_LIMIT } = {}) {
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
+  const { data, error } = await wsSelect(await wsOwner(), 'transactions')
     .order('occurred_at', { ascending: false })
     .limit(limit)
   if (error) throw error
@@ -85,15 +138,18 @@ export async function fetchTransactions({ limit = TX_FETCH_LIMIT } = {}) {
 
 // Jumlah total transaksi milik pengguna (untuk mendeteksi data terpotong).
 export async function fetchTxCount() {
-  const { count, error } = await supabase
-    .from('transactions').select('id', { count: 'exact', head: true })
+  const { count, error } = await wsSelect(await wsOwner(), 'transactions', 'id', { count: 'exact', head: true })
   if (error) throw error
   return count || 0
 }
 
 // Ringkasan per bulan dihitung di server (mencakup seluruh baris, tanpa plafon).
+// p_owner dikirim eksplisit: versi lama fungsi ini memakai `auth.uid()`, sehingga
+// staf yang membuka usaha owner justru melihat rekap angkanya sendiri.
 export async function fetchMonthlySummary() {
-  const { data, error } = await supabase.rpc('my_monthly_summary')
+  const p_owner = await wsOwner()
+  let { data, error } = await supabase.rpc('my_monthly_summary', { p_owner })
+  if (error && isMissingRpc(error)) ({ data, error } = await supabase.rpc('my_monthly_summary'))
   if (error) throw error
   return (data || []).map((r) => ({
     month: r.month, income: Number(r.income), expense: Number(r.expense),
@@ -105,7 +161,7 @@ export async function addTransaction(tx) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
     .from('transactions')
-    .insert({ ...tx, user_id: await effectiveOwnerId() })
+    .insert({ ...tx, user_id: await wsOwner() })
     .select()
     .single()
   if (error) throw error
@@ -114,7 +170,7 @@ export async function addTransaction(tx) {
 }
 
 export async function addTransactionsBulk(list) {
-  const ownerId = await effectiveOwnerId()
+  const ownerId = await wsOwner()
   const payload = list.map((t) => ({ ...t, user_id: ownerId }))
   const { data, error } = await supabase.from('transactions').insert(payload).select()
   if (error) throw error
@@ -123,21 +179,21 @@ export async function addTransactionsBulk(list) {
 }
 
 export async function updateTransaction(id, patch) {
-  const { data, error } = await supabase
-    .from('transactions').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'transactions', patch)
+    .eq('id', id).select().single()
   if (error) throw error
   return data
 }
 
 export async function deleteTransaction(id) {
-  const { error } = await supabase.from('transactions').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'transactions').eq('id', id)
   if (error) throw error
 }
 
 // ---------- ATURAN KATEGORI ----------
 export async function fetchRules() {
-  const { data, error } = await supabase
-    .from('categorization_rules').select('*').order('created_at', { ascending: true })
+  const { data, error } = await wsSelect(await wsOwner(), 'categorization_rules')
+    .order('created_at', { ascending: true })
   if (error) throw error
   return data || []
 }
@@ -145,63 +201,60 @@ export async function fetchRules() {
 export async function addRule(rule) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
-    .from('categorization_rules').insert({ ...rule, user_id: await effectiveOwnerId() }).select().single()
+    .from('categorization_rules').insert({ ...rule, user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 
 export async function deleteRule(id) {
-  const { error } = await supabase.from('categorization_rules').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'categorization_rules').eq('id', id)
   if (error) throw error
 }
 
 // ---------- KATEGORI (milik user) ----------
 export async function fetchCategories() {
-  const { data, error } = await supabase
-    .from('categories').select('*').order('direction').order('name')
+  const { data, error } = await wsSelect(await wsOwner(), 'categories').order('direction').order('name')
   if (error) throw error
   return data || []
 }
 export async function addCategory({ name, direction }) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
-    .from('categories').insert({ name: name.trim(), direction, user_id: await effectiveOwnerId() }).select().single()
+    .from('categories').insert({ name: name.trim(), direction, user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updateCategory(id, patch) {
-  const { data, error } = await supabase
-    .from('categories').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'categories', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteCategory(id) {
-  const { error } = await supabase.from('categories').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'categories').eq('id', id)
   if (error) throw error
 }
 
 // ---------- CHANNEL (milik user) ----------
 export async function fetchChannels() {
-  const { data, error } = await supabase.from('channels').select('*').order('created_at')
+  const { data, error } = await wsSelect(await wsOwner(), 'channels').order('created_at')
   if (error) throw error
   return data || []
 }
 export async function addChannel({ value, label, icon }) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
-    .from('channels').insert({ value, label: label.trim(), icon: icon || '🏷️', user_id: await effectiveOwnerId() })
+    .from('channels').insert({ value, label: label.trim(), icon: icon || '🏷️', user_id: await wsOwner() })
     .select().single()
   if (error) throw error
   return data
 }
 export async function updateChannel(id, patch) {
-  const { data, error } = await supabase
-    .from('channels').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'channels', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteChannel(id) {
-  const { error } = await supabase.from('channels').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'channels').eq('id', id)
   if (error) throw error
 }
 
@@ -226,11 +279,14 @@ const DEFAULT_CHANNELS = [
 export async function ensureSeedData() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
+  // Hitungan HARUS terikat workspace: tanpa filter, staf yang punya akses ke
+  // usaha lain melihat hitungan gabungan dan seed default tidak pernah dibuat
+  // untuk usahanya sendiri.
   const [{ count: catCount }, { count: chCount }] = await Promise.all([
-    supabase.from('categories').select('id', { count: 'exact', head: true }),
-    supabase.from('channels').select('id', { count: 'exact', head: true }),
+    wsSelect(await wsOwner(), 'categories', 'id', { count: 'exact', head: true }),
+    wsSelect(await wsOwner(), 'channels', 'id', { count: 'exact', head: true }),
   ])
-  const ownerId = await effectiveOwnerId()
+  const ownerId = await wsOwner()
   if (catCount === 0) {
     const rows = [
       ...DEFAULT_CATS.in.map((name) => ({ name, direction: 'in', user_id: ownerId })),
@@ -272,7 +328,7 @@ export async function getReceiptUrl(path) {
 // ---------- PROFIL ----------
 export async function fetchProfile() {
   // Staf membaca profil OWNER (nama usaha dipakai di sidebar & invoice).
-  const ownerId = await effectiveOwnerId()
+  const ownerId = await wsOwner()
   if (!ownerId) return null
   const { data, error } = await supabase.from('profiles').select('*').eq('id', ownerId).maybeSingle()
   if (error) throw error
@@ -307,9 +363,13 @@ export async function exportMyData() {
     const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
     out.profile = prof || null
   } catch { out.profile = null }
+  // Ekspor SELALU dibatasi ke akun pemanggil. Tanpa filter ini, staf yang aktif
+  // di usaha lain mengunduh data usaha itu ikut serta di dalam berkas ekspornya.
   for (const tbl of tables) {
-    try { const { data } = await supabase.from(tbl).select('*'); out[tbl] = data || [] }
-    catch { out[tbl] = [] }
+    try {
+      const { data } = await supabase.from(tbl).select('*').eq('user_id', user.id)
+      out[tbl] = data || []
+    } catch { out[tbl] = [] }
   }
   return out
 }
@@ -383,55 +443,59 @@ export async function addFeedback({ rating, category, message, helped }) {
   return data
 }
 
-// Menghapus postingan milik sendiri.
+// Menghapus postingan milik sendiri. Filter user_id eksplisit: forum ini dibaca
+// semua pengguna, jadi `id` saja tidak boleh menjadi satu-satunya kunci hapus.
 export async function deleteFeedback(id) {
-  const { error } = await supabase.from('feedback').delete().eq('id', id)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Harus masuk (login).')
+  const { error } = await supabase
+    .from('feedback').delete().eq('id', id).eq('user_id', user.id)
   if (error) throw error
 }
 
 // ---------- SUPPLIER (pemasok) ----------
 export async function fetchSuppliers() {
-  const { data, error } = await supabase.from('suppliers').select('*').order('name')
+  const { data, error } = await wsSelect(await wsOwner(), 'suppliers').order('name')
   if (error) throw error
   return data || []
 }
 export async function addSupplier(s) {
   const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('suppliers').insert({ ...s, user_id: await effectiveOwnerId() }).select().single()
+  const { data, error } = await supabase.from('suppliers').insert({ ...s, user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updateSupplier(id, patch) {
-  const { data, error } = await supabase.from('suppliers').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'suppliers', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteSupplier(id) {
-  const { error } = await supabase.from('suppliers').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'suppliers').eq('id', id)
   if (error) throw error
 }
 
 // ---------- PRODUK / STOK ----------
 export async function fetchProducts() {
-  const { data, error } = await supabase.from('products').select('*').order('name')
+  const { data, error } = await wsSelect(await wsOwner(), 'products').order('name')
   if (error) throw error
   return data || []
 }
 export async function addProduct(p) {
   const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('products').insert({ ...p, user_id: await effectiveOwnerId() }).select().single()
+  const { data, error } = await supabase.from('products').insert({ ...p, user_id: await wsOwner() }).select().single()
   if (error) throw error
   track('product_added')
   return data
 }
 export async function updateProduct(id, patch) {
-  const { data, error } = await supabase
-    .from('products').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'products', { ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteProduct(id) {
-  const { error } = await supabase.from('products').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'products').eq('id', id)
   if (error) throw error
 }
 
@@ -469,11 +533,23 @@ export async function deleteProductImage(urlOrPath) {
 // seluruh operasi dibatalkan otomatis — tidak ada transaksi tanpa stok
 // atau stok tanpa transaksi. direction 'in' => stok berkurang; 'out' => bertambah.
 // Dipanggil hanya untuk transaksi BARU (edit tidak menyentuh stok agar tidak dobel).
+//
+// p_owner WAJIB dikirim. Versi lama RPC ini memakai fungsi server
+// `effective_owner()` yang berbunyi "owner_id keanggotaan aktif PERTAMA, kalau
+// tidak ada baru auth.uid()" — tanpa tahu workspace mana yang dipilih klien.
+// Akibatnya begitu seseorang menjadi staf aktif di usaha lain, SETIAP transaksi
+// yang dia catat di usahanya SENDIRI justru tersimpan ke usaha itu.
 export async function addTransactionWithStock(tx, lines = []) {
-  const { data, error } = await supabase.rpc('add_transaction_with_stock', {
+  const args = {
     p_tx: tx,
     p_lines: (lines || []).map((l) => ({ productId: l.productId, qty: l.qty })),
-  })
+    p_owner: await wsOwner(),
+  }
+  let { data, error } = await supabase.rpc('add_transaction_with_stock', args)
+  if (error && isMissingRpc(error)) {
+    delete args.p_owner
+    ;({ data, error } = await supabase.rpc('add_transaction_with_stock', args))
+  }
   if (error) throw error
   track('transaction_added', { channel: tx.channel, direction: tx.direction })
   return { txn: data?.txn || null, changes: data?.changes || [] }
@@ -483,8 +559,8 @@ export async function addTransactionWithStock(tx, lines = []) {
 // Aturan: satu PO = satu produk, sehingga penerimaan PO menghasilkan
 // tepat satu transaksi pengeluaran (selaras aturan 1 transaksi = 1 produk).
 export async function fetchPurchaseOrders() {
-  const { data, error } = await supabase
-    .from('purchase_orders').select('*').order('created_at', { ascending: false })
+  const { data, error } = await wsSelect(await wsOwner(), 'purchase_orders')
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
 }
@@ -492,21 +568,21 @@ export async function fetchPurchaseOrders() {
 export async function addPurchaseOrder(po) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
-    .from('purchase_orders').insert({ ...po, user_id: await effectiveOwnerId() }).select().single()
+    .from('purchase_orders').insert({ ...po, user_id: await wsOwner() }).select().single()
   if (error) throw error
   track('po_created')
   return data
 }
 
 export async function updatePurchaseOrder(id, patch) {
-  const { data, error } = await supabase
-    .from('purchase_orders').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'purchase_orders', patch)
+    .eq('id', id).select().single()
   if (error) throw error
   return data
 }
 
 export async function deletePurchaseOrder(id) {
-  const { error } = await supabase.from('purchase_orders').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'purchase_orders').eq('id', id)
   if (error) throw error
 }
 
@@ -515,22 +591,50 @@ export async function deletePurchaseOrder(id) {
 // ('belum' = beli kredit -> UTANG di menu Piutang & Utang) + PO dikunci
 // 'received'. Gagal di langkah mana pun = seluruhnya dibatalkan otomatis.
 export async function receivePurchaseOrder(po, { createExpense = true, category = '', paymentStatus = 'lunas', dueDate = null } = {}) {
-  const { data, error } = await supabase.rpc('receive_purchase_order', {
+  const args = {
     p_po_id: po.id,
     p_create_expense: createExpense,
     p_category: category,
     p_payment_status: paymentStatus,
     p_due_date: paymentStatus === 'belum' && dueDate ? dueDate : null,
-  })
+    p_owner: await wsOwner(),
+  }
+  let { data, error } = await supabase.rpc('receive_purchase_order', args)
+  if (error && isMissingRpc(error)) {
+    delete args.p_owner
+    ;({ data, error } = await supabase.rpc('receive_purchase_order', args))
+  }
   if (error) throw error
   track('po_received', { with_expense: Boolean(data?.txn) })
   return { po: data?.po, stock: data?.stock, txn: data?.txn || null }
 }
 
+// Sumber riwayat stok: PO yang disetujui/diterima + opname yang sudah diposting.
+// Query ini tinggal di sini — bukan di dalam komponen halaman — supaya filter
+// workspace tidak bisa terlewat. Sebelumnya halaman Riwayat Stok memanggil
+// supabase.from(...) langsung tanpa filter dan ikut menampilkan PO & opname
+// milik usaha lain.
+export async function fetchStockHistorySources() {
+  const owner = await wsOwner()
+  const [po, op] = await Promise.all([
+    wsSelect(owner, 'purchase_orders', 'id, po_number, product_id, qty, unit_price, status, received_at, created_at')
+      .in('status', ['received', 'approved'])
+      .order('received_at', { ascending: false, nullsFirst: false })
+      .limit(500),
+    wsSelect(owner, 'stock_opnames', 'id, opname_number, items, status, posted_at, created_at')
+      .eq('status', 'posted')
+      .order('posted_at', { ascending: false, nullsFirst: false })
+      .limit(200),
+  ])
+  if (po.error) throw po.error
+  if (op.error) throw op.error
+  return { purchaseOrders: po.data || [], opnames: op.data || [] }
+}
+
 // ---------- STOCK OPNAME (Gudang fase 1) ----------
 export async function fetchOpnames() {
-  const { data, error } = await supabase
-    .from('stock_opnames').select('*').order('created_at', { ascending: false })
+  const { data, error } = await wsSelect(await wsOwner(), 'stock_opnames')
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
 }
@@ -538,21 +642,21 @@ export async function fetchOpnames() {
 export async function addOpname(payload) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
-    .from('stock_opnames').insert({ ...payload, user_id: await effectiveOwnerId() }).select().single()
+    .from('stock_opnames').insert({ ...payload, user_id: await wsOwner() }).select().single()
   if (error) throw error
   track('opname_created')
   return data
 }
 
 export async function updateOpname(id, patch) {
-  const { data, error } = await supabase
-    .from('stock_opnames').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'stock_opnames', patch)
+    .eq('id', id).select().single()
   if (error) throw error
   return data
 }
 
 export async function deleteOpname(id) {
-  const { error } = await supabase.from('stock_opnames').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'stock_opnames').eq('id', id)
   if (error) throw error
 }
 
@@ -561,10 +665,16 @@ export async function deleteOpname(id) {
 // kebenaran; baris tanpa hasil hitung dilewati) + sesi dikunci 'posted'.
 // Gagal di langkah mana pun = seluruhnya dibatalkan otomatis.
 export async function postOpname(opname) {
-  const { data, error } = await supabase.rpc('post_stock_opname', {
+  const args = {
     p_opname_id: opname.id,
     p_items: opname.items || [],
-  })
+    p_owner: await wsOwner(),
+  }
+  let { data, error } = await supabase.rpc('post_stock_opname', args)
+  if (error && isMissingRpc(error)) {
+    delete args.p_owner
+    ;({ data, error } = await supabase.rpc('post_stock_opname', args))
+  }
   if (error) throw error
   const changes = data?.changes || []
   track('opname_posted', { changes: changes.length })
@@ -753,8 +863,14 @@ export async function declineInvitation(id) {
 }
 
 // ---------- AUDIT LOG (baca-saja; ditulis trigger database) ----------
+// audit_logs memakai kolom owner_id (bukan user_id), jadi filternya eksplisit.
 export async function fetchAuditLogs({ table = '', action = '', limit = 200 } = {}) {
-  let q = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(limit)
+  // Owner di-resolve LEBIH DULU, sebelum builder dibuat: `await` di tengah
+  // rantai membuat urutan panggilan jaringan sulit ditelusuri.
+  const owner = await wsOwner()
+  let q = supabase.from('audit_logs').select('*')
+    .eq('owner_id', owner)
+    .order('created_at', { ascending: false }).limit(limit)
   if (table) q = q.eq('table_name', table)
   if (action) q = q.eq('action', action)
   const { data, error } = await q
@@ -764,69 +880,65 @@ export async function fetchAuditLogs({ table = '', action = '', limit = 200 } = 
 
 // ---------- OPERASIONAL: PAPAN TUGAS (fase 5) ----------
 export async function fetchTasks() {
-  const { data, error } = await supabase
-    .from('tasks').select('*').order('created_at', { ascending: false })
+  const { data, error } = await wsSelect(await wsOwner(), 'tasks').order('created_at', { ascending: false })
   if (error) throw error
   return data || []
 }
 export async function addTask(t) {
   const { data, error } = await supabase
-    .from('tasks').insert({ ...t, user_id: await effectiveOwnerId() }).select().single()
+    .from('tasks').insert({ ...t, user_id: await wsOwner() }).select().single()
   if (error) throw error
   track('task_added')
   return data
 }
 export async function updateTask(id, patch) {
-  const { data, error } = await supabase
-    .from('tasks').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'tasks', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteTask(id) {
-  const { error } = await supabase.from('tasks').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'tasks').eq('id', id)
   if (error) throw error
 }
 
 // ---------- HR: KARYAWAN / ABSENSI / PENGGAJIAN (fase 4) ----------
 export async function fetchEmployees() {
-  const { data, error } = await supabase.from('employees').select('*').order('name')
+  const { data, error } = await wsSelect(await wsOwner(), 'employees').order('name')
   if (error) throw error
   return data || []
 }
 export async function addEmployee(e) {
   const { data, error } = await supabase
-    .from('employees').insert({ ...e, user_id: await effectiveOwnerId() }).select().single()
+    .from('employees').insert({ ...e, user_id: await wsOwner() }).select().single()
   if (error) throw error
   track('employee_added')
   return data
 }
 export async function updateEmployee(id, patch) {
-  const { data, error } = await supabase
-    .from('employees').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'employees', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteEmployee(id) {
-  const { error } = await supabase.from('employees').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'employees').eq('id', id)
   if (error) throw error
 }
 
 // Absensi satu tanggal (semua karyawan).
 export async function fetchAttendanceByDate(date) {
-  const { data, error } = await supabase.from('attendance').select('*').eq('date', date)
+  const { data, error } = await wsSelect(await wsOwner(), 'attendance').eq('date', date)
   if (error) throw error
   return data || []
 }
 // Absensi rentang tanggal (untuk rekap & hitung gaji harian).
 export async function fetchAttendanceRange(from, to) {
-  const { data, error } = await supabase
-    .from('attendance').select('*').gte('date', from).lte('date', to)
+  const { data, error } = await wsSelect(await wsOwner(), 'attendance').gte('date', from).lte('date', to)
   if (error) throw error
   return data || []
 }
 // Set status absensi karyawan pada tanggal tertentu (upsert: sekali klik ganti status).
 export async function setAttendance(employeeId, date, status, note) {
-  const row = { user_id: await effectiveOwnerId(), employee_id: employeeId, date, status }
+  const row = { user_id: await wsOwner(), employee_id: employeeId, date, status }
   if (note !== undefined) row.note = note || null
   const { data, error } = await supabase
     .from('attendance')
@@ -837,14 +949,14 @@ export async function setAttendance(employeeId, date, status, note) {
 }
 // Kosongkan absensi (salah input): hapus baris karyawan+tanggal tsb.
 export async function deleteAttendance(employeeId, date) {
-  const { error } = await supabase
-    .from('attendance').delete().eq('employee_id', employeeId).eq('date', date)
+  const { error } = await wsDelete(await wsOwner(), 'attendance')
+    .eq('employee_id', employeeId).eq('date', date)
   if (error) throw error
 }
 
 // ---------- ATURAN BONUS/POTONGAN PER STATUS ABSENSI ----------
 export async function fetchAttendanceRules() {
-  const { data, error } = await supabase.from('attendance_rules').select('*')
+  const { data, error } = await wsSelect(await wsOwner(), 'attendance_rules')
   if (error) throw error
   return data || []
 }
@@ -852,7 +964,7 @@ export async function upsertAttendanceRule(status, patch) {
   const { data, error } = await supabase
     .from('attendance_rules')
     .upsert(
-      { user_id: await effectiveOwnerId(), status, ...patch },
+      { user_id: await wsOwner(), status, ...patch },
       { onConflict: 'user_id,status' },
     )
     .select().single()
@@ -862,37 +974,35 @@ export async function upsertAttendanceRule(status, patch) {
 
 // ---------- KPI KARYAWAN ----------
 export async function fetchKpiCriteria() {
-  const { data, error } = await supabase
-    .from('kpi_criteria').select('*').order('created_at')
+  const { data, error } = await wsSelect(await wsOwner(), 'kpi_criteria').order('created_at')
   if (error) throw error
   return data || []
 }
 export async function addKpiCriteria(row) {
   const { data, error } = await supabase
-    .from('kpi_criteria').insert({ ...row, user_id: await effectiveOwnerId() }).select().single()
+    .from('kpi_criteria').insert({ ...row, user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updateKpiCriteria(id, patch) {
-  const { data, error } = await supabase
-    .from('kpi_criteria').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'kpi_criteria', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteKpiCriteria(id) {
-  const { error } = await supabase.from('kpi_criteria').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'kpi_criteria').eq('id', id)
   if (error) throw error
 }
 
 export async function fetchKpiScores(period) {
-  const { data, error } = await supabase.from('kpi_scores').select('*').eq('period', period)
+  const { data, error } = await wsSelect(await wsOwner(), 'kpi_scores').eq('period', period)
   if (error) throw error
   return data || []
 }
 // Simpan banyak skor sekaligus (upsert per karyawan+kriteria+periode).
 export async function saveKpiScores(rows) {
   if (!rows?.length) return []
-  const uid = await effectiveOwnerId()
+  const uid = await wsOwner()
   const { data, error } = await supabase
     .from('kpi_scores')
     .upsert(rows.map((r) => ({ ...r, user_id: uid })), { onConflict: 'employee_id,criteria_id,period' })
@@ -902,48 +1012,46 @@ export async function saveKpiScores(rows) {
 }
 
 export async function fetchKpiBonusRules() {
-  const { data, error } = await supabase
-    .from('kpi_bonus_rules').select('*').order('min_score', { ascending: false })
+  const { data, error } = await wsSelect(await wsOwner(), 'kpi_bonus_rules')
+    .order('min_score', { ascending: false })
   if (error) throw error
   return data || []
 }
 export async function addKpiBonusRule(row) {
   const { data, error } = await supabase
-    .from('kpi_bonus_rules').insert({ ...row, user_id: await effectiveOwnerId() }).select().single()
+    .from('kpi_bonus_rules').insert({ ...row, user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updateKpiBonusRule(id, patch) {
-  const { data, error } = await supabase
-    .from('kpi_bonus_rules').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'kpi_bonus_rules', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteKpiBonusRule(id) {
-  const { error } = await supabase.from('kpi_bonus_rules').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'kpi_bonus_rules').eq('id', id)
   if (error) throw error
 }
 
 // Penggajian per periode 'YYYY-MM'.
 export async function fetchPayrolls(period) {
-  const { data, error } = await supabase.from('payrolls').select('*').eq('period', period)
+  const { data, error } = await wsSelect(await wsOwner(), 'payrolls').eq('period', period)
   if (error) throw error
   return data || []
 }
 export async function addPayroll(row) {
   const { data, error } = await supabase
-    .from('payrolls').insert({ ...row, user_id: await effectiveOwnerId() }).select().single()
+    .from('payrolls').insert({ ...row, user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updatePayroll(id, patch) {
-  const { data, error } = await supabase
-    .from('payrolls').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'payrolls', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deletePayroll(id) {
-  const { error } = await supabase.from('payrolls').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'payrolls').eq('id', id)
   if (error) throw error
 }
 
@@ -959,9 +1067,8 @@ export async function payPayroll(p, { employeeName = '', category = 'Gaji Karyaw
     occurred_at: new Date().toISOString(),
     payment_status: 'lunas',
   })
-  const { data, error } = await supabase
-    .from('payrolls')
-    .update({ status: 'paid', paid_at: new Date().toISOString(), txn_id: txn.id })
+  const { data, error } = await wsUpdate(await wsOwner(), 'payrolls',
+    { status: 'paid', paid_at: new Date().toISOString(), txn_id: txn.id })
     .eq('id', p.id).select().single()
   if (error) throw error
   track('payroll_paid')
@@ -970,69 +1077,70 @@ export async function payPayroll(p, { employeeName = '', category = 'Gaji Karyaw
 
 // ---------- PENGINGAT (notifikasi Dashboard sampai ditutup pengguna) ----------
 export async function fetchReminders() {
-  const { data, error } = await supabase
-    .from('reminders').select('*').eq('status', 'aktif').order('remind_at')
+  const { data, error } = await wsSelect(await wsOwner(), 'reminders')
+    .eq('status', 'aktif').order('remind_at')
   if (error) throw error
   return data || []
 }
 export async function addReminder(row) {
   const { data, error } = await supabase
-    .from('reminders').insert({ ...row, user_id: await effectiveOwnerId() }).select().single()
+    .from('reminders').insert({ ...row, user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updateReminder(id, patch) {
-  const { data, error } = await supabase
-    .from('reminders').update(patch).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'reminders', patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteReminder(id) {
-  const { error } = await supabase.from('reminders').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'reminders').eq('id', id)
   if (error) throw error
 }
 
 // ---------- SATUAN PRODUK (CRUD) ----------
 export async function fetchUnits() {
-  const { data, error } = await supabase.from('units').select('*').order('name')
+  const { data, error } = await wsSelect(await wsOwner(), 'units').order('name')
   if (error) throw error
   return data || []
 }
 export async function addUnit(name) {
   const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('units').insert({ name: name.trim(), user_id: await effectiveOwnerId() }).select().single()
+  const { data, error } = await supabase.from('units').insert({ name: name.trim(), user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updateUnit(id, name) {
-  const { data, error } = await supabase.from('units').update({ name: name.trim() }).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'units', { name: name.trim() })
+    .eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteUnit(id) {
-  const { error } = await supabase.from('units').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'units').eq('id', id)
   if (error) throw error
 }
 
 // ---------- KATEGORI PRODUK (CRUD) ----------
 export async function fetchProductCategories() {
-  const { data, error } = await supabase.from('product_categories').select('*').order('name')
+  const { data, error } = await wsSelect(await wsOwner(), 'product_categories').order('name')
   if (error) throw error
   return data || []
 }
 export async function addProductCategory(name) {
   const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('product_categories').insert({ name: name.trim(), user_id: await effectiveOwnerId() }).select().single()
+  const { data, error } = await supabase.from('product_categories').insert({ name: name.trim(), user_id: await wsOwner() }).select().single()
   if (error) throw error
   return data
 }
 export async function updateProductCategory(id, name) {
-  const { data, error } = await supabase.from('product_categories').update({ name: name.trim() }).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'product_categories', { name: name.trim() })
+    .eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function deleteProductCategory(id) {
-  const { error } = await supabase.from('product_categories').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'product_categories').eq('id', id)
   if (error) throw error
 }
 
@@ -1044,10 +1152,10 @@ export async function ensureInventorySeed() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
   const [{ count: uCount }, { count: pcCount }] = await Promise.all([
-    supabase.from('units').select('id', { count: 'exact', head: true }),
-    supabase.from('product_categories').select('id', { count: 'exact', head: true }),
+    wsSelect(await wsOwner(), 'units', 'id', { count: 'exact', head: true }),
+    wsSelect(await wsOwner(), 'product_categories', 'id', { count: 'exact', head: true }),
   ])
-  const ownerId = await effectiveOwnerId()
+  const ownerId = await wsOwner()
   if (uCount === 0) {
     await supabase.from('units').insert(DEFAULT_UNITS.map((name) => ({ name, user_id: ownerId })))
   }
@@ -1058,7 +1166,7 @@ export async function ensureInventorySeed() {
 
 // Daftar produk dengan stok menipis (stock <= min_stock, dan min_stock > 0).
 export async function fetchLowStock() {
-  const { data, error } = await supabase.from('products').select('*')
+  const { data, error } = await wsSelect(await wsOwner(), 'products')
   if (error) throw error
   return (data || []).filter((p) => Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock))
 }
@@ -1066,8 +1174,7 @@ export async function fetchLowStock() {
 // ---------- RINGKASAN HARI INI (rekap deterministik untuk asisten) ----------
 export async function fetchTodayTotals() {
   const start = new Date(); start.setHours(0, 0, 0, 0)
-  const { data, error } = await supabase
-    .from('transactions').select('direction, amount')
+  const { data, error } = await wsSelect(await wsOwner(), 'transactions', 'direction, amount')
     .gte('occurred_at', start.toISOString())
   if (error) throw error
   let income = 0, expense = 0
@@ -1080,8 +1187,7 @@ export async function fetchTodayTotals() {
 
 // ---------- TARGET PENJUALAN (untuk prediksi 3 skenario) ----------
 export async function fetchActiveTarget() {
-  const { data, error } = await supabase
-    .from('sales_targets').select('*')
+  const { data, error } = await wsSelect(await wsOwner(), 'sales_targets')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -1095,8 +1201,9 @@ export async function fetchActiveTarget() {
 export async function addTarget({ name, start_date, deadline, revenue_target = null, profit_target = null }) {
   const rev = revenue_target != null && revenue_target !== '' ? Number(revenue_target) : null
   const prof = profit_target != null && profit_target !== '' ? Number(profit_target) : null
-  // Hanya satu target aktif: nonaktifkan yang lama dulu.
-  await supabase.from('sales_targets').update({ is_active: false }).eq('is_active', true)
+  // Hanya satu target aktif: nonaktifkan yang lama dulu. Terikat workspace —
+  // tanpa filter ini, staf yang aktif di usaha lain ikut mematikan target usaha itu.
+  await wsUpdate(await wsOwner(), 'sales_targets', { is_active: false }).eq('is_active', true)
   const { data, error } = await supabase
     .from('sales_targets')
     .insert({
@@ -1104,7 +1211,7 @@ export async function addTarget({ name, start_date, deadline, revenue_target = n
       revenue_target: rev, profit_target: prof,
       amount: rev ?? prof ?? 0,
       start_date, deadline: deadline || null,
-      user_id: await effectiveOwnerId(),
+      user_id: await wsOwner(),
     })
     .select().single()
   if (error) throw error
@@ -1113,33 +1220,32 @@ export async function addTarget({ name, start_date, deadline, revenue_target = n
 }
 
 export async function deactivateTarget(id) {
-  const { error } = await supabase.from('sales_targets').update({ is_active: false }).eq('id', id)
+  const { error } = await wsUpdate(await wsOwner(), 'sales_targets', { is_active: false }).eq('id', id)
   if (error) throw error
 }
 
 // ---------- BAHAN / KOMPONEN BIAYA (untuk HPP) ----------
 export async function fetchIngredients() {
-  const { data, error } = await supabase.from('ingredients').select('*').order('name')
+  const { data, error } = await wsSelect(await wsOwner(), 'ingredients').order('name')
   if (error) throw error
   return data || []
 }
 
 export async function updateIngredient(id, patch) {
-  const { data, error } = await supabase
-    .from('ingredients').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+  const { data, error } = await wsUpdate(await wsOwner(), 'ingredients', { ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id).select().single()
   if (error) throw error
   return data
 }
 
 export async function deleteIngredient(id) {
-  const { error } = await supabase.from('ingredients').delete().eq('id', id)
+  const { error } = await wsDelete(await wsOwner(), 'ingredients').eq('id', id)
   if (error) throw error
 }
 
 // ---------- KOMPOSISI PRODUK / BoM ----------
 export async function fetchBom(productId) {
-  const { data, error } = await supabase
-    .from('product_boms').select('*').eq('product_id', productId)
+  const { data, error } = await wsSelect(await wsOwner(), 'product_boms').eq('product_id', productId)
   if (error) throw error
   return data || []
 }
@@ -1168,24 +1274,23 @@ export async function saveBom(productId, rows) {
       price_source: r.price_source || 'manual',
     }
     if (ing) {
-      const { data, error } = await supabase
-        .from('ingredients').update({ ...fields, updated_at: new Date().toISOString() })
+      const { data, error } = await wsUpdate(await wsOwner(), 'ingredients', { ...fields, updated_at: new Date().toISOString() })
         .eq('id', ing.id).select().single()
       if (error) throw error
       ing = data
     } else {
       const { data, error } = await supabase
-        .from('ingredients').insert({ ...fields, user_id: await effectiveOwnerId() }).select().single()
+        .from('ingredients').insert({ ...fields, user_id: await wsOwner() }).select().single()
       if (error) throw error
       ing = data
       byName.set(ing.name.trim().toLowerCase(), ing)
     }
     bomRows.push({
-      user_id: await effectiveOwnerId(), product_id: productId, ingredient_id: ing.id,
+      user_id: await wsOwner(), product_id: productId, ingredient_id: ing.id,
       qty_per_unit: qty, is_ai_estimated: Boolean(r.is_ai_estimated),
     })
   }
-  const { error: delErr } = await supabase.from('product_boms').delete().eq('product_id', productId)
+  const { error: delErr } = await wsDelete(await wsOwner(), 'product_boms').eq('product_id', productId)
   if (delErr) throw delErr
   if (bomRows.length) {
     const { error } = await supabase.from('product_boms').insert(bomRows)

@@ -1,7 +1,7 @@
 {
   ".claude/launch.json": {
-    "mtime": 1785409397.8911068,
-    "ast_hash": "6c949ea08132ae68733e123133d139ee",
+    "mtime": 1785410599.3747735,
+    "ast_hash": "5c8544005c157250d8672d35091cd4ac",
     "semantic_hash": ""
   },
   ".claude/settings.json": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "src/lib/__tests__/api.integration.test.js": {
-    "mtime": 1785408923.3959427,
-    "ast_hash": "012c8a77d505230c25d857bb2c591767",
+    "mtime": 1785411909.809468,
+    "ast_hash": "80754599391fd1e43a329596f2f3a59e",
     "semantic_hash": ""
   },
   "src/lib/__tests__/gudang.test.js": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "src/lib/api.js": {
-    "mtime": 1785408887.5658457,
-    "ast_hash": "a0970d035aab6612eda8abc253de6446",
+    "mtime": 1785412083.593712,
+    "ast_hash": "87a8dbbaf66fd1b6e2b59be7fec79f18",
     "semantic_hash": ""
   },
   "src/lib/applock.js": {
@@ -730,8 +730,8 @@
     "semantic_hash": ""
   },
   "src/pages/StokHistori.jsx": {
-    "mtime": 1785317495.4094968,
-    "ast_hash": "680a183ee9c9b2ece7d7b208f7b0300a",
+    "mtime": 1785411415.5081875,
+    "ast_hash": "03be89573d522cd1595e39871bb964c4",
     "semantic_hash": ""
   },
   "src/pages/Struk.jsx": {
@@ -1134,11 +1134,6 @@
     "ast_hash": "272094a751e67861def9a384dad5018a",
     "semantic_hash": ""
   },
-  "admin-dashboard/src/simpankey.md": {
-    "mtime": 1785404207.0857048,
-    "ast_hash": "36426956945bf7624b481ee2ab18f491",
-    "semantic_hash": ""
-  },
   "src/lib/__tests__/ai-layer.test.js": {
     "mtime": 1785401343.5354898,
     "ast_hash": "f814794a1e42fad43ef605f1ef9624fe",
@@ -1217,6 +1212,26 @@
   "supabase/migration_rbac_invite_hardening.sql": {
     "mtime": 1785408305.9536116,
     "ast_hash": "d8156b939e17afab96f84c9758bb0d09",
+    "semantic_hash": ""
+  },
+  "supabase/migration_workspace_isolation.sql": {
+    "mtime": 1785412462.0698683,
+    "ast_hash": "18c3b6a8b2ab10fd56007d8c48604583",
+    "semantic_hash": ""
+  },
+  "src/lib/__tests__/tenancy.guard.test.js": {
+    "mtime": 1785421556.992102,
+    "ast_hash": "bb816c17a85c0e54d220f172a7e11a41",
+    "semantic_hash": ""
+  },
+  "supabase/migration_tenancy_constraints.sql": {
+    "mtime": 1785421301.482558,
+    "ast_hash": "a625649f59a63d19c0cb1ada02f8a8b2",
+    "semantic_hash": ""
+  },
+  "ARSITEKTUR-ISOLASI-WORKSPACE.md": {
+    "mtime": 1785421393.2429783,
+    "ast_hash": "8958698f9fb18b1e4d2701cfc281c921",
     "semantic_hash": ""
   }
 }

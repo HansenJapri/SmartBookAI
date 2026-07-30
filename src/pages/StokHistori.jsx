@@ -4,8 +4,7 @@ import {
   ArrowLeft, Search, ArrowDownCircle, ArrowUpCircle, ClipboardCheck,
   Calendar, History as HistoryIcon,
 } from 'lucide-react'
-import { fetchProducts, fetchTransactions } from '../lib/api'
-import { supabase } from '../lib/supabase'
+import { fetchProducts, fetchTransactions, fetchStockHistorySources } from '../lib/api'
 import { rupiah, fmtDateTime } from '../lib/format'
 import { useLang } from '../context/LangContext'
 import './stok.css'
@@ -46,12 +45,13 @@ export default function StokHistori() {
   useEffect(() => {
     (async () => {
       try {
-        const [prods, txs, poRes, opRes] = await Promise.all([
+        const [prods, txs, sources] = await Promise.all([
           fetchProducts(),
           fetchTransactions(),
-          supabase.from('purchase_orders').select('id, po_number, product_id, qty, unit_price, status, received_at, created_at').in('status', ['received', 'approved']).order('received_at', { ascending: false, nullsFirst: false }).limit(500),
-          supabase.from('stock_opnames').select('id, opname_number, items, status, posted_at, created_at').eq('status', 'posted').order('posted_at', { ascending: false, nullsFirst: false }).limit(200),
+          fetchStockHistorySources(),
         ])
+        const poRes = { data: sources.purchaseOrders }
+        const opRes = { data: sources.opnames }
         const prodMap = new Map(prods.map((p) => [p.id, p]))
         setProducts(prods)
 

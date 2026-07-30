@@ -111,6 +111,7 @@ describe('receivePurchaseOrder', () => {
       p_category: 'Pembelian Stok',
       p_payment_status: 'lunas',
       p_due_date: null,
+      p_owner: 'owner-1',   // workspace tujuan dikirim eksplisit ke server
     })
   })
 
@@ -142,7 +143,8 @@ describe('postOpname', () => {
     const items = [{ product_id: 'p1', counted_qty: 5, system_qty: 8 }]
     rpc.mockResolvedValueOnce({ data: { opname: { id: 'so-1', status: 'posted' }, changes: [{ name: 'Bolu' }] }, error: null })
     const res = await api.postOpname({ id: 'so-1', items })
-    expect(rpc).toHaveBeenCalledWith('post_stock_opname', { p_opname_id: 'so-1', p_items: items })
+    expect(rpc).toHaveBeenCalledWith('post_stock_opname',
+      { p_opname_id: 'so-1', p_items: items, p_owner: 'owner-1' })
     expect(res.opname.status).toBe('posted')
     expect(res.changes).toHaveLength(1)
   })
@@ -185,13 +187,15 @@ describe('effectiveOwnerId (RBAC)', () => {
     expect(owner).toBe('boss-1')
   })
 
-  it('kembali ke workspace sendiri bila keanggotaan sudah dicabut', async () => {
+  it('GAGAL TERTUTUP bila keanggotaan sudah dicabut', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
     api.setSelectedWorkspace('boss-1')
-    // Keanggotaan tidak ditemukan lagi (dicabut owner) -> jangan paksa masuk.
+    // Keanggotaan tidak ditemukan lagi (dicabut owner). Dulu fungsi ini diam-diam
+    // mengembalikan 'staff-9' sementara UI masih menampilkan usaha boss, sehingga
+    // tulisan mendarat di workspace yang salah. Sekarang harus melempar.
     fromImpl.mockImplementationOnce(() => makeChain({ data: [], error: null }))
-    const owner = await api.effectiveOwnerId()
-    expect(owner).toBe('staff-9')
+    await expect(api.effectiveOwnerId()).rejects.toThrow(/tidak berlaku/i)
+    expect(api.getSelectedWorkspace()).toBe('')
   })
 
   it('mengembalikan null bila tidak ada sesi login', async () => {
@@ -290,6 +294,117 @@ describe('undangan staf (tidak otomatis diklaim)', () => {
     rpc.mockResolvedValue({ data: true, error: null })
     await api.declineInvitation('i1')
     expect(rpc).toHaveBeenCalledWith('decline_invitation', { p_invite_id: 'i1' })
+  })
+})
+
+// ============================================================
+// Regresi bug kritis: data usaha owner tampak "ter-copy" ke usaha staf.
+// Penyebabnya setiap query hanya bersandar pada RLS `own OR has_access(...)`,
+// yang tidak tahu workspace mana yang sedang dibuka klien. Tes di bawah
+// mengunci bahwa SETIAP baca/ubah/hapus terikat pemilik workspace aktif.
+// ============================================================
+describe('isolasi workspace', () => {
+  // Staf yang sedang membuka usaha boss-1 (keanggotaan aktif terverifikasi).
+  const asStaffInBossWorkspace = () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9', email: 's@x.com' } } })
+    api.setSelectedWorkspace('boss-1')
+    fromImpl.mockImplementationOnce(() => makeChain({ data: [{ owner_id: 'boss-1' }], error: null }))
+  }
+
+  it('effectiveOwnerId GAGAL TERTUTUP bila keanggotaan tidak lagi sah', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    api.setSelectedWorkspace('boss-1')
+    // Verifikasi mengembalikan kosong = akses sudah dicabut.
+    fromImpl.mockImplementationOnce(() => makeChain({ data: [], error: null }))
+    await expect(api.effectiveOwnerId()).rejects.toThrow(/tidak berlaku/i)
+    // Pilihan workspace dibersihkan supaya pengguna kembali ke usaha sendiri.
+    expect(api.getSelectedWorkspace()).toBe('')
+  })
+
+  it('fetchTransactions memfilter user_id ke workspace aktif', async () => {
+    asStaffInBossWorkspace()
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.fetchTransactions()
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'boss-1')
+  })
+
+  it('fetchProducts memfilter user_id ke workspace aktif', async () => {
+    asStaffInBossWorkspace()
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.fetchProducts()
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'boss-1')
+  })
+
+  it('di workspace sendiri, filternya adalah id pengguna — bukan usaha boss', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    api.setSelectedWorkspace('')
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.fetchTransactions()
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'staff-9')
+    expect(chain.eq).not.toHaveBeenCalledWith('user_id', 'boss-1')
+  })
+
+  it('updateTransaction tidak bisa menyentuh baris workspace lain', async () => {
+    asStaffInBossWorkspace()
+    const chain = makeChain({ data: { id: 't1' }, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.updateTransaction('t1', { amount: 1 })
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'boss-1')
+    expect(chain.eq).toHaveBeenCalledWith('id', 't1')
+  })
+
+  it('deleteProduct terikat workspace aktif', async () => {
+    asStaffInBossWorkspace()
+    const chain = makeChain({ data: null, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.deleteProduct('p1')
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'boss-1')
+  })
+
+  it('fetchAuditLogs memfilter owner_id (bukan user_id)', async () => {
+    asStaffInBossWorkspace()
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.fetchAuditLogs()
+    expect(chain.eq).toHaveBeenCalledWith('owner_id', 'boss-1')
+  })
+
+  it('addTransactionWithStock mengirim p_owner workspace aktif', async () => {
+    asStaffInBossWorkspace()
+    rpc.mockResolvedValue({ data: { txn: { id: 't1' }, changes: [] }, error: null })
+    await api.addTransactionWithStock({ direction: 'in', amount: 1 }, [])
+    expect(rpc).toHaveBeenCalledWith('add_transaction_with_stock',
+      expect.objectContaining({ p_owner: 'boss-1' }))
+  })
+
+  it('postOpname mengirim p_owner workspace aktif', async () => {
+    asStaffInBossWorkspace()
+    rpc.mockResolvedValue({ data: { opname: {}, changes: [] }, error: null })
+    await api.postOpname({ id: 'o1', items: [] })
+    expect(rpc).toHaveBeenCalledWith('post_stock_opname',
+      expect.objectContaining({ p_owner: 'boss-1' }))
+  })
+
+  it('fetchMonthlySummary mengirim p_owner, tidak bergantung auth.uid()', async () => {
+    asStaffInBossWorkspace()
+    rpc.mockResolvedValue({ data: [], error: null })
+    await api.fetchMonthlySummary()
+    expect(rpc).toHaveBeenCalledWith('my_monthly_summary', { p_owner: 'boss-1' })
+  })
+
+  it('exportMyData hanya mengekspor baris akun sendiri, bukan usaha boss', async () => {
+    asStaffInBossWorkspace()
+    const chains = []
+    fromImpl.mockImplementation(() => { const c = makeChain({ data: [], error: null }); chains.push(c); return c })
+    await api.exportMyData()
+    for (const c of chains) {
+      if (c.eq.mock.calls.some(([k]) => k === 'user_id')) {
+        expect(c.eq).toHaveBeenCalledWith('user_id', 'staff-9')
+      }
+    }
   })
 })
 
