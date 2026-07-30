@@ -13,12 +13,12 @@
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-const MODEL = 'gemini-2.5-flash'
 
 const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
 function corsHeaders(origin: string | null) {
@@ -33,6 +33,15 @@ function corsHeaders(origin: string | null) {
 
 const rupiah = (n: number) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 const todayWIB = () => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10)
+
+// Penjaga bahasa: gemini-2.5-flash kadang tetap membalas Bahasa Indonesia
+// walau diminta Inggris (dipengaruhi data JSON & nama produk yang Indonesia).
+// Kalau lolos filter kata umum Indonesia ini, buang hasil AI & pakai template EN.
+const ID_MARKERS = /\b(yang|dengan|adalah|belum|sudah|dan|untuk|dari|akan|ini|itu|karena|juga|lebih|masih|bisa|perlu|coba|jadi|kalau|kamu|anda)\b/i
+function looksIndonesian(text: string): boolean {
+  const hits = text.match(new RegExp(ID_MARKERS, 'gi'))
+  return (hits?.length ?? 0) >= 3
+}
 
 function templateNarrative(m: any): string {
   const parts: string[] = []
@@ -107,8 +116,10 @@ serve(async (req) => {
       if (cached?.content) return json({ content: cached.content, metrics: cached.payload, cached: true })
     }
 
-    const { data: allowed } = await supabase.rpc('bump_ai_usage', { p_kind: 'stok', p_limit: 5 })
-    if (allowed === false) return json({ error: 'Batas pembuatan insight stok harian tercapai. Coba lagi besok.' }, 429)
+    // Kuota harian PER WORKSPACE, dicek sebelum memanggil Gemini.
+    const ai = getGeminiClient('insight_stok')
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
 
     // ================= TAHAP 1: metrik deterministik =================
     const { data: products } = await supabase
@@ -154,7 +165,7 @@ serve(async (req) => {
 
     // ================= TAHAP 2: Gemini menarasikan =================
     let content = ''
-    if (GEMINI_API_KEY && metrics.total_products > 0) {
+    if (metrics.total_products > 0) {
       try {
         const PROMPT = isEn ? `You are a practical stock-management assistant for a small Indonesian business (UMKM).
 Summarize this shop's STOCK CONDITION in plain everyday English.
@@ -173,7 +184,8 @@ HARD RULES:
 - PLAIN TEXT with no markdown (no *, #, _, no bullets).
 - ONLY mention product names & numbers that ARE in DATA. Never invent products or numbers.
 - A 0/empty field means it doesn't exist — don't discuss it.
-- Tone: firm but helpful, like a coworker giving you a heads-up.` : `Kamu asisten manajemen stok untuk UMKM Indonesia yang praktis.
+- Tone: firm but helpful, like a coworker giving you a heads-up.
+- LANGUAGE: your ENTIRE reply must be in English, even though the DATA field names and product names below are in Indonesian — translate any Indonesian product/category name naturally into English inside your sentence. Do not write a single Indonesian sentence.` : `Kamu asisten manajemen stok untuk UMKM Indonesia yang praktis.
 Simpulkan KONDISI STOK toko ini dalam Bahasa Indonesia sehari-hari.
 
 DATA (satu-satunya sumber angka & nama produk yang boleh kamu sebut):
@@ -191,29 +203,23 @@ ATURAN KERAS:
 - HANYA sebut nama produk & angka yang ADA di DATA. Dilarang mengarang produk atau angka.
 - Field 0/kosong artinya tidak ada — jangan dibahas.
 - Nada: tegas tapi membantu, seperti rekan kerja yang mengingatkan.`
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-          {
-            method: 'POST',
-            headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-              // thinkingBudget:0 mematikan mode "thinking" gemini-2.5-flash agar
-              // tidak memakan maxOutputTokens → narasi tidak terpotong di tengah.
-              generationConfig: { temperature: 0.3, maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
-            }),
-          },
-        )
-        if (geminiRes.ok) {
-          const data = await geminiRes.json()
-          const cand = data?.candidates?.[0]
-          const text = (cand?.content?.parts?.map((p: any) => p.text).join('') ?? '').trim()
-          // Jangan tampilkan narasi terpotong (MAX_TOKENS) — pakai template lengkap.
-          if (text && cand?.finishReason !== 'MAX_TOKENS') content = text
+        // disableThinking agar maxOutputTokens tidak termakan mode "thinking".
+        const r = await ai.generate({
+          prompt: PROMPT,
+          temperature: 0.3,
+          maxOutputTokens: 600,
+          disableThinking: true,
+        })
+        // Jangan tampilkan narasi terpotong (MAX_TOKENS) — pakai template lengkap.
+        // Bila diminta Inggris tapi Gemini tetap membalas Indonesia, buang juga.
+        if (r.text && r.finishReason !== 'MAX_TOKENS' && !(isEn && looksIndonesian(r.text))) {
+          content = r.text
         }
       } catch { /* jatuh ke template */ }
     }
     const usedAI = Boolean(content)
+    // Kuota hanya naik bila AI benar-benar menghasilkan narasi.
+    if (usedAI) await commitQuota(supabase, ai.quotaFeature)
     if (!content) content = isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics)
 
     try {

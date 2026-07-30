@@ -20,7 +20,7 @@ const fromImpl = vi.fn()
 // juga bisa langsung di-await (resolve ke {data,error}).
 function makeChain(result = { data: null, error: null }) {
   const chain = {}
-  for (const m of ['insert', 'select', 'update', 'delete', 'eq', 'in', 'order', 'limit', 'gte', 'lte']) {
+  for (const m of ['insert', 'select', 'update', 'delete', 'eq', 'is', 'in', 'order', 'limit', 'gte', 'lte', 'ilike']) {
     chain[m] = vi.fn(() => chain)
   }
   chain.maybeSingle = vi.fn(async () => result)
@@ -42,6 +42,18 @@ vi.mock('../supabase', () => ({
 
 // Import SETELAH mock terpasang (vi.mock di-hoist, jadi aman).
 const api = await import('../api')
+
+// Stub localStorage: dipakai api.js untuk menyimpan workspace aktif.
+// Lingkungan test berjalan di node tanpa localStorage bawaan.
+beforeEach(() => {
+  const store = new Map()
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, String(v)) },
+    removeItem: (k) => { store.delete(k) },
+    clear: () => { store.clear() },
+  }
+})
 
 beforeEach(() => {
   rpc.mockReset()
@@ -154,11 +166,32 @@ describe('effectiveOwnerId (RBAC)', () => {
     expect(owner).toBe('owner-1')
   })
 
-  it('mengembalikan owner_id bila staf aktif', async () => {
+  // REGRESI PENTING: dulu staf yang emailnya pernah diundang otomatis "diserap"
+  // ke workspace pengundang, sehingga akun baru tidak pernah bisa punya usaha
+  // sendiri. Sekarang default SELALU workspace milik sendiri.
+  it('TIDAK ikut workspace orang lain bila pengguna belum memilihnya', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
-    fromImpl.mockImplementationOnce(() => makeChain({ data: { owner_id: 'boss-1' }, error: null }))
+    api.setSelectedWorkspace('')
+    fromImpl.mockImplementationOnce(() => makeChain({ data: [{ owner_id: 'boss-1' }], error: null }))
+    const owner = await api.effectiveOwnerId()
+    expect(owner).toBe('staff-9')
+  })
+
+  it('memakai workspace orang lain HANYA setelah dipilih & terverifikasi', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    api.setSelectedWorkspace('boss-1')
+    fromImpl.mockImplementationOnce(() => makeChain({ data: [{ owner_id: 'boss-1' }], error: null }))
     const owner = await api.effectiveOwnerId()
     expect(owner).toBe('boss-1')
+  })
+
+  it('kembali ke workspace sendiri bila keanggotaan sudah dicabut', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    api.setSelectedWorkspace('boss-1')
+    // Keanggotaan tidak ditemukan lagi (dicabut owner) -> jangan paksa masuk.
+    fromImpl.mockImplementationOnce(() => makeChain({ data: [], error: null }))
+    const owner = await api.effectiveOwnerId()
+    expect(owner).toBe('staff-9')
   })
 
   it('mengembalikan null bila tidak ada sesi login', async () => {
@@ -169,7 +202,8 @@ describe('effectiveOwnerId (RBAC)', () => {
 
   it('meng-cache hasil: panggilan kedua tidak query staff_members lagi', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
-    fromImpl.mockImplementationOnce(() => makeChain({ data: { owner_id: 'boss-1' }, error: null }))
+    api.setSelectedWorkspace('boss-1')
+    fromImpl.mockImplementationOnce(() => makeChain({ data: [{ owner_id: 'boss-1' }], error: null }))
     const a = await api.effectiveOwnerId()
     const callsAfterFirst = fromImpl.mock.calls.length
     const b = await api.effectiveOwnerId()
@@ -177,5 +211,38 @@ describe('effectiveOwnerId (RBAC)', () => {
     expect(b).toBe('boss-1')
     // Tidak ada query staff_members tambahan pada panggilan kedua.
     expect(fromImpl.mock.calls.length).toBe(callsAfterFirst)
+  })
+})
+
+describe('undangan staf (tidak otomatis diklaim)', () => {
+  it('fetchPendingInvitations hanya mengembalikan undangan dengan email PERSIS sama', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a_b@gmail.com' } } })
+    // Baris kedua adalah kasus yang dulu bisa lolos lewat pola LIKE ("_" = wildcard).
+    fromImpl.mockImplementationOnce(() => makeChain({
+      data: [
+        { id: 'i1', email: 'a_b@gmail.com', owner_id: 'boss-1' },
+        { id: 'i2', email: 'axb@gmail.com', owner_id: 'boss-2' },
+      ],
+      error: null,
+    }))
+    const list = await api.fetchPendingInvitations()
+    expect(list.map((x) => x.id)).toEqual(['i1'])
+  })
+
+  it('fetchMyMemberships mengembalikan array (mendukung banyak workspace)', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    fromImpl.mockImplementationOnce(() => makeChain({
+      data: [{ owner_id: 'boss-1' }, { owner_id: 'boss-2' }],
+      error: null,
+    }))
+    const list = await api.fetchMyMemberships()
+    expect(list).toHaveLength(2)
+  })
+
+  it('fetchMyMembership null saat berada di workspace sendiri', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    api.setSelectedWorkspace('')
+    const m = await api.fetchMyMembership()
+    expect(m).toBeNull()
   })
 })

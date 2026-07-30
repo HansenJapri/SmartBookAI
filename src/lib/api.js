@@ -1,21 +1,52 @@
 import { supabase } from './supabase'
 
-// ---------- RBAC: pemilik data efektif ----------
-// Staf aktif membaca & menulis ATAS NAMA owner-nya (data usaha satu pemilik).
-// Owner biasa: mengembalikan id sendiri. Hasil di-cache per sesi login.
+// ---------- RBAC: pemilik data efektif (workspace aktif) ----------
+// ATURAN DASAR: setiap pengguna SELALU memiliki workspace-nya sendiri.
+// Keanggotaan sebagai staf di usaha orang lain bersifat TAMBAHAN dan hanya
+// aktif bila pengguna MEMILIHNYA sendiri lewat pengalih workspace.
+//
+// Ini memperbaiki bug lama: pengguna baru yang emailnya pernah diundang jadi
+// staf langsung "diserap" ke workspace pengundang tanpa pemberitahuan, sehingga
+// tidak pernah bisa punya usaha sendiri. Default sekarang selalu milik sendiri.
+const WS_KEY = 'bp-active-workspace'
+
+export function getSelectedWorkspace() {
+  try { return localStorage.getItem(WS_KEY) || '' } catch { return '' }
+}
+
+export function setSelectedWorkspace(ownerId) {
+  try {
+    if (ownerId) localStorage.setItem(WS_KEY, ownerId)
+    else localStorage.removeItem(WS_KEY)
+  } catch { /* private mode */ }
+  _ownerCache = null
+}
+
 let _ownerCache = null
 export async function effectiveOwnerId() {
   if (_ownerCache) return _ownerCache
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
+  const selected = getSelectedWorkspace()
+  // Tanpa pilihan eksplisit -> workspace sendiri. Ini jalur default & teraman.
+  if (!selected || selected === user.id) {
+    _ownerCache = user.id
+    return _ownerCache
+  }
+
+  // Ada pilihan: verifikasi dulu keanggotaannya masih sah (bisa dicabut owner).
+  // Pakai limit(1) — BUKAN maybeSingle() — karena satu pengguna sah menjadi
+  // staf di lebih dari satu workspace; maybeSingle() akan error pada 2+ baris.
   try {
     const { data } = await supabase
       .from('staff_members')
       .select('owner_id')
       .eq('member_id', user.id)
       .eq('status', 'active')
-      .maybeSingle()
-    _ownerCache = data?.owner_id || user.id
+      .eq('owner_id', selected)
+      .limit(1)
+    _ownerCache = data?.[0]?.owner_id || user.id
   } catch { _ownerCache = user.id }
   return _ownerCache
 }
@@ -559,31 +590,72 @@ export async function deleteStaff(id) {
   if (error) throw error
 }
 
-// Keanggotaan SAYA (null bila owner biasa / bukan staf siapa pun).
+// SEMUA keanggotaan staf saya yang aktif (bisa lebih dari satu workspace).
+// Sengaja mengembalikan array: satu pengguna sah menjadi staf di banyak usaha.
+export async function fetchMyMemberships() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data } = await supabase
+    .from('staff_members').select('*')
+    .eq('member_id', user.id).eq('status', 'active')
+  return data || []
+}
+
+// Keanggotaan untuk workspace yang SEDANG dilihat.
+// null = sedang melihat workspace sendiri (akses penuh sebagai owner).
 export async function fetchMyMembership() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data } = await supabase
-    .from('staff_members').select('*')
-    .eq('member_id', user.id).eq('status', 'active').maybeSingle()
-  return data || null
+  const selected = getSelectedWorkspace()
+  if (!selected || selected === user.id) return null
+  const list = await fetchMyMemberships()
+  return list.find((m) => m.owner_id === selected) || null
 }
 
-// Saat staf login pertama kali: klaim undangan yang cocok dengan emailnya.
-export async function claimMembership() {
+// Undangan yang MENUNGGU persetujuan (belum diklaim).
+// Ditampilkan sebagai tawaran; pengguna yang memutuskan menerima atau tidak.
+export async function fetchPendingInvitations() {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return null
+  if (!user?.email) return []
+  const { data } = await supabase
+    .from('staff_members').select('*')
+    .is('member_id', null).eq('status', 'invited')
+  // RLS sudah menyaring ke email kita; disaring ulang di klien sebagai
+  // pertahanan berlapis (perbandingan PERSIS, bukan pola LIKE).
+  const mine = String(user.email).toLowerCase()
+  return (data || []).filter((r) => String(r.email || '').toLowerCase() === mine)
+}
+
+// Menerima undangan SECARA EKSPLISIT. Tidak lagi dipanggil otomatis saat login,
+// supaya akun baru tidak pernah "diserap" ke workspace orang lain tanpa sadar.
+export async function acceptInvitation(id) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Harus masuk (login).')
+  const { data, error } = await supabase
+    .from('staff_members')
+    .update({ member_id: user.id, status: 'active' })
+    .eq('id', id)
+    .is('member_id', null)
+    .eq('status', 'invited')
+    .select()
+  if (error) throw error
+  _ownerCache = null
+  return data?.[0] || null
+}
+
+// Menolak undangan: cukup diabaikan dari sisi pengguna (baris tetap milik owner,
+// yang bisa mencabutnya sendiri). Disimpan lokal agar tidak ditawarkan lagi.
+const DISMISSED_KEY = 'bp-dismissed-invites'
+export function dismissInvitation(id) {
   try {
-    const { data } = await supabase
-      .from('staff_members')
-      .update({ member_id: user.id, status: 'active' })
-      .is('member_id', null)
-      .eq('status', 'invited')
-      .ilike('email', user.email)
-      .select()
-    if (data?.length) _ownerCache = null // akses berubah -> segarkan cache owner
-    return data?.[0] || null
-  } catch { return null }
+    const cur = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]')
+    if (!cur.includes(id)) localStorage.setItem(DISMISSED_KEY, JSON.stringify([...cur, id]))
+  } catch { /* private mode */ }
+}
+export function isInvitationDismissed(id) {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]').includes(id)
+  } catch { return false }
 }
 
 // ---------- AUDIT LOG (baca-saja; ditulis trigger database) ----------

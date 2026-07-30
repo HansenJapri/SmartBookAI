@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import AuthSide from '../components/AuthSide'
+import useForceLightTheme from '../lib/useForceLightTheme'
 
 export default function Login() {
+  useForceLightTheme()
   const { signIn } = useAuth()
   const { t } = useLang()
   const a = t.auth

@@ -3,11 +3,14 @@ import { Bell, Plus } from 'lucide-react'
 import Modal from './Modal'
 import { fetchReminders, addReminder, updateReminder, deleteReminder } from '../lib/api'
 import { fmtDateTime } from '../lib/format'
+import { useLang } from '../context/LangContext'
 
 // Pengingat penting (mis. "ambil stok jam 3 sore"). Yang sudah jatuh waktu
 // tampil sebagai notifikasi di atas Dashboard TERUS-MENERUS sampai pengguna
 // menekan silang. Pengingat murni tampil di dalam aplikasi (dashboard).
 export default function Reminders() {
+  const { t } = useLang()
+  const rm = t.reminders
   const [list, setList] = useState(null)
   const [form, setForm] = useState(null) // {title, note, remind_at(datetime-local)}
   const [busy, setBusy] = useState(false)
@@ -40,7 +43,7 @@ export default function Reminders() {
   }
 
   const remove = async (r) => {
-    if (!confirm(`Hapus pengingat "${r.title}"?`)) return
+    if (!confirm(rm.confirmDelete.replace('{title}', r.title))) return
     try {
       await deleteReminder(r.id)
       setList((prev) => prev.filter((x) => x.id !== r.id))
@@ -50,8 +53,8 @@ export default function Reminders() {
   const save = async (e) => {
     e.preventDefault()
     setErr('')
-    if (!form.title.trim()) return setErr('Judul pengingat wajib diisi.')
-    if (!form.remind_at) return setErr('Tanggal & jam pengingat wajib diisi.')
+    if (!form.title.trim()) return setErr(rm.errTitleReq)
+    if (!form.remind_at) return setErr(rm.errDateReq)
     setBusy(true)
     try {
       const created = await addReminder({
@@ -77,7 +80,7 @@ export default function Reminders() {
           <span style={{ flex: 1, minWidth: 200 }}>
             <b>{r.title}</b>{r.note ? ` — ${r.note}` : ''} · {fmtDateTime(r.remind_at)}
           </span>
-          <button className="icon-btn" onClick={() => dismiss(r)} aria-label={`Tutup pengingat ${r.title}`}>✕</button>
+          <button className="icon-btn" onClick={() => dismiss(r)} aria-label={rm.closeReminderAria.replace('{title}', r.title)}>✕</button>
         </div>
       ))}
 
@@ -85,23 +88,23 @@ export default function Reminders() {
       <div className="card card-pad" style={{ marginBottom: 16 }}>
         <div className="flex between" style={{ alignItems: 'center' }}>
           <div>
-            <h3 className="card-title"><Bell size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />Pengingat</h3>
-            <div className="card-sub">Muncul terus di sini saat jatuh waktu, sampai Anda menutupnya.</div>
+            <h3 className="card-title"><Bell size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />{rm.title}</h3>
+            <div className="card-sub">{rm.sub}</div>
           </div>
           <button className="btn btn-ghost" onClick={() => { setErr(''); setForm({ title: '', note: '', remind_at: '' }) }}>
-            <Plus size={15} style={{ verticalAlign: '-2px' }} /> Pengingat
+            <Plus size={15} style={{ verticalAlign: '-2px' }} /> {rm.addBtn}
           </button>
         </div>
         {upcoming.length === 0 && due.length === 0 ? (
           <p className="muted-sm" style={{ margin: '10px 0 0' }}>
-            Belum ada pengingat. Contoh: "Ambil stok di gudang" jam 15.00, atau "Antar pesanan Bu Sari" jam 17.00.
+            {rm.emptyMsg}
           </p>
         ) : upcoming.length > 0 && (
           <ul className="sig-drivers" style={{ marginTop: 10 }}>
             {upcoming.map((r) => (
               <li key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ flex: 1 }}><b>{r.title}</b> · {fmtDateTime(r.remind_at)}</span>
-                <button className="linklike" style={{ color: 'var(--red)' }} onClick={() => remove(r)}>Hapus</button>
+                <button className="linklike" style={{ color: 'var(--red)' }} onClick={() => remove(r)}>{rm.delete}</button>
               </li>
             ))}
           </ul>
@@ -112,32 +115,32 @@ export default function Reminders() {
       {form && (
         <Modal onClose={() => setForm(null)} onSubmit={save} labelledBy="reminderModalTitle">
             <div className="modal-head">
-              <h3 id="reminderModalTitle">Tambah Pengingat</h3>
-              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label="Tutup">✕</button>
+              <h3 id="reminderModalTitle">{rm.modalTitle}</h3>
+              <button type="button" className="icon-btn" onClick={() => setForm(null)} aria-label={rm.close}>✕</button>
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
               <div className="field">
-                <label htmlFor="rem-title">Judul</label>
-                <input id="rem-title" className="input" value={form.title} placeholder="cth: Ambil stok di gudang"
+                <label htmlFor="rem-title">{rm.lTitle}</label>
+                <input id="rem-title" className="input" value={form.title} placeholder={rm.titlePh}
                   onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </div>
               <div className="field">
-                <label htmlFor="rem-note">Catatan <span className="muted-sm">(opsional)</span></label>
-                <input id="rem-note" className="input" value={form.note} placeholder="cth: bawa mobil box"
+                <label htmlFor="rem-note">{rm.lNote} <span className="muted-sm">{rm.optional}</span></label>
+                <input id="rem-note" className="input" value={form.note} placeholder={rm.notePh}
                   onChange={(e) => setForm({ ...form, note: e.target.value })} />
               </div>
               <div className="field">
-                <label htmlFor="rem-remind-at">Tanggal &amp; jam</label>
+                <label htmlFor="rem-remind-at">{rm.lDateTime}</label>
                 <input id="rem-remind-at" className="input" type="datetime-local" value={form.remind_at}
                   onChange={(e) => setForm({ ...form, remind_at: e.target.value })} />
               </div>
               <p className="muted-sm" style={{ margin: 0 }}>
-                Pengingat akan muncul otomatis di Dashboard saat jatuh waktu, dan bertahan sampai Anda menutupnya.
+                {rm.modalHint}
               </p>
               <div className="modal-foot">
-                <button type="button" className="btn btn-ghost btn-block" onClick={() => setForm(null)}>Batal</button>
-                <button className="btn btn-primary btn-block" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan'}</button>
+                <button type="button" className="btn btn-ghost btn-block" onClick={() => setForm(null)}>{rm.cancel}</button>
+                <button className="btn btn-primary btn-block" disabled={busy}>{busy ? rm.saving : rm.save}</button>
               </div>
             </div>
         </Modal>

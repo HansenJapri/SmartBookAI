@@ -14,12 +14,12 @@
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-const MODEL = 'gemini-2.5-flash'
 
 const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
 function corsHeaders(origin: string | null) {
@@ -34,6 +34,15 @@ function corsHeaders(origin: string | null) {
 
 const rupiah = (n: number) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID')
 const todayWIB = () => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10)
+
+// Penjaga bahasa: gemini-2.5-flash kadang tetap membalas Bahasa Indonesia
+// walau diminta Inggris (dipengaruhi data JSON & nama kategori yang Indonesia).
+// Kalau lolos filter kata umum Indonesia ini, buang hasil AI & pakai template EN.
+const ID_MARKERS = /\b(yang|dengan|adalah|belum|sudah|dan|untuk|dari|akan|ini|itu|karena|juga|lebih|masih|bisa|perlu|coba|jadi|kalau|kamu|anda)\b/i
+function looksIndonesian(text: string): boolean {
+  const hits = text.match(new RegExp(ID_MARKERS, 'gi'))
+  return (hits?.length ?? 0) >= 3
+}
 // Batas hari/bulan dalam zona WIB (+07:00), dikembalikan sebagai epoch ms UTC.
 const wibStart = (isoDate: string) => new Date(isoDate + 'T00:00:00+07:00').getTime()
 
@@ -130,9 +139,11 @@ serve(async (req) => {
       if (cached?.content) return json({ content: cached.content, metrics: cached.payload, cached: true })
     }
 
-    // Kuota harian generasi narasi (cache-hit tidak kena kuota).
-    const { data: allowed } = await supabase.rpc('bump_ai_usage', { p_kind: 'narasi', p_limit: 5 })
-    if (allowed === false) return json({ error: 'Batas pembuatan insight harian tercapai. Coba lagi besok.' }, 429)
+    // Kuota harian PER WORKSPACE (cache-hit di atas tidak kena kuota).
+    // Dicek SEBELUM memanggil Gemini supaya kuota asli di Google tidak terbuang.
+    const ai = getGeminiClient('insight_dashboard')
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
 
     // ================= TAHAP 1: metrik deterministik =================
     const { data: txs } = await supabase
@@ -256,7 +267,7 @@ serve(async (req) => {
 
     // ================= TAHAP 2: Gemini menarasikan =================
     let content = ''
-    if (GEMINI_API_KEY && metrics.tx_count > 0) {
+    if (metrics.tx_count > 0) {
       try {
         const PROMPT = isEn ? `You are a down-to-earth, to-the-point financial advisor for a small Indonesian business (UMKM).
 Your job: summarize this owner's BUSINESS CONDITION for TODAY, in plain everyday English.
@@ -277,7 +288,8 @@ HARD RULES:
 - A null/0 field means the data doesn't exist yet — don't force a mention of it.
 - Currency amounts stay in Rupiah, written like "Rp 2.4 million" or "Rp 450 thousand" (round sensibly from DATA).
 - Percentages are taken as-is from DATA (e.g. margin ${metrics.month_margin_pct ?? 0}%).
-- Tone: warm, clear, encouraging without being preachy.` : `Kamu penasihat keuangan UMKM Indonesia yang membumi dan to the point.
+- Tone: warm, clear, encouraging without being preachy.
+- LANGUAGE: your ENTIRE reply must be in English, even though the DATA field names and category names below are in Indonesian — translate any Indonesian category/product name naturally into English inside your sentence. Do not write a single Indonesian sentence.` : `Kamu penasihat keuangan UMKM Indonesia yang membumi dan to the point.
 Tugasmu: simpulkan KONDISI BISNIS pemilik usaha ini untuk HARI INI, dalam Bahasa Indonesia sehari-hari.
 
 DATA (satu-satunya sumber angka yang boleh kamu sebut):
@@ -297,31 +309,25 @@ ATURAN KERAS:
 - Format uang ringkas: "Rp 2,4 juta" atau "Rp 450 ribu" (bulatkan wajar dari DATA).
 - Persen ambil apa adanya dari DATA (mis. margin ${metrics.month_margin_pct ?? 0}%).
 - Nada: hangat, jelas, memberi semangat tanpa menggurui.`
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-          {
-            method: 'POST',
-            headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-              // thinkingBudget:0 mematikan mode "thinking" gemini-2.5-flash. Kalau
-              // dibiarkan, thinking ikut memakan maxOutputTokens sehingga narasi
-              // terpotong di tengah (mis. "...pemasukan baru Rp." tanpa angka).
-              generationConfig: { temperature: 0.3, maxOutputTokens: 700, thinkingConfig: { thinkingBudget: 0 } },
-            }),
-          },
-        )
-        if (geminiRes.ok) {
-          const data = await geminiRes.json()
-          const cand = data?.candidates?.[0]
-          const text = (cand?.content?.parts?.map((p: any) => p.text).join('') ?? '').trim()
-          // Narasi yang terpotong (finishReason MAX_TOKENS) JANGAN ditampilkan —
-          // biarkan jatuh ke template yang selalu berupa kalimat lengkap.
-          if (text && cand?.finishReason !== 'MAX_TOKENS') content = text
+        // thinkingBudget:0 (disableThinking) mematikan mode "thinking" agar tidak
+        // ikut memakan maxOutputTokens sehingga narasi terpotong di tengah.
+        const r = await ai.generate({
+          prompt: PROMPT,
+          temperature: 0.3,
+          maxOutputTokens: 700,
+          disableThinking: true,
+        })
+        // Narasi yang terpotong (finishReason MAX_TOKENS) JANGAN ditampilkan —
+        // biarkan jatuh ke template yang selalu berupa kalimat lengkap.
+        // Bila diminta Inggris tapi Gemini tetap membalas Indonesia, buang juga.
+        if (r.text && r.finishReason !== 'MAX_TOKENS' && !(isEn && looksIndonesian(r.text))) {
+          content = r.text
         }
       } catch { /* jatuh ke template */ }
     }
     const usedAI = Boolean(content)
+    // Penghitung kuota HANYA naik saat panggilan AI benar-benar menghasilkan narasi.
+    if (usedAI) await commitQuota(supabase, ai.quotaFeature)
     if (!content) {
       content = metrics.tx_count > 0
         ? (isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics))

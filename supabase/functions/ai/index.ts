@@ -19,11 +19,12 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
+import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-const CHAT_MODEL = 'gemini-2.5-flash-lite'
 
 const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
 
@@ -186,8 +187,6 @@ serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
   try {
-    if (!GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY belum diatur di server.' }, 501)
-
     const authHeader = req.headers.get('Authorization') || ''
     if (!authHeader.startsWith('Bearer ')) return json({ error: 'Harus masuk (login) untuk memakai asisten AI.' }, 401)
 
@@ -199,9 +198,10 @@ serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData?.user) return json({ error: 'Sesi tidak valid. Silakan masuk kembali.' }, 401)
 
-    // Batas pemakaian harian per akun (kontrol biaya). Aman bila RPC belum dimigrasi.
-    const { data: allowed } = await supabase.rpc('bump_ai_usage', { p_kind: 'chat', p_limit: 60 })
-    if (allowed === false) return json({ error: 'Batas pemakaian asisten AI harian tercapai. Silakan coba lagi besok.' }, 429)
+    // Kuota harian PER WORKSPACE, dicek SEBELUM memanggil Gemini.
+    const ai = getGeminiClient('chat')
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
 
     const { message, history, device } = await req.json()
     if (!message || typeof message !== 'string') return json({ error: 'Pesan kosong.' }, 400)
@@ -266,24 +266,21 @@ serve(async (req) => {
     }
     contents.push({ role: 'user', parts: [{ text: `Ringkasan data usaha pengguna:\n${summary}\n\nPertanyaan pengguna:\n${message}` }] })
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents,
-          generationConfig: { temperature: 0.3, maxOutputTokens: 800 },
-        }),
-      },
-    )
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: errText.slice(0, 300) }, 502)
+    let reply = ''
+    try {
+      const r = await ai.generateChat(contents, {
+        systemInstruction: SYSTEM,
+        temperature: 0.3,
+        maxOutputTokens: 800,
+      })
+      reply = r.text
+    } catch (e) {
+      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: String(e).slice(0, 300) }, 502)
     }
-    const data = await geminiRes.json()
-    const reply = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? ''
+
+    // Kuota naik hanya setelah jawaban benar-benar diterima.
+    if (reply) await commitQuota(supabase, ai.quotaFeature)
+
     return json({ reply: reply || 'Maaf, saya belum bisa menjawab itu. Coba tanyakan dengan cara lain.' })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan.', detail: String(e).slice(0, 300) }, 500)

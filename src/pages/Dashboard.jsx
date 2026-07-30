@@ -146,19 +146,19 @@ export default function Dashboard() {
       {/* Greeting + period selector */}
       <div className="d2-greet d2-rv">
         <div>
-          <h2>Halo{ownerName ? `, ${ownerName}` : ''} <span className="d2-greet-wave" role="img" aria-label="melambai">👋</span></h2>
-          <p>Berikut ringkasan performa usaha Anda pada periode {periodLabel.toLowerCase()}.</p>
+          <h2>{d.greetHi}{ownerName ? `, ${ownerName}` : ''} <span className="d2-greet-wave" role="img" aria-label="wave">👋</span></h2>
+          <p>{d.greetSummary.replace('{period}', periodLabel.toLowerCase())}</p>
         </div>
-        <label className="d2-period" aria-label="Pilih rentang tanggal">
+        <label className="d2-period" aria-label={d.dateRangeAria}>
           <CalendarDays size={18} />
           <select value={preset} onChange={(e) => setPreset(e.target.value)}>
             {PRESET_KEYS.map((k) => <option key={k} value={k}>{d.presets[k]}</option>)}
           </select>
           {preset === 'custom' && (
             <>
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Dari tanggal" />
+              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label={d.fromDateAria} />
               <span style={{ fontSize: 12, color: 'var(--d2-on-surface-variant)' }}>{d.to}</span>
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Sampai tanggal" />
+              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label={d.toDateAria} />
             </>
           )}
         </label>
@@ -174,7 +174,7 @@ export default function Dashboard() {
               <p>{lowStock.slice(0, 4).map((p) => p.name).join(', ')}{lowStock.length > 4 ? `, ${d.andOthers}` : ''}.</p>
             </div>
           </div>
-          <Link to="/app/stok" className="d2-alert-cta">Pesan Sekarang</Link>
+          <Link to="/app/stok" className="d2-alert-cta">{d.orderNow}</Link>
         </div>
       )}
 
@@ -303,11 +303,11 @@ export default function Dashboard() {
               <table className="d2-table">
                 <thead>
                   <tr>
-                    <th>Waktu</th>
-                    <th>Keterangan</th>
-                    <th>Kategori</th>
-                    <th className="d2-num">Nominal</th>
-                    <th>Status</th>
+                    <th>{d.thTime}</th>
+                    <th>{d.thDesc}</th>
+                    <th>{d.thCategory}</th>
+                    <th className="d2-num">{d.thAmount}</th>
+                    <th>{d.thStatus}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -317,7 +317,7 @@ export default function Dashboard() {
                       <td style={{ fontWeight: 600 }}>{tr.description}</td>
                       <td>
                         <span className={`d2-tag ${tr.direction === 'in' ? 'd2-tag-in' : 'd2-tag-out'}`}>
-                          {tr.direction === 'in' ? 'PEMASUKAN' : (tr.category || 'OPERASIONAL')}
+                          {tr.direction === 'in' ? d.incomeTag : (tr.category || d.opsTag)}
                         </span>
                       </td>
                       <td className={`d2-amt ${tr.direction === 'in' ? 'd2-amt-in' : 'd2-amt-out'}`}>
@@ -325,8 +325,8 @@ export default function Dashboard() {
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         {tr.payment_status === 'belum'
-                          ? <Clock size={18} style={{ color: 'var(--d2-outline)' }} aria-label="Belum lunas" />
-                          : <CheckCircle2 size={18} style={{ color: 'var(--d2-success)' }} aria-label="Lunas" />}
+                          ? <Clock size={18} style={{ color: 'var(--d2-outline)' }} aria-label={d.unpaidAria} />
+                          : <CheckCircle2 size={18} style={{ color: 'var(--d2-success)' }} aria-label={d.paidAria} />}
                       </td>
                     </tr>
                   ))}
@@ -494,6 +494,8 @@ function TargetMetric({ label, achieved, target, pct }) {
 }
 
 function TargetCard({ tx }) {
+  const { t } = useLang()
+  const tg = t.target
   const [target, setTarget] = useState(undefined)
   const today = new Date().toISOString().slice(0, 10)
   const emptyForm = { name: '', start_date: today, end_date: '', revenue_target: '', profit_target: '' }
@@ -508,8 +510,8 @@ function TargetCard({ tx }) {
     e.preventDefault()
     const rev = Number(form.revenue_target) || 0
     const prof = Number(form.profit_target) || 0
-    if (rev <= 0 && prof <= 0) { setErr('Isi minimal salah satu: target omset atau target profit.'); return }
-    if (form.end_date && form.end_date < form.start_date) { setErr('Tanggal akhir tidak boleh sebelum tanggal mulai.'); return }
+    if (rev <= 0 && prof <= 0) { setErr(tg.errNeedOne); return }
+    if (form.end_date && form.end_date < form.start_date) { setErr(tg.errEndBeforeStart); return }
     setBusy(true); setErr('')
     try {
       setTarget(await addTarget({
@@ -526,7 +528,7 @@ function TargetCard({ tx }) {
   }
 
   const rangeLabel = target
-    ? `${fmtDate(target.start_date)} → ${target.deadline ? fmtDate(target.deadline) : 'tanpa batas'}`
+    ? `${fmtDate(target.start_date)} → ${target.deadline ? fmtDate(target.deadline) : tg.noDeadline}`
     : ''
   const pace = prog && prog.timePct != null && !prog.ended && !prog.done
     ? (prog.minPct >= prog.timePct ? 'ok' : 'behind') : null
@@ -535,15 +537,15 @@ function TargetCard({ tx }) {
     <div className="d2-target d2-rv">
       <div className="d2-target-head">
         <div style={{ minWidth: 0 }}>
-          <h4><TargetIcon size={14} style={{ verticalAlign: '-2px', marginRight: 6, color: 'var(--d2-primary)' }} />Target Penjualan</h4>
+          <h4><TargetIcon size={14} style={{ verticalAlign: '-2px', marginRight: 6, color: 'var(--d2-primary)' }} />{tg.title}</h4>
           <div className="d2-tv" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {target ? (target.name || 'Target') : 'Rp —'}
+            {target ? (target.name || tg.defaultName) : tg.noTarget}
           </div>
         </div>
         {target && (
           <>
             <span className="d2-target-pct">{prog?.minPct ?? 0}%</span>
-            <button className="d2-refresh" onClick={stop} disabled={busy} title="Hapus target" aria-label="Hapus target" style={{ color: 'var(--d2-error)', background: 'color-mix(in srgb, var(--d2-error) 10%, transparent)' }}>
+            <button className="d2-refresh" onClick={stop} disabled={busy} title={tg.deleteTitle} aria-label={tg.deleteTitle} style={{ color: 'var(--d2-error)', background: 'color-mix(in srgb, var(--d2-error) 10%, transparent)' }}>
               <Trash2 size={15} />
             </button>
           </>
@@ -553,59 +555,59 @@ function TargetCard({ tx }) {
       {err && <div className="d2-alert" style={{ padding: '10px 14px' }}><div className="d2-alert-body"><span style={{ fontSize: 13 }}>{err}</span></div></div>}
 
       {target === undefined ? (
-        <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>Memuat…</p>
+        <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>{tg.loading}</p>
       ) : !target ? (
         <form onSubmit={create}>
           <div>
-            <label htmlFor="d2-target-name">Nama target</label>
-            <input id="d2-target-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="cth: Target Kuartal 3" />
+            <label htmlFor="d2-target-name">{tg.lName}</label>
+            <input id="d2-target-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={tg.namePh} />
           </div>
           <div className="d2-tgt-row">
             <div>
-              <label htmlFor="d2-target-start">Tanggal mulai</label>
+              <label htmlFor="d2-target-start">{tg.lStart}</label>
               <input id="d2-target-start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
             </div>
             <div>
-              <label htmlFor="d2-target-end">Tanggal akhir</label>
+              <label htmlFor="d2-target-end">{tg.lEnd}</label>
               <input id="d2-target-end" type="date" value={form.end_date} min={form.start_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
             </div>
           </div>
           <div className="d2-tgt-row">
             <div>
-              <label htmlFor="d2-target-rev">Target omset (Rp)</label>
-              <input id="d2-target-rev" type="number" min="0" inputMode="numeric" value={form.revenue_target} onChange={(e) => setForm({ ...form, revenue_target: e.target.value })} placeholder="cth: 50.000.000" />
+              <label htmlFor="d2-target-rev">{tg.lRevenue}</label>
+              <input id="d2-target-rev" type="number" min="0" inputMode="numeric" value={form.revenue_target} onChange={(e) => setForm({ ...form, revenue_target: e.target.value })} placeholder={tg.revenuePh} />
             </div>
             <div>
-              <label htmlFor="d2-target-prof">Target profit bersih (Rp)</label>
-              <input id="d2-target-prof" type="number" min="0" inputMode="numeric" value={form.profit_target} onChange={(e) => setForm({ ...form, profit_target: e.target.value })} placeholder="cth: 15.000.000" />
+              <label htmlFor="d2-target-prof">{tg.lProfit}</label>
+              <input id="d2-target-prof" type="number" min="0" inputMode="numeric" value={form.profit_target} onChange={(e) => setForm({ ...form, profit_target: e.target.value })} placeholder={tg.profitPh} />
             </div>
           </div>
-          <p style={{ fontSize: 11.5, color: 'var(--d2-on-surface-variant)', margin: 0 }}>Isi salah satu atau keduanya. Progres dihitung dari transaksi dalam rentang tanggal ini saja.</p>
-          <button className="d2-btn-primary" disabled={busy}>{busy ? '...' : 'Buat Target'}</button>
+          <p style={{ fontSize: 11.5, color: 'var(--d2-on-surface-variant)', margin: 0 }}>{tg.hint}</p>
+          <button className="d2-btn-primary" disabled={busy}>{busy ? tg.creating : tg.create}</button>
         </form>
       ) : (
         <>
           <div className="d2-tgt-range">{rangeLabel}</div>
-          {prog?.rev != null && <TargetMetric label="Omset" achieved={prog.income} target={prog.rev} pct={prog.revPct} />}
-          {prog?.prof != null && <TargetMetric label="Profit bersih" achieved={prog.profit} target={prog.prof} pct={prog.profPct} />}
+          {prog?.rev != null && <TargetMetric label={tg.revenueLabel} achieved={prog.income} target={prog.rev} pct={prog.revPct} />}
+          {prog?.prof != null && <TargetMetric label={tg.profitLabel} achieved={prog.profit} target={prog.prof} pct={prog.profPct} />}
 
           {prog?.done ? (
-            <div className="d2-info" style={{ marginTop: 4 }}><CheckCircle2 size={15} /> Target tercapai! Mantap.</div>
+            <div className="d2-info" style={{ marginTop: 4 }}><CheckCircle2 size={15} /> {tg.achieved}</div>
           ) : (
             <div className="d2-tgt-foot">
               <span>
                 {prog?.ended
-                  ? 'Periode target selesai'
-                  : prog?.remainingDays != null ? `${prog.remainingDays} hari tersisa` : 'Tanpa batas akhir'}
+                  ? tg.periodEnded
+                  : prog?.remainingDays != null ? tg.daysLeft.replace('{n}', prog.remainingDays) : tg.noEndDate}
               </span>
               {pace && (
                 <span className={pace === 'ok' ? 'd2-tgt-pace-ok' : 'd2-tgt-pace-behind'}>
-                  {pace === 'ok' ? '✓ Sesuai jalur' : '⚡ Perlu dikebut'}
+                  {pace === 'ok' ? tg.onTrack : tg.behind}
                 </span>
               )}
             </div>
           )}
-          <button className="d2-btn-outline" onClick={stop} disabled={busy}>Ganti Target</button>
+          <button className="d2-btn-outline" onClick={stop} disabled={busy}>{tg.change}</button>
         </>
       )}
     </div>

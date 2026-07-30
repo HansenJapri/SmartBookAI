@@ -1,8 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
 import LegalContent from '../components/LegalContent'
 import { APP_NAME } from '../lib/legal'
+import useForceLightTheme from '../lib/useForceLightTheme'
 
 export default function Terms() {
+  useForceLightTheme()
   const nav = useNavigate()
   return (
     <div className="legal-page">

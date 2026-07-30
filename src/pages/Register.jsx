@@ -6,8 +6,10 @@ import AuthSide from '../components/AuthSide'
 import PasswordChecklist from '../components/PasswordChecklist'
 import OtpInput from '../components/OtpInput'
 import { isPasswordValid, normalizePhone, isEmailValid } from '../lib/validators'
+import useForceLightTheme from '../lib/useForceLightTheme'
 
 export default function Register() {
+  useForceLightTheme()
   const { signUp, verifyEmailOtp, resendSignupOtp, checkPhoneAvailable } = useAuth()
   const { t } = useLang()
   const a = t.auth

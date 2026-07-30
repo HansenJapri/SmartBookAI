@@ -1,8 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
 import PrivacyContent from '../components/PrivacyContent'
 import { APP_NAME } from '../lib/legal'
+import useForceLightTheme from '../lib/useForceLightTheme'
 
 export default function Privacy() {
+  useForceLightTheme()
   const nav = useNavigate()
   return (
     <div className="legal-page">

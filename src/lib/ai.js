@@ -44,11 +44,36 @@ export async function askAI(message, history = []) {
   return cleanReply(data?.reply || '')
 }
 
-// Mode Catat: kalimat bebas -> daftar kandidat transaksi (belum tersimpan;
-// pengguna WAJIB meninjau & menekan Simpan dulu).
+// Mode Catat (lama): kalimat bebas -> daftar kandidat transaksi.
+// Dipertahankan agar alur lama tetap jalan; alur baru memakai crudAI().
 export async function catatAI(message) {
   return invokeFn('ai-catat', { message },
     'Fitur catat via asisten sedang tidak dapat dihubungi. Coba beberapa saat lagi, atau catat manual di menu Transaksi.')
+}
+
+// ---------- CRUD via prompt/voice (dengan slot-filling) ----------
+// Alur pemakaian:
+//   1. crudAI({ message })                       -> draft + pertanyaan pertama
+//   2. crudAI({ draft, field, answer })          -> ulangi sampai ready === true
+//   3. Bila draft.requiresConfirmation, tampilkan ringkasan & minta konfirmasi
+//      manual pengguna SEBELUM menyimpan lewat API biasa.
+//
+// Menjawab pertanyaan lanjutan TIDAK memanggil AI, jadi tidak memakan kuota.
+export async function crudAI({ message, draft, field, answer } = {}) {
+  const body = draft ? { draft, field, answer } : { message }
+  return invokeFn('ai-crud', body,
+    'Asisten pencatatan sedang tidak dapat dihubungi. Coba beberapa saat lagi, atau pakai form manual.')
+}
+
+// Ringkasan draft untuk ditampilkan/diucapkan saat konfirmasi.
+export function describeDraft(draft) {
+  if (!draft) return ''
+  const op = draft.operation === 'create' ? 'Menambah'
+    : draft.operation === 'update' ? 'Mengubah' : 'Menghapus'
+  const parts = Object.entries(draft.values || {})
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}: ${v}`)
+  return `${op} ${draft.entityLabel}. ${parts.join(', ')}`
 }
 
 // Insight harian Dashboard. force=true memaksa buat ulang (kena kuota harian).
