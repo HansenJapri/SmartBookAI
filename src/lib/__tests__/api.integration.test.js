@@ -214,9 +214,22 @@ describe('effectiveOwnerId (RBAC)', () => {
   })
 })
 
+// PostgREST saat fungsi RPC belum ada di database (klien lebih baru dari
+// migrasi). Semua pemanggil RPC undangan wajib punya jalur mundur.
+const MISSING_RPC = { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } }
+
 describe('undangan staf (tidak otomatis diklaim)', () => {
-  it('fetchPendingInvitations hanya mengembalikan undangan dengan email PERSIS sama', async () => {
+  it('fetchPendingInvitations memakai RPC my_pending_invitations', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a_b@gmail.com' } } })
+    rpc.mockResolvedValue({ data: [{ id: 'i1', owner_id: 'boss-1', business_name: 'Warung A' }], error: null })
+    const list = await api.fetchPendingInvitations()
+    expect(rpc).toHaveBeenCalledWith('my_pending_invitations')
+    expect(list.map((x) => x.id)).toEqual(['i1'])
+  })
+
+  it('fetchPendingInvitations: jalur mundur menyaring email PERSIS sama', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1', email: 'a_b@gmail.com' } } })
+    rpc.mockResolvedValue(MISSING_RPC)
     // Baris kedua adalah kasus yang dulu bisa lolos lewat pola LIKE ("_" = wildcard).
     fromImpl.mockImplementationOnce(() => makeChain({
       data: [
@@ -229,8 +242,24 @@ describe('undangan staf (tidak otomatis diklaim)', () => {
     expect(list.map((x) => x.id)).toEqual(['i1'])
   })
 
-  it('fetchMyMemberships mengembalikan array (mendukung banyak workspace)', async () => {
+  it('fetchMyMemberships memakai RPC my_workspaces (membawa nama usaha)', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    rpc.mockResolvedValue({
+      data: [
+        { id: 's1', owner_id: 'boss-1', business_name: 'Warung A' },
+        { id: 's2', owner_id: 'boss-2', business_name: 'Toko B' },
+      ],
+      error: null,
+    })
+    const list = await api.fetchMyMemberships()
+    expect(rpc).toHaveBeenCalledWith('my_workspaces')
+    expect(list).toHaveLength(2)
+    expect(list[0].business_name).toBe('Warung A')
+  })
+
+  it('fetchMyMemberships: jalur mundur ke tabel bila RPC belum terpasang', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9' } } })
+    rpc.mockResolvedValue(MISSING_RPC)
     fromImpl.mockImplementationOnce(() => makeChain({
       data: [{ owner_id: 'boss-1' }, { owner_id: 'boss-2' }],
       error: null,
@@ -244,5 +273,72 @@ describe('undangan staf (tidak otomatis diklaim)', () => {
     api.setSelectedWorkspace('')
     const m = await api.fetchMyMembership()
     expect(m).toBeNull()
+  })
+
+  it('acceptInvitation memakai RPC accept_invitation (bukan UPDATE langsung)', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9', email: 's@x.com' } } })
+    rpc.mockResolvedValue({ data: [{ id: 'i1', owner_id: 'boss-1', modules: ['produk'] }], error: null })
+    const row = await api.acceptInvitation('i1')
+    expect(rpc).toHaveBeenCalledWith('accept_invitation', { p_invite_id: 'i1' })
+    expect(row.owner_id).toBe('boss-1')
+    // Tidak ada UPDATE tabel: modules & role tidak bisa disentuh penerima.
+    expect(fromImpl).not.toHaveBeenCalledWith('staff_members')
+  })
+
+  it('declineInvitation mencatat penolakan di server, bukan localStorage', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'staff-9', email: 's@x.com' } } })
+    rpc.mockResolvedValue({ data: true, error: null })
+    await api.declineInvitation('i1')
+    expect(rpc).toHaveBeenCalledWith('decline_invitation', { p_invite_id: 'i1' })
+  })
+})
+
+describe('batas hak akses pengelolaan staf (owner-only)', () => {
+  it('fetchStaff memfilter owner_id — baris workspace lain tidak ikut terbaca', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'owner-1' } } })
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.fetchStaff()
+    expect(chain.eq).toHaveBeenCalledWith('owner_id', 'owner-1')
+  })
+
+  it('updateStaff memfilter owner_id dan menolak kolom di luar whitelist', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'owner-1' } } })
+    const chain = makeChain({ data: { id: 's1', modules: ['produk'] }, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.updateStaff('s1', { modules: ['produk'], member_id: 'penyusup', owner_id: 'penyusup' })
+    expect(chain.update).toHaveBeenCalledWith({ modules: ['produk'] })
+    expect(chain.eq).toHaveBeenCalledWith('owner_id', 'owner-1')
+  })
+
+  it('updateStaff menolak modul karangan', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'owner-1' } } })
+    await expect(api.updateStaff('s1', { modules: ['superadmin'] })).rejects.toThrow()
+  })
+
+  it('updateStaff menolak status di luar daftar', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'owner-1' } } })
+    await expect(api.updateStaff('s1', { status: 'owner' })).rejects.toThrow()
+  })
+
+  it('deleteStaff memfilter owner_id', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'owner-1' } } })
+    const chain = makeChain({ data: null, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.deleteStaff('s1')
+    expect(chain.eq).toHaveBeenCalledWith('owner_id', 'owner-1')
+  })
+
+  it('addStaff menolak mengundang email sendiri', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'owner-1', email: 'boss@x.com' } } })
+    await expect(api.addStaff('BOSS@x.com', ['produk'])).rejects.toThrow(/email Anda sendiri/i)
+  })
+
+  it('addStaff membuang modul yang tidak dikenal', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'owner-1', email: 'boss@x.com' } } })
+    const chain = makeChain({ data: { id: 's1' }, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.addStaff('staf@x.com', ['produk', 'superadmin'])
+    expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ modules: ['produk'] }))
   })
 })

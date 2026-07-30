@@ -1,11 +1,11 @@
 # Graph Report - SmartBookAI  (2026-07-30)
 
 ## Corpus Check
-- 219 files · ~373,225 words
+- 231 files · ~383,552 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1717 nodes · 3153 edges · 154 communities (132 shown, 22 thin omitted)
+- 1820 nodes · 3363 edges · 153 communities (132 shown, 21 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.61)
 - Token cost: 0 input · 0 output
 
@@ -154,7 +154,6 @@
 - Supplier.jsx
 - Supplier.jsx
 - src/pages/Transactions.jsx
-- Receivables.jsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `useLang()` - 71 edges
@@ -162,7 +161,7 @@
 3. `[DESKRIPSI LENGKAP SEMUA FITUR SMARTBOOKAI]` - 33 edges
 4. `useAuth()` - 29 edges
 5. `BukuPintar AI — Dokumentasi Fitur Lengkap` - 28 edges
-6. `effectiveOwnerId()` - 26 edges
+6. `effectiveOwnerId()` - 27 edges
 7. `fmtDate()` - 26 edges
 8. `Payroll()` - 26 edges
 9. `Kpi()` - 25 edges
@@ -183,19 +182,19 @@
 ## Import Cycles
 - None detected.
 
-## Communities (154 total, 22 thin omitted)
+## Communities (153 total, 21 thin omitted)
 
 ### Community 0 - "api.js"
 Cohesion: 0.21
-Nodes (8): LegalContent(), LegalDoc(), PrivacyContent(), escapeHtml(), inline(), renderLegalMarkdown(), Privacy(), Terms()
+Nodes (9): DisclaimerGate(), DisclaimerSummary(), LegalContent(), LegalDoc(), acceptTerms(), fetchProfile(), escapeHtml(), inline() (+1 more)
 
 ### Community 1 - "Payroll.jsx"
 Cohesion: 0.09
-Nodes (56): Modal(), addEmployee(), addKpiBonusRule(), addKpiCriteria(), addPayroll(), deleteAttendance(), deleteEmployee(), deleteKpiBonusRule() (+48 more)
+Nodes (55): Modal(), addEmployee(), addKpiBonusRule(), addKpiCriteria(), addPayroll(), deleteAttendance(), deleteEmployee(), deleteKpiBonusRule() (+47 more)
 
 ### Community 2 - "Hpp.jsx"
-Cohesion: 0.06
-Nodes (62): AIDisclaimer(), Chatbot(), occurredAtIso(), askAI(), catatAI(), cleanReply(), deviceKind(), fileToBase64() (+54 more)
+Cohesion: 0.08
+Nodes (50): AIDisclaimer(), Chatbot(), occurredAtIso(), askAI(), catatAI(), cleanReply(), crudAI(), deviceKind() (+42 more)
 
 ### Community 3 - "admin-dashboard/src/App.jsx"
 Cohesion: 0.08
@@ -227,7 +226,7 @@ Nodes (33): 1.1 Apa masalah yang sebenarnya?, 1.2 Apakah masalahnya nyata? (data
 
 ### Community 10 - "csvImport.js"
 Cohesion: 0.15
-Nodes (25): CATEGORIES, categorize(), DEFAULT_RULES, guessDirection(), norm(), buildFromAoa(), COLS, findCol() (+17 more)
+Nodes (24): CATEGORIES, categorize(), DEFAULT_RULES, guessDirection(), norm(), buildFromAoa(), COLS, findCol() (+16 more)
 
 ### Community 11 - "04_GTM-Risk-Final-Verdict-Action-Plan.md"
 Cohesion: 0.07
@@ -238,8 +237,8 @@ Cohesion: 0.07
 Nodes (29): 0. Ringkasan File yang Dibuat, 1. Prasyarat Sekali Saja, 2.1 Semua test sekaligus, 2.2 Menjalankan satu file, 2.3 Mode watch (saat mengembangkan), 2.4 Menjalankan hanya satu describe / test, 2.5 Membaca hasil, 2.6 Coverage (opsional) (+21 more)
 
 ### Community 13 - "invoice.js"
-Cohesion: 0.30
-Nodes (19): InvoiceModal(), bukuMark(), calcTotals(), displayPhone(), downloadBlob(), esc(), invoiceCaption(), invoiceHtml() (+11 more)
+Cohesion: 0.19
+Nodes (25): InvoiceModal(), addFeedback(), deleteFeedback(), fetchFeedback(), fmtDateTime(), bukuMark(), calcTotals(), displayPhone() (+17 more)
 
 ### Community 14 - "admin-dashboard/package.json"
 Cohesion: 0.07
@@ -266,8 +265,8 @@ Cohesion: 0.08
 Nodes (24): 10A. MASTER CRITICAL-FIX LIST (konsolidasi semua dokumen audit, diperbarui ke kondisi kode terkini), 10B. REVIEW WEBSITE (apa yang kurang & perlu diperbaiki), 10C. SETUP REVENUE STREAM (kondisi: app belum punya billing sama sekali), 10D. KODE REFERRAL (desain siap-implementasi), 1. Seberapa besar ukuran pasar industri ini?, 2. Revenue & profit pemain terbaik, 3. Keputusan penting pemain (dan dampaknya), 4. Siapa pegang "Leher" (bottleneck) industri? (+16 more)
 
 ### Community 20 - "AppLayout.jsx"
-Cohesion: 0.17
-Nodes (18): AppLayout(), NAV, TITLE_KEY, ThemeToggle(), addStaff(), claimMembership(), deleteStaff(), fetchMyMembership() (+10 more)
+Cohesion: 0.07
+Nodes (54): AppLayout(), NAV, TITLE_KEY, CrudList(), LangToggle(), ConfirmModal(), KelolaModal(), ThemeToggle() (+46 more)
 
 ### Community 21 - "5. PRODUCT AUDIT (dari source code)"
 Cohesion: 0.09
@@ -282,32 +281,32 @@ Cohesion: 0.09
 Nodes (22): 1.1 Peta Sistem Faktual (hasil scan folder + Supabase), 1.2 Rekomendasi Arsitektur Sistem, 1.3 Matriks Pemilihan Automation Tools, 1. Analisis Arsitektur & Justifikasi Stack Tools, 2. Dokumen Pengujian Manual & UI/UX (Berbasis PRD/kode nyata), 3. Strategi Automation Testing, 4. Pemetaan Design Patterns dalam Kode Testing, 5. Analisis Kondisi Penyebab Crash & Strategi Mitigasi (System Resilience) (+14 more)
 
 ### Community 24 - "fetchProfile"
-Cohesion: 0.24
-Nodes (7): LangToggle(), LangProvider(), LANG_LABEL, LANGS, translations, Landing(), PROBLEM_ICONS
+Cohesion: 0.09
+Nodes (31): ALLOWED_ORIGINS, enrichQuestionOptions(), applyAnswer(), buildCrudTools(), ClarificationPlan, ClarificationQuestion, coerceField(), computeClarifications() (+23 more)
 
 ### Community 25 - "8. UNIT ECONOMICS (angka nyata)"
 Cohesion: 0.10
 Nodes (20): 7.1 Titik acuan dari pasar (jangan menentukan harga di ruang hampa), 7.2 Struktur tier yang saya rekomendasikan, 7.3 Jawaban lugas atas pertanyaan pricing Anda, 7. PRICING ANALYSIS, 8.1 Asumsi (transparan — silakan koreksi dengan data Anda), 8.2 Mengapa biaya AI sangat kecil (pembuktian, bukan klaim), 8.3 Margin kotor per pelanggan (tier Mid, Rp99rb/bln), 8.4 Simulasi skenario (100 / 500 / 1.000 / 5.000 user) (+12 more)
 
 ### Community 26 - "Dashboard.jsx"
-Cohesion: 0.28
-Nodes (5): ALLOWED_ORIGINS, GEMINI_API_KEY, rupiah(), templateNarrative(), templateNarrativeEn()
+Cohesion: 0.32
+Nodes (4): ALLOWED_ORIGINS, rupiah(), templateNarrative(), templateNarrativeEn()
 
 ### Community 27 - "src/lib/applock.js"
-Cohesion: 0.19
-Nodes (18): addProduct(), addProductCategory(), addUnit(), deleteProduct(), deleteProductCategory(), deleteProductImage(), deleteUnit(), ensureInventorySeed() (+10 more)
+Cohesion: 0.18
+Nodes (19): addProductCategory(), addUnit(), deleteProduct(), deleteProductCategory(), deleteProductImage(), deleteUnit(), effectiveOwnerId(), ensureInventorySeed() (+11 more)
 
 ### Community 28 - "useAuth"
-Cohesion: 0.22
-Nodes (14): CrudList(), Reminders(), ConfirmModal(), KelolaModal(), LangCtx, useLang(), addReminder(), deleteReminder() (+6 more)
+Cohesion: 0.16
+Nodes (12): FEATURE_ROUTES, FeatureName, FeatureRoute, KeySlot, resolveKey(), callModel(), ChatTurn, GeminiClient (+4 more)
 
 ### Community 29 - "Settings.jsx"
 Cohesion: 0.23
 Nodes (15): addCategory(), addChannel(), addRule(), deleteCategory(), deleteChannel(), deleteMyData(), deleteRule(), exportMyData() (+7 more)
 
 ### Community 30 - "useLang"
-Cohesion: 0.31
-Nodes (14): addTask(), deleteTask(), fetchTasks(), updateTask(), isTaskOverdue(), nextStatus(), prevStatus(), priorityOf() (+6 more)
+Cohesion: 0.32
+Nodes (12): buildNationalRows(), buildProvinceRows(), commodityKeyOf(), hntSeriesUrl(), latestDatesUrl(), normProvName(), parseVariants(), priceOnDate() (+4 more)
 
 ### Community 31 - "2. Bukti & Analisis per Temuan"
 Cohesion: 0.12
@@ -322,8 +321,8 @@ Cohesion: 0.13
 Nodes (14): A1 — Untuk kenalan / jaringan pribadi (paling hangat), A2 — Untuk komunitas seller (grup / kenalan tipis), A3 — Pembuka obrolan yang sudah setuju ngobrol, A4 — Penawaran Concierge (untuk yang sakitnya nyata), A5 — Setelah selesai bantu (minta testimoni & referral), A6 — Follow-up sopan (yang belum balas, kirim 3–4 hari kemudian — sekali saja), A. TEMPLATE PESAN OUTREACH (WhatsApp / DM), Alat siap-pakai untuk memvalidasi dengan 10 seller nyata bulan ini (+6 more)
 
 ### Community 34 - "Opname.jsx"
-Cohesion: 0.35
-Nodes (11): addOpname(), deleteOpname(), fetchOpnames(), postOpname(), updateOpname(), buildOpnameItems(), nextDocNumber(), opnameDiff() (+3 more)
+Cohesion: 0.31
+Nodes (12): addOpname(), deleteOpname(), fetchOpnames(), postOpname(), updateOpname(), buildOpnameItems(), nextDocNumber(), opnameDiff() (+4 more)
 
 ### Community 35 - "BukuPintar AI — Dokumentasi Fitur Lengkap"
 Cohesion: 0.13
@@ -346,24 +345,24 @@ Cohesion: 0.15
 Nodes (12): 1. Penanggung Jawab, 2. Kewajiban Hukum Saat Terjadi Kebocoran Data Pribadi, 3. Alur Respons Insiden (Runbook), 4. Template Pemberitahuan ke Pengguna, 5. Kontrol Keamanan yang Berlaku (ringkas), 6. Rotasi Kunci Berkala, Jam ke-0 — Deteksi & Penahanan (containment), Jam ke-1 sampai 24 — Investigasi (+4 more)
 
 ### Community 40 - "src/main.jsx"
-Cohesion: 0.26
-Nodes (5): App(), ErrorBoundary, initMonitoring(), logClientError(), seen
+Cohesion: 0.23
+Nodes (6): App(), ErrorBoundary, AuthProvider(), initMonitoring(), logClientError(), seen
 
 ### Community 41 - "Register.jsx"
-Cohesion: 0.26
-Nodes (12): AuthSide(), OtpInput(), PasswordChecklist(), checkPassword(), isEmailValid(), isPasswordValid(), isPhoneValid(), normalizePhone() (+4 more)
+Cohesion: 0.34
+Nodes (10): OtpInput(), PasswordChecklist(), checkPassword(), isEmailValid(), isPasswordValid(), isPhoneValid(), normalizePhone(), PASSWORD_RULES (+2 more)
 
 ### Community 42 - "Feedback.jsx"
-Cohesion: 0.19
-Nodes (11): ConfigOnly(), GuestOnly(), Protected(), DisclaimerGate(), DisclaimerSummary(), MfaChallenge(), TwoFactor(), AuthCtx (+3 more)
+Cohesion: 0.27
+Nodes (7): ConfigOnly(), GuestOnly(), Protected(), MfaChallenge(), TwoFactor(), AuthCtx, useAuth()
 
 ### Community 43 - "chatbot-eval.mjs"
 Cohesion: 0.24
 Nodes (7): CASES, env, has(), hasAny(), here, isRefusal(), REFUSAL_MARKERS
 
 ### Community 44 - "useLang"
-Cohesion: 0.39
-Nodes (8): addPurchaseOrder(), deletePurchaseOrder(), fetchPurchaseOrders(), receivePurchaseOrder(), updatePurchaseOrder(), PO_STATUS, blankForm(), PurchaseOrders()
+Cohesion: 0.24
+Nodes (13): addPurchaseOrder(), addSupplier(), deletePurchaseOrder(), deleteSupplier(), fetchPurchaseOrders(), fetchSuppliers(), receivePurchaseOrder(), updatePurchaseOrder() (+5 more)
 
 ### Community 45 - "Mom Test — Validasi Pasar: SmartBookAI vs Automation Workflow"
 Cohesion: 0.20
@@ -430,8 +429,8 @@ Cohesion: 0.38
 Nodes (5): bersihkan(), env, main(), sb, seed()
 
 ### Community 61 - "ai-narasi/index.ts"
-Cohesion: 0.24
-Nodes (5): ALLOWED_ORIGINS, GEMINI_API_KEY, rupiah(), templateNarrative(), templateNarrativeEn()
+Cohesion: 0.28
+Nodes (4): ALLOWED_ORIGINS, rupiah(), templateNarrative(), templateNarrativeEn()
 
 ### Community 62 - "14. Data Karyawan"
 Cohesion: 0.33
@@ -502,8 +501,8 @@ Cohesion: 0.40
 Nodes (5): 13. Pemasok (Supplier), Cara Penggunaan, Data per Pemasok, Fungsi & Tujuan, Yang Bisa Dilakukan
 
 ### Community 79 - "PurchaseOrders.jsx"
-Cohesion: 0.12
-Nodes (30): Accordion(), channelMix(), expenseByCategory(), isSameDay(), monthlyBreakdown(), monthlyTaxRows(), summarize(), TAX (+22 more)
+Cohesion: 0.07
+Nodes (60): Accordion(), AGING_BUCKETS, agingBucketKey(), buildAgingSummary(), daysOutstanding(), isOverdue(), normalizePhone(), waReminderLink() (+52 more)
 
 ### Community 80 - "18. Radar Harga Makro"
 Cohesion: 0.40
@@ -545,6 +544,10 @@ Nodes (3): fromImpl, getUser, rpc
 Cohesion: 0.40
 Nodes (3): ALLOWED_ORIGINS, COMMODITY_KEYS, GEMINI_API_KEY
 
+### Community 92 - "ai/index.ts"
+Cohesion: 0.14
+Nodes (15): ALLOWED_ORIGINS, ALLOWED_ORIGINS, checkQuota(), commitQuota(), DailyLimitError, dailyLimitPayload(), FEATURE_LABEL_ID, QuotaFeature (+7 more)
+
 ### Community 93 - "migration_admin.sql"
 Cohesion: 0.50
 Nodes (4): public.admins, public.app_events, public.feedback, public.is_admin()
@@ -574,8 +577,8 @@ Cohesion: 0.50
 Nodes (4): 3. Dashboard, Cara Penggunaan, Fungsi & Tujuan, Yang Ditampilkan
 
 ### Community 104 - "25. Feedback"
-Cohesion: 0.18
-Nodes (19): fetchAuditLogs(), fetchStaff(), monthKey(), months, rupiah(), rupiahShort(), CHANNEL_LABELS, channelName() (+11 more)
+Cohesion: 0.17
+Nodes (4): public.enforce_free_seat_limit(), public.voice_sessions, public.workspace_ai_usage, trg_free_seat_limit
 
 ### Community 105 - "CatalogContext.jsx"
 Cohesion: 0.67
@@ -605,13 +608,17 @@ Nodes (4): 6. Modul E — Laporan & Analitik, E.1 — Laporan Harian, E.2 — La
 Cohesion: 0.50
 Nodes (4): A. Filosofi Komersial, B. Aliran Pendapatan, BAB IV — MODEL BISNIS & PENDAPATAN, C. Struktur Komersial
 
+### Community 112 - "ai-struk/index.ts"
+Cohesion: 0.31
+Nodes (6): AuthSide(), PrivacyContent(), useForceLightTheme(), Login(), Privacy(), Terms()
+
 ### Community 113 - "categorize/index.ts"
 Cohesion: 0.50
 Nodes (3): ANTHROPIC_API_KEY, CATEGORIES, cors
 
 ### Community 115 - "Supplier.jsx"
-Cohesion: 0.14
-Nodes (14): addFeedback(), addTarget(), addTransaction(), addTransactionWithStock(), DEFAULT_CATS, DEFAULT_CHANNELS, DEFAULT_PRODUCT_CATS, DEFAULT_UNITS (+6 more)
+Cohesion: 0.19
+Nodes (9): Reminders(), addReminder(), DEFAULT_CATS, DEFAULT_CHANNELS, DEFAULT_PRODUCT_CATS, DEFAULT_UNITS, deleteReminder(), fetchReminders() (+1 more)
 
 ### Community 116 - "5. Modul D — Manajemen Pelanggan (CRM)"
 Cohesion: 0.67
@@ -638,44 +645,36 @@ Cohesion: 0.67
 Nodes (3): 3. Modul B — Manajemen Pesanan, B.1 — Input Data Penjualan, B.2 — Riwayat Transaksi
 
 ### Community 148 - "Struk.jsx"
-Cohesion: 0.39
-Nodes (7): fetchProducts(), RECEIPT_TYPES, updateProduct(), uploadReceipt(), compressImage(), blankItem(), Struk()
-
-### Community 149 - "Supplier.jsx"
-Cohesion: 0.48
-Nodes (6): addSupplier(), deleteSupplier(), fetchSuppliers(), updateSupplier(), empty, Supplier()
+Cohesion: 0.43
+Nodes (6): BlockCheckResult, BLOCKED_PATTERNS, BLOCKED_TABLES, checkActionAllowed(), isTableBlocked(), logBlockedAttempt()
 
 ### Community 150 - "Supplier.jsx"
 Cohesion: 0.50
 Nodes (4): 12. HPP — Harga Pokok Produksi, Cara Penggunaan, Fungsi & Tujuan, Yang Bisa Dilakukan
 
 ### Community 153 - "src/pages/Transactions.jsx"
-Cohesion: 0.29
-Nodes (11): blankLine(), TransactionModal(), useCatalog(), findDuplicateGroups(), deleteTransaction(), fetchRules(), getReceiptUrl(), updateTransaction() (+3 more)
-
-### Community 154 - "Receivables.jsx"
-Cohesion: 0.52
-Nodes (9): AGING_BUCKETS, agingBucketKey(), buildAgingSummary(), daysOutstanding(), isOverdue(), normalizePhone(), waReminderLink(), TODAY (+1 more)
+Cohesion: 0.16
+Nodes (21): blankLine(), TransactionModal(), useCatalog(), fileToBase64(), readReceipt(), addProduct(), addTransaction(), addTransactionWithStock() (+13 more)
 
 ## Knowledge Gaps
-- **753 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+748 more)
+- **780 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+775 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **21 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `tx()` connect `Hpp.jsx` to `Receivables.jsx`, `adminApi.js`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+- **Why does `tx()` connect `Hpp.jsx` to `adminApi.js`, `PurchaseOrders.jsx`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
 - **Why does `Analytics()` connect `adminApi.js` to `Hpp.jsx`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `buildAgingSummary()` connect `Receivables.jsx` to `Hpp.jsx`?**
-  _High betweenness centrality (0.055) - this node is a cross-community bridge._
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `buildAgingSummary()` connect `PurchaseOrders.jsx` to `Hpp.jsx`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
-  _753 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _780 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Payroll.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.09044289044289044 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08990384615384615 - nodes in this community are weakly interconnected._
 - **Should `Hpp.jsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.0639269406392694 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07740112994350283 - nodes in this community are weakly interconnected._
 - **Should `admin-dashboard/src/App.jsx` be split into smaller, more focused modules?**
   _Cohesion score 0.07948568088836938 - nodes in this community are weakly interconnected._

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Users, Trash2, Pencil } from 'lucide-react'
 import Modal from '../components/Modal'
-import { fetchStaff, addStaff, updateStaff, deleteStaff, fetchMyMembership } from '../lib/api'
+import { fetchStaff, addStaff, updateStaff, deleteStaff, reinviteStaff } from '../lib/api'
 import { MODULES, STAFF_STATUS } from '../lib/rbac'
 import { fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { useWorkspace } from '../context/WorkspaceContext'
 
 const blankForm = () => ({ id: null, email: '', modules: [] })
 
@@ -18,16 +19,19 @@ export default function Team() {
   const moduleDesc = (key) => tm.moduleDescs[key] || ''
   const staffStatusLabel = (key) => ({ invited: tm.statusInvited, active: tm.statusActive, revoked: tm.statusRevoked }[key])
   const [list, setList] = useState(null)
-  const [membership, setMembership] = useState(null) // bila BUKAN owner
+  // Status owner ditentukan oleh workspace yang sedang dibuka, BUKAN oleh
+  // `membership === null`. Selama undangan belum diterima, membership memang
+  // null — dan itu dulu membuat calon staf dianggap owner di halaman ini.
+  const { isOwner, membership } = useWorkspace()
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
   useEffect(() => {
+    if (!isOwner) { setList([]); return }
     fetchStaff().then(setList).catch(() => setList([]))
-    fetchMyMembership().then(setMembership).catch(() => {})
-  }, [])
+  }, [isOwner])
 
   const toggleModule = (key) => setForm((f) => ({
     ...f,
@@ -75,15 +79,25 @@ export default function Team() {
     } catch (e2) { setErr(e2.message) }
   }
 
+  const reinvite = async (s) => {
+    setErr('')
+    try {
+      const upd = await reinviteStaff(s.id)
+      setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
+      setMsg(tm.reinvitedMsg.replace('{email}', s.email))
+    } catch (e2) { setErr(e2.message) }
+  }
+
   if (!list) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   // Halaman ini untuk owner; staf yang nyasar ke sini melihat info keanggotaannya.
-  if (membership) {
+  // Penjaga rute di App.jsx sudah mengalihkan staf, ini pertahanan berlapis.
+  if (!isOwner) {
     return (
       <div className="card card-pad">
         <h3 className="card-title">{tm.staffInfoTitle}</h3>
         <p className="muted-sm">
-          {tm.staffInfoDesc.replace('{modules}', (membership.modules || []).map((k) => moduleLabel(k)).join(', ') || '-')}
+          {tm.staffInfoDesc.replace('{modules}', (membership?.modules || []).map((k) => moduleLabel(k)).join(', ') || '-')}
         </p>
       </div>
     )
@@ -120,6 +134,10 @@ export default function Team() {
             <tbody>
               {list.map((s) => {
                 const st = STAFF_STATUS[s.status] || STAFF_STATUS.invited
+                // Undangan yang ditolak staf. Dulu penolakan hanya tersimpan di
+                // browser staf, jadi owner tidak pernah tahu undangannya ditolak
+                // dan mengira aplikasinya rusak.
+                const declined = Boolean(s.declined_at) && s.status === 'invited'
                 return (
                   <tr key={s.id}>
                     <td><b>{s.email}</b></td>
@@ -130,10 +148,17 @@ export default function Team() {
                         </span>
                       ))}
                     </td>
-                    <td><span className={`badge ${st.cls}`}>{staffStatusLabel(s.status)}</span></td>
+                    <td>
+                      <span className={`badge ${declined ? 'badge-red' : st.cls}`}>
+                        {declined ? tm.statusDeclined : staffStatusLabel(s.status)}
+                      </span>
+                    </td>
                     <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDate(s.created_at)}</td>
                     <td>
                       <div className="row-actions">
+                        {declined && (
+                          <button className="linklike" onClick={() => reinvite(s)}>{tm.reinvite}</button>
+                        )}
                         {s.status !== 'revoked' ? (
                           <button className="linklike" onClick={() => setStatus(s, 'revoked')}>{tm.revoke}</button>
                         ) : (

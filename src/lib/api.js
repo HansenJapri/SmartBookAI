@@ -1,4 +1,16 @@
 import { supabase } from './supabase'
+import { MODULES } from './rbac'
+
+// RPC pengerasan undangan (migration_rbac_invite_hardening.sql) mungkin belum
+// terpasang di database saat build klien ini dirilis. Semua pemanggilnya punya
+// jalur mundur ke query tabel langsung, sehingga urutan deploy tidak penting.
+// Deteksi ini HANYA untuk "fungsi belum ada" — error lain tetap dilempar.
+function isMissingRpc(error) {
+  if (!error) return false
+  const code = String(error.code || '')
+  if (code === 'PGRST202' || code === '42883') return true
+  return /could not find the function|does not exist/i.test(String(error.message || ''))
+}
 
 // ---------- RBAC: pemilik data efektif (workspace aktif) ----------
 // ATURAN DASAR: setiap pengguna SELALU memiliki workspace-nya sendiri.
@@ -560,45 +572,119 @@ export async function postOpname(opname) {
 }
 
 // ---------- RBAC: PENGGUNA & HAK AKSES (fase 3) ----------
+// Daftar staf DI WORKSPACE SENDIRI. Filter owner_id wajib eksplisit di sini:
+// mengandalkan RLS saja pernah membuat baris undangan milik workspace orang
+// lain (yang terbaca karena email penerima cocok) muncul di tabel pengelolaan
+// staf si penerima, lengkap dengan tombol Cabut/Ubah/Hapus.
 export async function fetchStaff() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
   const { data, error } = await supabase
-    .from('staff_members').select('*').order('created_at', { ascending: false })
+    .from('staff_members').select('*')
+    .eq('owner_id', user.id)
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data || []
 }
 
+// Kirim email undangan lewat Edge Function `invite-staff`. Sengaja
+// best-effort: undangan sudah sah begitu barisnya tersimpan, dan sebelum ini
+// tidak ada email sama sekali — staf hanya tahu kalau kebetulan login. Jadi
+// kegagalan kirim tidak boleh menggagalkan pengundangan.
+async function notifyInvite(inviteId) {
+  if (!inviteId) return
+  try { await supabase.functions.invoke('invite-staff', { body: { invite_id: inviteId } }) }
+  catch { /* email opsional; undangan tetap muncul di aplikasi staf */ }
+}
+
+const MODULE_KEYS = MODULES.map((m) => m.key)
+const STAFF_ROLES = ['staf']
+const STAFF_STATUSES = ['invited', 'active', 'revoked']
+
+// Hanya menerima kunci modul yang dikenal — mencegah modul karangan tersimpan
+// ke database dan lolos pemeriksaan has_access() di kemudian hari.
+function sanitizeModules(modules) {
+  const clean = [...new Set((modules || []).filter((m) => MODULE_KEYS.includes(m)))]
+  if (clean.length === 0) throw new Error('Pilih minimal satu modul akses yang sah.')
+  return clean
+}
+
 export async function addStaff(email, modules, role = 'staf') {
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Harus masuk (login).')
+  const clean = email.trim().toLowerCase()
+  // Mengundang diri sendiri menghasilkan baris rancu (owner sekaligus staf);
+  // database juga menolaknya, ini sekadar pesan yang lebih jelas.
+  if (clean === String(user.email || '').toLowerCase()) {
+    throw new Error('Tidak bisa mengundang email Anda sendiri sebagai staf.')
+  }
   const { data, error } = await supabase
     .from('staff_members')
-    .insert({ owner_id: user.id, email: email.trim().toLowerCase(), modules, role })
+    .insert({
+      owner_id: user.id,
+      email: clean,
+      modules: sanitizeModules(modules),
+      role: STAFF_ROLES.includes(role) ? role : 'staf',
+    })
     .select().single()
   if (error) throw error
   track('staff_invited')
+  // Email undangan bersifat best-effort: undangannya sudah sah tanpa email.
+  notifyInvite(data?.id).catch(() => {})
   return data
 }
 
+// Owner-only. Dua lapis pertahanan: `.eq('owner_id', ...)` di klien plus policy
+// `sm_owner_all` di database. Patch di-whitelist supaya tombol yang bocor atau
+// pemanggil yang salah tidak bisa menulis owner_id / member_id / email.
 export async function updateStaff(id, patch) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Harus masuk (login).')
+  const safe = {}
+  if (patch.modules !== undefined) safe.modules = sanitizeModules(patch.modules)
+  if (patch.status !== undefined) {
+    if (!STAFF_STATUSES.includes(patch.status)) throw new Error('Status tidak dikenal.')
+    safe.status = patch.status
+  }
+  if (patch.declined_at !== undefined) safe.declined_at = patch.declined_at
+  if (Object.keys(safe).length === 0) throw new Error('Tidak ada perubahan yang sah.')
   const { data, error } = await supabase
-    .from('staff_members').update(patch).eq('id', id).select().single()
+    .from('staff_members').update(safe)
+    .eq('id', id).eq('owner_id', user.id)
+    .select().single()
   if (error) throw error
   return data
 }
 
 export async function deleteStaff(id) {
-  const { error } = await supabase.from('staff_members').delete().eq('id', id)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Harus masuk (login).')
+  const { error } = await supabase
+    .from('staff_members').delete().eq('id', id).eq('owner_id', user.id)
   if (error) throw error
+}
+
+// Mengundang ulang staf yang menolak undangan sebelumnya.
+export async function reinviteStaff(id) {
+  const row = await updateStaff(id, { status: 'invited', declined_at: null })
+  notifyInvite(id).catch(() => {})
+  return row
 }
 
 // SEMUA keanggotaan staf saya yang aktif (bisa lebih dari satu workspace).
 // Sengaja mengembalikan array: satu pengguna sah menjadi staf di banyak usaha.
+// RPC my_workspaces() ikut membawa nama usaha, supaya pengalih workspace bisa
+// menyebut "Warung Bu Sari" alih-alih "usaha orang lain".
 export async function fetchMyMemberships() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
-  const { data } = await supabase
+  const { data, error } = await supabase.rpc('my_workspaces')
+  if (!error) return data || []
+  if (!isMissingRpc(error)) throw error
+  const { data: rows } = await supabase
     .from('staff_members').select('*')
     .eq('member_id', user.id).eq('status', 'active')
-  return data || []
+  return rows || []
 }
 
 // Keanggotaan untuk workspace yang SEDANG dilihat.
@@ -614,48 +700,56 @@ export async function fetchMyMembership() {
 
 // Undangan yang MENUNGGU persetujuan (belum diklaim).
 // Ditampilkan sebagai tawaran; pengguna yang memutuskan menerima atau tidak.
+// Lewat RPC my_pending_invitations(): hanya kolom aman yang dipaparkan (id,
+// pengundang, nama usaha, modul yang ditawarkan) — bukan select('*') pada
+// tabel, yang dulu membocorkan baris workspace orang lain ke halaman staf.
 export async function fetchPendingInvitations() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user?.email) return []
-  const { data } = await supabase
-    .from('staff_members').select('*')
+  const { data, error } = await supabase.rpc('my_pending_invitations')
+  if (!error) return data || []
+  if (!isMissingRpc(error)) throw error
+  // Jalur mundur pra-migrasi. Penyaringan email PERSIS di klien tetap ada
+  // sebagai pertahanan berlapis (bukan pola LIKE).
+  const { data: rows } = await supabase
+    .from('staff_members').select('id, owner_id, email, modules, created_at')
     .is('member_id', null).eq('status', 'invited')
-  // RLS sudah menyaring ke email kita; disaring ulang di klien sebagai
-  // pertahanan berlapis (perbandingan PERSIS, bukan pola LIKE).
   const mine = String(user.email).toLowerCase()
-  return (data || []).filter((r) => String(r.email || '').toLowerCase() === mine)
+  return (rows || []).filter((r) => String(r.email || '').toLowerCase() === mine)
 }
 
 // Menerima undangan SECARA EKSPLISIT. Tidak lagi dipanggil otomatis saat login,
 // supaya akun baru tidak pernah "diserap" ke workspace orang lain tanpa sadar.
+// RPC accept_invitation() hanya menulis member_id + status: `modules` dan `role`
+// tidak bisa disentuh penerima undangan (dulu bisa, lewat policy sm_member_claim).
 export async function acceptInvitation(id) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Harus masuk (login).')
-  const { data, error } = await supabase
+  const { data, error } = await supabase.rpc('accept_invitation', { p_invite_id: id })
+  if (!error) {
+    _ownerCache = null
+    return data?.[0] || null
+  }
+  if (!isMissingRpc(error)) throw error
+  const { data: rows, error: e2 } = await supabase
     .from('staff_members')
     .update({ member_id: user.id, status: 'active' })
     .eq('id', id)
     .is('member_id', null)
     .eq('status', 'invited')
     .select()
-  if (error) throw error
+  if (e2) throw e2
   _ownerCache = null
-  return data?.[0] || null
+  return rows?.[0] || null
 }
 
-// Menolak undangan: cukup diabaikan dari sisi pengguna (baris tetap milik owner,
-// yang bisa mencabutnya sendiri). Disimpan lokal agar tidak ditawarkan lagi.
-const DISMISSED_KEY = 'bp-dismissed-invites'
-export function dismissInvitation(id) {
-  try {
-    const cur = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]')
-    if (!cur.includes(id)) localStorage.setItem(DISMISSED_KEY, JSON.stringify([...cur, id]))
-  } catch { /* private mode */ }
-}
-export function isInvitationDismissed(id) {
-  try {
-    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]').includes(id)
-  } catch { return false }
+// Menolak undangan. Dicatat di SERVER (declined_at), bukan localStorage:
+// penolakan lokal dulu membuat undangan hilang selamanya dari browser itu tanpa
+// satu pun cara memunculkannya kembali, dan owner tidak tahu apa-apa.
+// Owner bisa mengundang ulang lewat reinviteStaff().
+export async function declineInvitation(id) {
+  const { error } = await supabase.rpc('decline_invitation', { p_invite_id: id })
+  if (error && !isMissingRpc(error)) throw error
 }
 
 // ---------- AUDIT LOG (baca-saja; ditulis trigger database) ----------

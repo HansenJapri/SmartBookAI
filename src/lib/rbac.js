@@ -24,7 +24,49 @@ export const SECTION_MODULE = {
 }
 
 // Item menu yang hanya untuk owner (staf tidak melihatnya sama sekali).
-export const OWNER_ONLY_KEYS = ['pengaturan', 'pengguna', 'audit']
+// Seluruh seksi "lainnya" owner-only: pengelolaan staf, audit log, pengaturan
+// usaha, dan forum feedback semuanya berbicara atas nama pemilik usaha.
+export const OWNER_ONLY_KEYS = ['pengaturan', 'pengguna', 'audit', 'feedback']
+
+// Rute yang butuh status owner. Dipakai penjaga rute di App.jsx supaya menu
+// yang disembunyikan tidak bisa dibuka lewat mengetik URL langsung.
+export const OWNER_ONLY_PATHS = ['/app/pengguna', '/app/audit', '/app/pengaturan', '/app/feedback']
+
+// Rute -> modul yang dibutuhkan. Tidak terdaftar = bebas modul (mis. dashboard).
+export const PATH_MODULE = {
+  '/app/tugas': 'operasional',
+  '/app/transaksi': 'transaksi',
+  '/app/struk': 'transaksi',
+  '/app/import': 'transaksi',
+  '/app/rekonsiliasi': 'transaksi',
+  '/app/piutang': 'transaksi',
+  '/app/stok': 'produk',
+  '/app/stok/histori': 'produk',
+  '/app/po': 'produk',
+  '/app/opname': 'produk',
+  '/app/hpp': 'produk',
+  '/app/supplier': 'produk',
+  '/app/karyawan': 'hr',
+  '/app/absensi': 'hr',
+  '/app/kpi': 'hr',
+  '/app/gaji': 'hr',
+  '/app/radar': 'analisis',
+  '/app/reveal': 'analisis',
+  '/app/laporan': 'analisis',
+}
+
+// Apakah pengguna sedang bertindak sebagai OWNER dari workspace yang dibuka?
+//
+// PENTING: jangan pakai `membership === null` sebagai proksi "owner". Selama
+// undangan belum diterima, keanggotaan belum aktif sehingga membership bernilai
+// null — dan itu dulu membuat calon staf dianggap owner: seluruh menu terbuka
+// dan halaman Pengguna & Akses menampilkan tabel pengelolaan staf. Status owner
+// ditentukan oleh workspace mana yang sedang dibuka, bukan oleh ada/tidaknya
+// baris keanggotaan.
+export function isOwnerView(userId, selectedWorkspace) {
+  if (!userId) return false
+  return !selectedWorkspace || selectedWorkspace === userId
+}
 
 // Boleh mengakses modul tertentu? Owner (membership null) selalu boleh.
 export function canModule(membership, mod) {
@@ -46,6 +88,17 @@ export function filterNav(nav, membership) {
       return items.length ? { ...g, items } : null
     })
     .filter(Boolean)
+}
+
+// Boleh membuka rute ini? Dipakai penjaga rute sebagai lapis kedua di atas
+// penyaringan menu — menyembunyikan tautan saja tidak menghentikan siapa pun
+// yang mengetik URL-nya langsung.
+export function canPath(pathname, { isOwner, membership }) {
+  if (isOwner) return true
+  if (OWNER_ONLY_PATHS.includes(pathname)) return false
+  const need = PATH_MODULE[pathname]
+  if (!need) return true
+  return canModule(membership, need)
 }
 
 // Label status keanggotaan -> badge UI.

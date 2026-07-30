@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext'
+import { canPath } from './lib/rbac'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -56,6 +58,17 @@ function GuestOnly({ children }) {
   return children
 }
 
+// Penjaga hak akses per rute. Menyembunyikan tautan di sidebar TIDAK menghalangi
+// siapa pun yang mengetik URL-nya langsung; ini lapis kedua di atas RLS database.
+// Owner selalu lolos — dia pemilik workspace yang sedang dibuka.
+function Guarded({ children }) {
+  const { pathname } = useLocation()
+  const { isOwner, membership, loading } = useWorkspace()
+  if (loading) return <Loader />
+  if (!canPath(pathname, { isOwner, membership })) return <Navigate to="/app" replace />
+  return children
+}
+
 function ConfigOnly({ children }) {
   const { configured, loading } = useAuth()
   if (!configured) return <Navigate to="/setup" replace />
@@ -75,31 +88,31 @@ export default function App() {
         <Route path="/daftar" element={<GuestOnly><Register /></GuestOnly>} />
         <Route path="/lupa-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
         <Route path="/reset-password" element={<ConfigOnly><ForgotPassword /></ConfigOnly>} />
-        <Route path="/app" element={<Protected><AppLayout /></Protected>}>
+        <Route path="/app" element={<Protected><WorkspaceProvider><AppLayout /></WorkspaceProvider></Protected>}>
           <Route index element={<Dashboard />} />
-          <Route path="tugas" element={<Tasks />} />
-          <Route path="transaksi" element={<Transactions />} />
-          <Route path="struk" element={<Struk />} />
-          <Route path="import" element={<Import />} />
-          <Route path="stok" element={<Stok />} />
-          <Route path="stok/histori" element={<StokHistori />} />
-          <Route path="po" element={<PurchaseOrders />} />
-          <Route path="opname" element={<Opname />} />
-          <Route path="supplier" element={<Supplier />} />
-          <Route path="karyawan" element={<Employees />} />
-          <Route path="absensi" element={<Attendance />} />
-          <Route path="kpi" element={<Kpi />} />
-          <Route path="gaji" element={<Payroll />} />
-          <Route path="rekonsiliasi" element={<Reconciliation />} />
-          <Route path="piutang" element={<Receivables />} />
-          <Route path="radar" element={<Radar />} />
-          <Route path="hpp" element={<Hpp />} />
-          <Route path="reveal" element={<Reveal />} />
-          <Route path="laporan" element={<Reports />} />
-          <Route path="feedback" element={<Feedback />} />
-          <Route path="pengguna" element={<Team />} />
-          <Route path="audit" element={<Audit />} />
-          <Route path="pengaturan" element={<Settings />} />
+          <Route path="tugas" element={<Guarded><Tasks /></Guarded>} />
+          <Route path="transaksi" element={<Guarded><Transactions /></Guarded>} />
+          <Route path="struk" element={<Guarded><Struk /></Guarded>} />
+          <Route path="import" element={<Guarded><Import /></Guarded>} />
+          <Route path="stok" element={<Guarded><Stok /></Guarded>} />
+          <Route path="stok/histori" element={<Guarded><StokHistori /></Guarded>} />
+          <Route path="po" element={<Guarded><PurchaseOrders /></Guarded>} />
+          <Route path="opname" element={<Guarded><Opname /></Guarded>} />
+          <Route path="supplier" element={<Guarded><Supplier /></Guarded>} />
+          <Route path="karyawan" element={<Guarded><Employees /></Guarded>} />
+          <Route path="absensi" element={<Guarded><Attendance /></Guarded>} />
+          <Route path="kpi" element={<Guarded><Kpi /></Guarded>} />
+          <Route path="gaji" element={<Guarded><Payroll /></Guarded>} />
+          <Route path="rekonsiliasi" element={<Guarded><Reconciliation /></Guarded>} />
+          <Route path="piutang" element={<Guarded><Receivables /></Guarded>} />
+          <Route path="radar" element={<Guarded><Radar /></Guarded>} />
+          <Route path="hpp" element={<Guarded><Hpp /></Guarded>} />
+          <Route path="reveal" element={<Guarded><Reveal /></Guarded>} />
+          <Route path="laporan" element={<Guarded><Reports /></Guarded>} />
+          <Route path="feedback" element={<Guarded><Feedback /></Guarded>} />
+          <Route path="pengguna" element={<Guarded><Team /></Guarded>} />
+          <Route path="audit" element={<Guarded><Audit /></Guarded>} />
+          <Route path="pengaturan" element={<Guarded><Settings /></Guarded>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

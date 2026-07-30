@@ -44,6 +44,61 @@
 }
 .side-foot { border-top-color: rgba(255, 255, 255, 0.1) !important; }
 .side-user { color: rgba(255, 255, 255, 0.65) !important; }
+
+/* --- Pengalih workspace (kaki sidebar) ---
+ * Muncul hanya bila pengguna punya usaha lain atau undangan yang menunggu,
+ * jadi pengguna tunggal tidak melihat kontrol tambahan sama sekali.
+ */
+.ws-switch { position: relative; }
+.ws-trigger {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 9px 10px; margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px; color: #fff; cursor: pointer; text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ws-trigger:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.22); }
+.ws-trigger-txt { flex: 1; min-width: 0; display: block; }
+.ws-trigger-txt b {
+  display: block; font-size: 13px; color: #fff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ws-sub {
+  display: block; font-size: 11px; color: rgba(255, 255, 255, 0.6);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ws-menu {
+  position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
+  background: #0b1030; border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px; padding: 6px; z-index: 60;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  max-height: 60vh; overflow-y: auto;
+}
+.ws-group-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255, 255, 255, 0.5);
+  padding: 8px 8px 4px;
+}
+.ws-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px; border: 0; background: transparent; color: #fff;
+  border-radius: 8px; cursor: pointer; text-align: left;
+}
+.ws-item:hover { background: rgba(255, 255, 255, 0.08); }
+.ws-item.active { background: rgba(28, 54, 238, 0.35); }
+.ws-item-txt { flex: 1; min-width: 0; display: block; }
+.ws-item-txt b {
+  display: block; font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ws-invite { cursor: default; align-items: flex-start; }
+.ws-invite:hover { background: transparent; }
+.ws-accept { padding: 5px 10px !important; font-size: 12px !important; flex-shrink: 0; }
+.ws-err {
+  font-size: 12px; color: #ffb4b4; background: rgba(255, 0, 0, 0.12);
+  border-radius: 8px; padding: 6px 8px; margin: 4px;
+}
 .side-user b { color: #fff !important; }
 .side-logout {
   background: #001ec1 !important;
