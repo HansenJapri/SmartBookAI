@@ -5,18 +5,21 @@ import { useLang } from '../context/LangContext'
 import AuthSide from '../components/AuthSide'
 import PasswordChecklist from '../components/PasswordChecklist'
 import OtpInput from '../components/OtpInput'
+import OtpCountdown from '../components/OtpCountdown'
 import { isPasswordValid, normalizePhone, isEmailValid } from '../lib/validators'
 import useForceLightTheme from '../lib/useForceLightTheme'
 
 export default function Register() {
   useForceLightTheme()
-  const { signUp, verifyEmailOtp, resendSignupOtp, checkPhoneAvailable } = useAuth()
+  const { signUp, verifyEmailOtp, resendSignupOtp, checkPhoneAvailable, OTP_TTL_SECONDS } = useAuth()
   const { t } = useLang()
   const a = t.auth
   const nav = useNavigate()
   const [step, setStep] = useState('form') // 'form' | 'otp'
   const [form, setForm] = useState({ businessName: '', ownerName: '', email: '', phone: '', password: '' })
   const [otp, setOtp] = useState('')
+  const [sentAt, setSentAt] = useState(0)
+  const [kedaluwarsa, setKedaluwarsa] = useState(false)
   const [agree, setAgree] = useState(false)
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
@@ -52,6 +55,7 @@ export default function Register() {
       }
       if (res.session) { nav('/app'); return }
       setInfo(`${a.infoCodeSent}${form.email}.`)
+      setSentAt(Date.now()); setKedaluwarsa(false)
       setStep('otp')
     } catch (e) {
       const m = e.message || ''
@@ -64,7 +68,7 @@ export default function Register() {
   const submitOtp = async (e) => {
     e.preventDefault()
     setErr('')
-    if (otp.length < 6) return setErr(a.errOtp)
+    if (otp.length < 8) return setErr(a.errOtp8)
     setBusy(true)
     try {
       await verifyEmailOtp({ email: form.email, token: otp })
@@ -76,8 +80,11 @@ export default function Register() {
 
   const resend = async () => {
     setErr(''); setInfo('')
-    try { await resendSignupOtp(form.email); setInfo(a.infoResent) }
-    catch (e) { setErr(e.message.toLowerCase().includes('rate') ? a.errRate : e.message) }
+    try {
+      await resendSignupOtp(form.email)
+      setOtp(''); setSentAt(Date.now()); setKedaluwarsa(false)
+      setInfo(a.infoResent)
+    } catch (e) { setErr(e.message.toLowerCase().includes('rate') ? a.errRate : e.message) }
   }
 
   return (
@@ -126,8 +133,10 @@ export default function Register() {
             <p className="sub">{a.verifySub}<b>{form.email}</b></p>
             {info && <div className="alert alert-ok">{info}</div>}
             {err && <div className="alert alert-err">{err}</div>}
-            <OtpInput value={otp} onChange={setOtp} />
-            <button className="btn btn-primary btn-block btn-lg" disabled={busy} style={{ marginTop: 18 }}>
+            <OtpInput value={otp} onChange={setOtp} maxLength={8} />
+            <OtpCountdown startedAt={sentAt} seconds={OTP_TTL_SECONDS}
+              onExpire={() => setKedaluwarsa(true)} />
+            <button className="btn btn-primary btn-block btn-lg" disabled={busy || kedaluwarsa} style={{ marginTop: 6 }}>
               {busy ? a.verifying : a.verifyBtn}
             </button>
             <p className="auth-foot">

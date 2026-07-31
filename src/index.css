@@ -744,6 +744,12 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .otp-single::placeholder { font-size: 15px; letter-spacing: normal; font-weight: 500; color: var(--muted); font-family: var(--font, inherit); }
 .otp-single:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-50); }
 
+/* Hitung mundur masa berlaku kode OTP (penanda visual; penolakan kode
+   kedaluwarsa tetap dilakukan Supabase saat verifikasi). */
+.otp-countdown { margin: 10px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+.otp-countdown b { color: var(--ink); font-family: ui-monospace, monospace; font-size: 14px; }
+.otp-countdown.expired { color: var(--danger, #c0392b); font-weight: 600; }
+
 /* ---------- ACCORDION (edukasi KUR & Pajak) ---------- */
 .acc { display: flex; flex-direction: column; gap: 8px; }
 .acc-item { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card); }

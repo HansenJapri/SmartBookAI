@@ -1,0 +1,41 @@
+<!--
+  Template "Magic Link" Supabase — dipakai saat login langkah 2 (kode OTP).
+
+  TEMPEL ISI BERKAS INI KE:
+    Supabase Dashboard > Authentication > Emails > Magic Link > Message body
+
+  KENAPA HARUS DIGANTI
+  --------------------
+  Template bawaan Supabase HANYA berisi tautan ("Follow the link below to
+  sign in"). Kode angkanya tidak pernah ikut, sehingga pengguna tidak punya
+  apa pun untuk diketik di layar verifikasi.
+
+  {{ .Token }} adalah kode OTP-nya. Panjangnya mengikuti setelan
+  Authentication > Emails > Email OTP Length (harus 8), dan masa berlakunya
+  mengikuti Email OTP Expiration (harus 180 detik = 3 menit).
+
+  Tautan {{ .ConfirmationURL }} SENGAJA TIDAK DIPAKAI di sini. Kalau tautannya
+  disertakan, pengguna bisa langsung masuk dengan mengkliknya tanpa pernah
+  mengetik kode — dan gerbang OTP-nya jadi tidak ada artinya.
+-->
+<div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:8px">
+  <h2 style="margin:0 0 6px;font-size:20px;color:#111">Kode masuk SmartBook AI</h2>
+  <p style="margin:0 0 20px;color:#555;font-size:14px;line-height:1.6">
+    Masukkan kode di bawah ini pada layar verifikasi untuk menyelesaikan proses masuk.
+  </p>
+
+  <div style="background:#f4f5ff;border:1px solid #d8dcff;border-radius:12px;padding:20px;text-align:center;margin:0 0 20px">
+    <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:#001ec1">
+      {{ .Token }}
+    </div>
+  </div>
+
+  <p style="margin:0 0 6px;color:#555;font-size:14px;line-height:1.6">
+    Kode ini berlaku <b>3 menit</b> dan hanya bisa dipakai satu kali.
+  </p>
+  <p style="margin:0;color:#888;font-size:13px;line-height:1.6">
+    Bukan Anda yang mencoba masuk? Abaikan email ini — tanpa kode ini tidak ada
+    yang bisa mengakses akun Anda. Jangan pernah membagikan kode ini kepada
+    siapa pun, termasuk yang mengaku dari SmartBook AI.
+  </p>
+</div>

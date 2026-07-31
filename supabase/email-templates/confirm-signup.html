@@ -1,0 +1,30 @@
+<!--
+  Template "Confirm signup" Supabase — dipakai saat pendaftaran akun baru.
+
+  TEMPEL ISI BERKAS INI KE:
+    Supabase Dashboard > Authentication > Emails > Confirm signup > Message body
+
+  Sama seperti magic-link.html: {{ .Token }} adalah kode OTP-nya, dan tautan
+  konfirmasi sengaja tidak disertakan supaya pendaftaran benar-benar melewati
+  layar verifikasi kode, bukan sekali klik dari email.
+-->
+<div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:8px">
+  <h2 style="margin:0 0 6px;font-size:20px;color:#111">Verifikasi email Anda</h2>
+  <p style="margin:0 0 20px;color:#555;font-size:14px;line-height:1.6">
+    Terima kasih sudah mendaftar di SmartBook AI. Masukkan kode di bawah ini
+    pada layar verifikasi untuk mengaktifkan akun Anda.
+  </p>
+
+  <div style="background:#f4f5ff;border:1px solid #d8dcff;border-radius:12px;padding:20px;text-align:center;margin:0 0 20px">
+    <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:#001ec1">
+      {{ .Token }}
+    </div>
+  </div>
+
+  <p style="margin:0 0 6px;color:#555;font-size:14px;line-height:1.6">
+    Kode ini berlaku <b>3 menit</b> dan hanya bisa dipakai satu kali.
+  </p>
+  <p style="margin:0;color:#888;font-size:13px;line-height:1.6">
+    Bukan Anda yang mendaftar? Abaikan email ini.
+  </p>
+</div>

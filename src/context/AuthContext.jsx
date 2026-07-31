@@ -5,6 +5,12 @@ import { TERMS_VERSION } from '../lib/legal'
 
 const AuthCtx = createContext(null)
 
+// Masa berlaku kode OTP, dipakai hitung mundur di layar verifikasi.
+// HARUS sama dengan setelan Supabase: Authentication > Emails > Email OTP
+// Expiration = 180. Angka di sini hanya untuk tampilan; yang benar-benar
+// menolak kode kedaluwarsa adalah Supabase, bukan penghitung ini.
+export const OTP_TTL_SECONDS = 180
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -79,12 +85,49 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
-  const signIn = async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  // ---------- LOGIN DUA LANGKAH (password -> OTP email 8 digit) ----------
+  // Langkah 1. Password diverifikasi DI SERVER oleh Edge Function auth-login-otp,
+  // yang lalu meminta Supabase mengirim kode ke email. Tidak ada sesi yang
+  // terbit di browser pada langkah ini — itu inti keamanannya. Memanggil
+  // signInWithPassword dari sini lalu menampilkan layar OTP hanyalah keamanan
+  // semu: JWT-nya sudah aktif sebelum kode diisi.
+  const startLogin = async ({ email, password }) => {
+    const { data, error } = await supabase.functions.invoke('auth-login-otp', {
+      body: { email: String(email).trim().toLowerCase(), password },
+    })
+    // functions.invoke melempar FunctionsHttpError untuk status non-2xx; badan
+    // responsnya dibaca supaya UI bisa membedakan sebabnya.
+    //
+    // Bila badan respons TIDAK bisa dibaca, penyebabnya bukan kredensial —
+    // fungsinya belum ter-deploy, jaringan putus, atau CORS. Jangan pernah
+    // menerjemahkan itu menjadi "password salah": pengguna akan mengganti
+    // password yang sebenarnya sudah benar, dan penyebab aslinya tersembunyi.
+    if (error) {
+      let body = null
+      try { body = await error.context?.json?.() } catch { /* tidak terbaca */ }
+      const e = new Error(body?.error || 'service_unavailable')
+      // Jeda tunggu dari server dipakai UI untuk menghitung mundur tombol
+      // "Kirim ulang" — tanpa ini pengguna menabrak throttle berulang kali.
+      e.retryAfter = Number(body?.retry_after) || 0
+      throw e
+    }
+    if (!data?.sent) throw new Error(data?.error || 'service_unavailable')
+    return { resendAfter: Number(data?.resend_after) || 60 }
+  }
+
+  // Langkah 2. Kode benar & belum kedaluwarsa -> barulah sesi terbit.
+  const verifyLoginOtp = async ({ email, token }) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: String(email).trim().toLowerCase(), token, type: 'email',
+    })
     if (error) throw error
     track('login')
     return data
   }
+
+  // Kirim ulang kode login. Memerlukan password lagi karena gerbangnya memang
+  // di sana — tanpa itu, endpoint ini menjadi jalur login tanpa password.
+  const resendLoginOtp = async ({ email, password }) => startLogin({ email, password })
 
   // Lupa password - kirim kode OTP recovery ke email
   const requestPasswordReset = async (email) => {
@@ -145,7 +188,8 @@ export function AuthProvider({ children }) {
       user, loading, configured: isSupabaseConfigured, phoneOtpEnabled,
       mfaPending, verifyMfa, refreshAal,
       checkEmailAvailable, checkPhoneAvailable,
-      signUp, verifyEmailOtp, resendSignupOtp, signIn, signOut,
+      signUp, verifyEmailOtp, resendSignupOtp, signOut,
+      startLogin, verifyLoginOtp, resendLoginOtp, OTP_TTL_SECONDS,
       requestPasswordReset, verifyRecoveryAndSetPassword, updatePassword,
       startPhoneVerify, confirmPhoneOtp,
     }}>

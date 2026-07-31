@@ -11,9 +11,9 @@
     {
       "name": "admin-dashboard",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "admin-dashboard", "run", "dev", "--", "--port", "5184", "--strictPort"],
+      "runtimeArgs": ["--prefix", "admin-dashboard", "run", "dev"],
       "port": 5184,
-      "autoPort": false
+      "autoPort": true
     }
   ]
 }
