@@ -51,11 +51,17 @@ export default function Login() {
       email_not_confirmed: a.errUnconfirmed,
       otp_send_failed: a.errOtpSend,
       email_delivery_failed: a.errEmailDelivery,
+      // Kuota per jam — TIDAK punya hitung mundur detik. Menjanjikan angka di
+      // sini justru menyesatkan: pengguna menunggu sebentar lalu gagal lagi.
+      email_quota_exceeded: a.errEmailQuota,
       service_unavailable: a.errService,
     }
+    // Pembatas milik aplikasi sendiri (5/10 menit, 30/jam per email & IP),
+    // dipasang sebelum password diperiksa. Berbeda dari throttle Supabase.
+    if (e2.message === 'too_many_requests') return a.errTooMany
     if (e2.message === 'rate_limited') {
-      const d = e2.retryAfter || 60
-      return a.errRateWait.replace('{detik}', d)
+      // Angka detiknya ditampilkan hidup di tombol, bukan dibekukan di pesan.
+      return a.errRateShort
     }
     return map[e2.message] || a.errService
   }
@@ -71,7 +77,9 @@ export default function Login() {
       setInfo(`${a.infoCodeSent}${email}.`)
       setStep('otp')
     } catch (e2) {
-      if (e2.message === 'rate_limited') setTungguKirim(e2.retryAfter || 60)
+      if (e2.message === 'rate_limited' || e2.message === 'too_many_requests') {
+        setTungguKirim(e2.retryAfter || 60)
+      }
       setErr(pesanSebab(e2))
     } finally { setBusy(false) }
   }
@@ -99,7 +107,9 @@ export default function Login() {
       setTungguKirim(resendAfter)
       setInfo(a.infoResent)
     } catch (e2) {
-      if (e2.message === 'rate_limited') setTungguKirim(e2.retryAfter || 60)
+      if (e2.message === 'rate_limited' || e2.message === 'too_many_requests') {
+        setTungguKirim(e2.retryAfter || 60)
+      }
       setErr(pesanSebab(e2))
     } finally { setBusy(false) }
   }
@@ -131,8 +141,11 @@ export default function Login() {
               <input id="login-password" className="input" type="password" required value={password} style={{ marginTop: 7 }}
                 onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
             </div>
-            <button className="btn btn-primary btn-block btn-lg" disabled={busy}>
-              {busy ? a.signing : a.signin}
+            {/* Selama jeda throttle, tombolnya dikunci dan menampilkan hitung
+                mundur yang hidup — supaya pengguna tidak menekan berulang kali
+                dan justru memperpanjang jedanya sendiri. */}
+            <button className="btn btn-primary btn-block btn-lg" disabled={busy || tungguKirim > 0}>
+              {busy ? a.signing : tungguKirim > 0 ? a.signinWait.replace('{detik}', tungguKirim) : a.signin}
             </button>
             <p className="auth-foot">{a.noAccount} <Link to="/daftar">{a.toRegister}</Link></p>
             <p className="auth-terms">{a.loginTerms1}<Link to="/ketentuan">{a.loginTermsLink}</Link>{a.loginTerms2}</p>

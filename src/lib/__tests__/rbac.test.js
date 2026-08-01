@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { canModule, canPath, filterNav, isOwnerView, MODULES, OWNER_ONLY_KEYS } from '../rbac'
+import { canModule, canPath, filterNav, firstAllowedPath, isOwnerView, MODULES, OWNER_ONLY_KEYS } from '../rbac'
 
 const NAV = [
   { sec: 'ringkasan', items: [{ key: 'dashboard' }] },
@@ -27,11 +27,11 @@ describe('filterNav', () => {
     expect(filterNav(NAV, null)).toEqual(NAV)
   })
   it('staf gudang: hanya ringkasan & produk — seksi lainnya owner-only sepenuhnya', () => {
-    const out = filterNav(NAV, { modules: ['produk'] })
+    const out = filterNav(NAV, { modules: ['dashboard', 'produk'] })
     expect(out.map((g) => g.sec)).toEqual(['ringkasan', 'produk'])
   })
   it('staf multi-modul melihat gabungan grupnya', () => {
-    const out = filterNav(NAV, { modules: ['transaksi', 'analisis'] })
+    const out = filterNav(NAV, { modules: ['dashboard', 'transaksi', 'analisis'] })
     expect(out.map((g) => g.sec)).toEqual(['ringkasan', 'transaksi', 'analisis'])
   })
   it('item owner-only tidak pernah bocor ke staf', () => {
@@ -78,14 +78,27 @@ describe('canPath', () => {
     expect(canPath('/app/gaji', staff)).toBe(false)
     expect(canPath('/app/transaksi', staff)).toBe(false)
   })
-  it('rute tanpa modul (dashboard) selalu boleh', () => {
-    expect(canPath('/app', staff)).toBe(true)
+  // Dashboard kini modul tersendiri yang bisa dicabut owner — dulu selalu boleh.
+  it('dashboard mengikuti modul dashboard, bukan selalu terbuka', () => {
+    expect(canPath('/app', staff)).toBe(false)
+    expect(canPath('/app', { isOwner: false, membership: { modules: ['dashboard'] } })).toBe(true)
+    expect(canPath('/app', { isOwner: true, membership: null })).toBe(true)
+  })
+
+  it('staf tanpa dashboard tetap punya tujuan alihan (tidak memantul tanpa henti)', () => {
+    const tujuan = firstAllowedPath(staff)
+    expect(tujuan).not.toBe('/app')
+    expect(canPath(tujuan, staff)).toBe(true)
+  })
+
+  it('staf tanpa modul sama sekali tidak punya tujuan', () => {
+    expect(firstAllowedPath({ isOwner: false, membership: { modules: [] } })).toBeNull()
   })
 })
 
 describe('MODULES', () => {
-  it('lima modul sesuai blueprint dan punya label', () => {
-    expect(MODULES.map((m) => m.key)).toEqual(['operasional', 'transaksi', 'produk', 'hr', 'analisis'])
+  it('enam modul sesuai blueprint dan punya label', () => {
+    expect(MODULES.map((m) => m.key)).toEqual(['dashboard', 'operasional', 'transaksi', 'produk', 'hr', 'analisis'])
     for (const m of MODULES) expect(m.label.length).toBeGreaterThan(3)
   })
 })

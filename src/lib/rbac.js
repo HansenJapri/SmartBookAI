@@ -5,6 +5,10 @@
 
 // Modul yang bisa diberikan owner kepada staf.
 export const MODULES = [
+  // Dashboard kini modul tersendiri supaya owner bisa mencabutnya lepas dari
+  // modul lain — mis. staf gudang yang boleh mengelola stok tapi tidak boleh
+  // melihat ringkasan omzet & laba di halaman depan.
+  { key: 'dashboard', label: 'Dashboard', desc: 'Ringkasan omzet, laba, dan performa usaha di halaman depan' },
   { key: 'operasional', label: 'Operasional', desc: 'Papan tugas harian & jadwal produksi/layanan' },
   { key: 'transaksi', label: 'Transaksi & Keuangan', desc: 'Transaksi, import, struk, rekonsiliasi, piutang & utang' },
   { key: 'produk', label: 'Gudang & Produk', desc: 'Stok, Purchase Order, opname, HPP, pemasok' },
@@ -14,7 +18,7 @@ export const MODULES = [
 
 // Grup menu (sec) -> modul yang dibutuhkan. null = tidak dibatasi modul.
 export const SECTION_MODULE = {
-  ringkasan: null,
+  ringkasan: 'dashboard',
   operasional: 'operasional',
   transaksi: 'transaksi',
   produk: 'produk',
@@ -34,6 +38,7 @@ export const OWNER_ONLY_PATHS = ['/app/pengguna', '/app/audit', '/app/pengaturan
 
 // Rute -> modul yang dibutuhkan. Tidak terdaftar = bebas modul (mis. dashboard).
 export const PATH_MODULE = {
+  '/app': 'dashboard',
   '/app/tugas': 'operasional',
   '/app/transaksi': 'transaksi',
   '/app/struk': 'transaksi',
@@ -99,6 +104,22 @@ export function canPath(pathname, { isOwner, membership }) {
   const need = PATH_MODULE[pathname]
   if (!need) return true
   return canModule(membership, need)
+}
+
+// Halaman pertama yang BOLEH dibuka pengguna ini.
+//
+// Dibutuhkan sejak dashboard menjadi modul yang bisa dicabut: mengalihkan staf
+// tanpa akses dashboard ke '/app' akan memantul ke '/app' lagi tanpa henti.
+// Owner selalu '/app'. Staf diarahkan ke rute pertama yang modulnya dia punya;
+// kalau tidak ada satu pun, '/app/pengaturan-akses-kosong' tidak dibuat — kita
+// kembalikan null dan pemanggil menampilkan pesan "belum ada modul".
+export function firstAllowedPath({ isOwner, membership }) {
+  if (isOwner) return '/app'
+  if (canPath('/app', { isOwner, membership })) return '/app'
+  for (const [path, mod] of Object.entries(PATH_MODULE)) {
+    if (path !== '/app' && canModule(membership, mod)) return path
+  }
+  return null
 }
 
 // Label status keanggotaan -> badge UI.

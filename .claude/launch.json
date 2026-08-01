@@ -2,18 +2,20 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "_catatan": "JANGAN ubah port ini. Edge Function AI memakai allowlist CORS tetap: http://localhost:5173, http://localhost:5174, dan APP_ORIGIN (produksi). Menjalankan dev di port lain membuat browser memblokir POST setelah preflight — gejalanya semua fitur AI error padahal login normal, dan di log Supabase hanya terlihat OPTIONS tanpa POST sama sekali.",
       "name": "bukupintar",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5183", "--strictPort"],
-      "port": 5183,
+      "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--strictPort"],
+      "port": 5173,
       "autoPort": false
     },
     {
+      "_catatan": "5174 juga ada di allowlist CORS Edge Function.",
       "name": "admin-dashboard",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "admin-dashboard", "run", "dev"],
-      "port": 5184,
-      "autoPort": true
+      "runtimeArgs": ["--prefix", "admin-dashboard", "run", "dev", "--", "--port", "5174", "--strictPort"],
+      "port": 5174,
+      "autoPort": false
     }
   ]
 }

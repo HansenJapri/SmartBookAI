@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext'
-import { canPath } from './lib/rbac'
+import { canPath, firstAllowedPath } from './lib/rbac'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -65,8 +65,30 @@ function Guarded({ children }) {
   const { pathname } = useLocation()
   const { isOwner, membership, loading } = useWorkspace()
   if (loading) return <Loader />
-  if (!canPath(pathname, { isOwner, membership })) return <Navigate to="/app" replace />
+  if (!canPath(pathname, { isOwner, membership })) {
+    // Tujuan alihan TIDAK boleh dipatok ke '/app': sejak dashboard menjadi
+    // modul yang bisa dicabut, staf tanpa akses dashboard akan dipantulkan ke
+    // '/app' berulang kali tanpa henti. firstAllowedPath() memilih halaman
+    // pertama yang memang boleh dia buka.
+    const tujuan = firstAllowedPath({ isOwner, membership })
+    if (!tujuan || tujuan === pathname) return <NoAccess />
+    return <Navigate to={tujuan} replace />
+  }
   return children
+}
+
+// Staf yang seluruh modulnya dicabut owner. Tanpa layar ini dia hanya melihat
+// halaman kosong tanpa penjelasan.
+function NoAccess() {
+  return (
+    <div className="card card-pad" style={{ margin: 24 }}>
+      <h3 className="card-title">Belum ada modul yang bisa dibuka</h3>
+      <p className="muted-sm">
+        Pemilik usaha belum memberi Anda akses ke modul mana pun, atau aksesnya baru saja dicabut.
+        Hubungi pemilik usaha, lalu muat ulang halaman ini.
+      </p>
+    </div>
+  )
 }
 
 function ConfigOnly({ children }) {
@@ -89,7 +111,7 @@ export default function App() {
         <Route path="/lupa-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
         <Route path="/reset-password" element={<ConfigOnly><ForgotPassword /></ConfigOnly>} />
         <Route path="/app" element={<Protected><WorkspaceProvider><AppLayout /></WorkspaceProvider></Protected>}>
-          <Route index element={<Dashboard />} />
+          <Route index element={<Guarded><Dashboard /></Guarded>} />
           <Route path="tugas" element={<Guarded><Tasks /></Guarded>} />
           <Route path="transaksi" element={<Guarded><Transactions /></Guarded>} />
           <Route path="struk" element={<Guarded><Struk /></Guarded>} />
