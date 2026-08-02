@@ -9,14 +9,21 @@ import { Search } from 'lucide-react'
 import { revealLeak } from '../lib/reveal'
 import { useLang } from '../context/LangContext'
 
-export default function Reveal() {
+// `demoTx` dipakai rute publik /demo: bila diisi, transaksi datang langsung
+// dari state dan fetchTransactions() TIDAK PERNAH dipanggil — mode demo tidak
+// menyentuh database sama sekali, baik baca maupun tulis.
+export default function Reveal({ demoTx = null }) {
   const { t } = useLang()
   const rev = t.reveal
   const [tx, setTx] = useState(null)
   const [period, setPeriod] = useState('all')
   const [copied, setCopied] = useState(false)
+  const demo = demoTx !== null
 
-  useEffect(() => { fetchTransactions().then(setTx).catch(() => setTx([])) }, [])
+  useEffect(() => {
+    if (demoTx) { setTx(demoTx); return }
+    fetchTransactions().then(setTx).catch(() => setTx([]))
+  }, [demoTx])
 
   const ml = (k) => { const [y, m] = k.split('-'); return `${t.common.months[Number(m) - 1]} ${y}` }
 
@@ -162,7 +169,9 @@ export default function Reveal() {
               <span className="badge">{rev.bLabaDikira} {rupiah(r.labaDikira)}</span>
             </div>
             <p className="muted-sm mt">
-              {rev.footA} <Link to="/app/rekonsiliasi">{rev.footRecon}</Link> {rev.footB}
+              {/* Di mode demo pengunjung belum punya akun, jadi tautan ke halaman
+                  terlindungi diganti teks biasa agar tidak memantul ke /masuk. */}
+              {rev.footA} {demo ? rev.footRecon : <Link to="/app/rekonsiliasi">{rev.footRecon}</Link>} {rev.footB}
             </p>
           </div>
         </>

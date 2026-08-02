@@ -12,7 +12,7 @@ export const translations = {
         eyebrow: 'Pembukuan bertenaga AI',
         h1a: 'Catat Transaksi Semudah Kirim Chat. ', h1b: 'Bisnis Terpantau AI.',
         lead: 'Cukup kirim pesan suara, ketik teks, atau foto struk belanja. Biarkan AI kami yang mengelola pembukuan, stok, hingga prediksi keuntungan UMKM Anda secara otomatis.',
-        ctaPrimary: 'Mulai Gratis Sekarang', ctaSecondary: 'Lihat Demo Video',
+        ctaPrimary: 'Mulai Gratis Sekarang', ctaSecondary: 'Lihat Contoh Laporan Kebocoran',
         chatTitle: 'SmartBook Assistant', chatStatus: 'Online · Siap Membantu',
         msgBot: 'Halo! Kirimkan foto struk atau ketik transaksi hari ini ya.',
         msgUser: 'Tadi laku 5 Nasi Goreng Spesial @25rb, bayar cash. Terus beli telur 2kg harganya 54rb.',
@@ -295,6 +295,12 @@ export const translations = {
       breakdownTitle: 'Rincian Biaya (Kebocoran) & Laba', bAdmin: 'Admin/Komisi:', bOngkir: 'Ongkir:', bIklan: 'Iklan:', bOpex: 'Pengeluaran operasional:', bLabaAsli: 'Laba bersih ASLI:', bLabaDikira: 'Laba yang DIKIRA (abaikan fee):',
       footA: 'Dihitung dari transaksi berkategori biaya admin/transaksi, transportasi/ongkir, dan iklan/promosi (impor laporan marketplace memisahkan biaya-biaya ini otomatis). Jika Anda juga mengimpor mutasi bank berisi pencairan marketplace, gunakan menu', footRecon: 'Rekonsiliasi', footB: 'agar tidak dobel.',
       insightTpl: 'Omzet kotor {gross}, tapi yang benar-benar masuk {net}. Sekitar {leak} terpotong biaya channel (admin, ongkir, iklan). Margin aslimu {a}%, bukan {d}% seperti yang dikira.', insightEmpty: 'Belum ada data penjualan pada periode ini untuk dianalisis.',
+    },
+    demo: {
+      badge: 'DATA CONTOH',
+      banner: 'Ini data contoh. Masuk untuk memakai datamu sendiri.',
+      bannerSub: 'Angkanya milik toko fiktif. Tidak ada yang tersimpan, dan kamu belum perlu mendaftar untuk melihat ini.',
+      daftar: 'Daftar gratis', masuk: 'Masuk', beranda: 'Kembali ke beranda',
     },
     reports: {
       emptyTitle: 'Belum ada data untuk laporan', emptyDesc: 'Tambahkan atau import transaksi terlebih dahulu untuk menghasilkan laporan.',
@@ -755,7 +761,7 @@ export const translations = {
         eyebrow: 'AI-powered bookkeeping',
         h1a: 'Record Transactions as Easy as Sending a Chat. ', h1b: 'Business Monitored by AI.',
         lead: 'Send a voice note, type a message, or snap a photo of a receipt. Let our AI manage your bookkeeping, stock, and profit predictions automatically.',
-        ctaPrimary: 'Start Free Now', ctaSecondary: 'Watch Demo Video',
+        ctaPrimary: 'Start Free Now', ctaSecondary: 'See a Sample Leak Report',
         chatTitle: 'SmartBook Assistant', chatStatus: 'Online · Ready to Help',
         msgBot: 'Hi! Send a photo of a receipt or type today’s transaction.',
         msgUser: 'Sold 5 Special Fried Rice @25k, paid cash. Also bought 2kg eggs for 54k.',
@@ -1038,6 +1044,12 @@ export const translations = {
       breakdownTitle: 'Cost (Leak) & Profit Breakdown', bAdmin: 'Admin/Commission:', bOngkir: 'Shipping:', bIklan: 'Ads:', bOpex: 'Operating expenses:', bLabaAsli: 'REAL net profit:', bLabaDikira: 'ASSUMED profit (ignoring fees):',
       footA: 'Computed from transactions categorized as admin/transaction fees, transport/shipping, and ads/promotion (importing marketplace reports separates these automatically). If you also import bank statements containing marketplace payouts, use the', footRecon: 'Reconciliation', footB: 'menu to avoid double-counting.',
       insightTpl: 'Gross revenue {gross}, but only {net} actually came in. About {leak} was cut by channel fees (admin, shipping, ads). Your real margin is {a}%, not {d}% as assumed.', insightEmpty: 'No sales data in this period to analyze yet.',
+    },
+    demo: {
+      badge: 'SAMPLE DATA',
+      banner: 'This is sample data. Sign in to use your own.',
+      bannerSub: 'The numbers belong to a fictional shop. Nothing is saved, and you do not need an account to see this.',
+      daftar: 'Sign up free', masuk: 'Sign in', beranda: 'Back to home',
     },
     reports: {
       emptyTitle: 'No data for reports yet', emptyDesc: 'Add or import transactions first to generate reports.',
