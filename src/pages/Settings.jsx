@@ -88,10 +88,19 @@ export default function Settings() {
       business_type: profile.business_type, taxpayer_type: profile.taxpayer_type,
       business_address: profile.business_address || null,
     }
-    if (profile.phone) {
-      const norm = normalizePhone(profile.phone)
+    // Telepon opsional (task B5). Mengosongkan field lalu menyimpan HARUS
+    // benar-benar menghapus nomornya: sebelumnya blok ini dilewati saat nilainya
+    // kosong, sehingga nomor lama diam-diam bertahan dan tidak ada cara mencabut
+    // data yang terlanjur diberikan — bertentangan dengan hak penghapusan data
+    // pribadi (UU PDP 27/2022) sekaligus alasan telepon dijadikan opsional.
+    const teleponDiisi = (profile.phone || '').trim()
+    if (teleponDiisi) {
+      const norm = normalizePhone(teleponDiisi)
       if (!norm) { setSavedMsg(sg.invalidPhone); return }
       patch.phone = norm
+    } else {
+      patch.phone = null
+      patch.phone_verified = false // tanpa nomor, status verifikasi tidak punya arti
     }
     try { await updateProfile(patch); setSavedMsg(sg.profileSaved) }
     catch (err) { setSavedMsg(err.code === '23505' ? sg.phoneTaken : '⚠ ' + err.message) }
