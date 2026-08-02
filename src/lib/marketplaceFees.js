@@ -34,22 +34,48 @@ function findCol(headers, cands) {
   return null
 }
 
+// Peran kolom yang memengaruhi ketepatan angka kebocoran. 'order' sengaja tidak
+// ikut: ketiadaannya hanya membuat deskripsi transaksi kehilangan nomor pesanan,
+// tidak menggeser satu rupiah pun.
+export const PERAN_PENTING = ['date', 'gross', 'net', 'admin', 'ongkir', 'iklan']
+
 /**
- * @param {Array<Object>} rows baris-baris (objek per header)
- * @param {Array<string>} headers nama kolom
- * @param {string} platform 'shopee'|'tokopedia'|'tiktok'|'lazada'|'blibli'|'marketplace'
- * @returns {Array<Object>} transaksi siap simpan (penjualan + biaya terpisah)
+ * Versi berdiagnostik. Deteksi kolom berbasis sinonim sudah bagus, tapi selama
+ * ini DIAM saat gagal: kalau kolom biaya iklan tidak dikenali, angka kebocoran
+ * jadi terlalu kecil dan tidak ada yang tahu. Untuk fitur yang menjadi pembeda
+ * utama produk, kegagalan diam adalah risiko terbesarnya.
+ *
+ * @returns {{transactions: Array<Object>, diagnostics: Object}}
  */
-export function expandMarketplaceRows(rows, headers, platform = 'marketplace') {
-  const cOrder = findCol(headers, COL.order)
-  const cDate = findCol(headers, COL.date)
-  const cGross = findCol(headers, COL.gross)
-  const cNet = findCol(headers, COL.net)
-  const cAdmin = findCol(headers, COL.admin)
-  const cOngkir = findCol(headers, COL.ongkir)
-  const cIklan = findCol(headers, COL.iklan)
+export function expandMarketplaceReport(rows, headers, platform = 'marketplace') {
+  const kolom = {
+    order: findCol(headers, COL.order),
+    date: findCol(headers, COL.date),
+    gross: findCol(headers, COL.gross),
+    net: findCol(headers, COL.net),
+    admin: findCol(headers, COL.admin),
+    ongkir: findCol(headers, COL.ongkir),
+    iklan: findCol(headers, COL.iklan),
+  }
+  const matched = {}
+  for (const [peran, header] of Object.entries(kolom)) if (header) matched[peran] = header
+  const unmatched = PERAN_PENTING.filter((p) => !matched[p])
+
+  // Kolom berkas yang tidak dikenali satu peran pun. Didaftarkan supaya sinonim
+  // baru bisa ditambahkan ke COL — inilah cara daftar sinonim tumbuh dari
+  // berkas nyata, bukan dari tebakan.
+  const terpakai = new Set(Object.values(matched))
+  const unknownColumns = headers.filter((h) => !terpakai.has(h))
+
+  const cOrder = kolom.order, cDate = kolom.date, cGross = kolom.gross
+  const cNet = kolom.net, cAdmin = kolom.admin, cOngkir = kolom.ongkir, cIklan = kolom.iklan
   const label = PLATFORM_LABEL[platform] || 'Marketplace'
   const out = []
+
+  let unexplainedAmount = 0
+  let rowCount = 0
+  let skippedRows = 0
+  let reconstructedRows = 0
 
   for (const row of rows) {
     const orderId = cOrder ? String(row[cOrder] ?? '').trim() : ''
@@ -61,14 +87,18 @@ export function expandMarketplaceRows(rows, headers, platform = 'marketplace') {
     const iklan = cIklan ? Math.abs(parseAmount(row[cIklan])) : 0
 
     // Rekonstruksi kotor bila hanya nilai bersih + biaya yang tersedia.
-    if (!gross && net) gross = net + admin + ongkir + iklan
-    if (!gross || gross <= 0) continue
+    if (!gross && net) { gross = net + admin + ongkir + iklan; reconstructedRows++ }
+    // Baris tanpa nilai kotor yang bisa dipakai DIBUANG. Dulu ini terjadi tanpa
+    // jejak apa pun; sekarang dihitung supaya pengguna tahu berapa baris
+    // berkasnya yang tidak terpakai.
+    if (!gross || gross <= 0) { skippedRows++; continue }
+    rowCount++
 
     // Selisih yang belum terjelaskan (potongan lain) — hanya bila nilai bersih diketahui.
     let lain = 0
     if (net > 0) {
       const diff = gross - net - admin - ongkir - iklan
-      if (diff > 1) lain = diff
+      if (diff > 1) { lain = diff; unexplainedAmount += diff }
     }
 
     const ref = orderId || undefined
@@ -89,5 +119,47 @@ export function expandMarketplaceRows(rows, headers, platform = 'marketplace') {
     fee(iklan, 'Iklan & Promosi', 'Biaya iklan')
     fee(lain, 'Biaya Admin & Transaksi', 'Potongan lain')
   }
-  return out
+
+  // Keyakinan menjawab satu pertanyaan: seberapa besar kemungkinan angka
+  // kebocoran ini TERLALU KECIL karena ada biaya yang tidak terbaca?
+  //   tinggi = kolom kotor ada + KETIGA kolom biaya terdeteksi
+  //   sedang = kolom kotor ada + 1 sampai 2 kolom biaya
+  //   rendah = kotor direkonstruksi dari bersih, atau tidak ada kolom biaya
+  //
+  // CATATAN PENYIMPANGAN. Spec C3 menulis "tinggi = gross + >=2 kolom biaya",
+  // tetapi kriteria terimanya menuntut "impor berkas tanpa kolom iklan ->
+  // confidence turun". Keduanya tidak bisa benar bersamaan: berkas dengan kotor
+  // + admin + ongkir tapi tanpa iklan memenuhi ">=2" sehingga tetap 'tinggi'.
+  // Yang dimenangkan adalah kriteria terimanya, karena itu juga yang sesuai
+  // alasan task ini ada ("kalau kolom biaya iklan tidak terdeteksi, angka
+  // kebocoran jadi terlalu kecil dan tidak ada yang tahu") — dan pada data
+  // contoh produk ini, iklan menyumbang 48% dari total kebocoran. Arah
+  // penyimpangannya juga yang aman: lebih sering memperingatkan, tidak pernah
+  // lebih jarang. Aturan 'sedang' dan 'rendah' dari spec tetap utuh.
+  const feeTerdeteksi = ['admin', 'ongkir', 'iklan'].filter((k) => matched[k]).length
+  let confidence
+  if (!matched.gross || feeTerdeteksi === 0) confidence = 'rendah'
+  else if (feeTerdeteksi === 3) confidence = 'tinggi'
+  else confidence = 'sedang'
+
+  return {
+    transactions: out,
+    diagnostics: {
+      platform, matched, unmatched, unknownColumns,
+      unexplainedAmount, rowCount, skippedRows, reconstructedRows, confidence,
+    },
+  }
+}
+
+/**
+ * Bentuk lama yang hanya mengembalikan transaksi. Dipertahankan agar pemanggil
+ * dan tes yang sudah ada tidak perlu diubah.
+ *
+ * @param {Array<Object>} rows baris-baris (objek per header)
+ * @param {Array<string>} headers nama kolom
+ * @param {string} platform 'shopee'|'tokopedia'|'tiktok'|'lazada'|'blibli'|'marketplace'
+ * @returns {Array<Object>} transaksi siap simpan (penjualan + biaya terpisah)
+ */
+export function expandMarketplaceRows(rows, headers, platform = 'marketplace') {
+  return expandMarketplaceReport(rows, headers, platform).transactions
 }

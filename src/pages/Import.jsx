@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { parseImportFile, rowsToTransactions } from '../lib/csvImport'
-import { expandMarketplaceRows, PLATFORM_LABEL } from '../lib/marketplaceFees'
+import { expandMarketplaceReport, PLATFORM_LABEL } from '../lib/marketplaceFees'
 import { addTransactionsBulk, fetchRules } from '../lib/api'
 import { rupiah, fmtDate } from '../lib/format'
 import { Upload, FileText, Smartphone, Store } from 'lucide-react'
@@ -27,18 +27,32 @@ export default function Import() {
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(0)
+  const [diag, setDiag] = useState(null)   // diagnostik impor marketplace (C3)
+  const [tersalin, setTersalin] = useState(false)
 
   const handleFile = async (file) => {
     if (!file) return
-    setErr(''); setDone(0); setFileName(file.name)
+    setErr(''); setDone(0); setFileName(file.name); setDiag(null); setTersalin(false)
     try {
       const rules = await fetchRules().catch(() => [])
       const { rows, headers } = await parseImportFile(file)
       if (!rows.length) { setErr(i.errEmpty); return }
       let txs
       if (channel === 'marketplace') {
-        txs = expandMarketplaceRows(rows, headers, platform)
-        if (!txs.length) txs = rowsToTransactions(rows, headers, 'marketplace', rules)
+        const { transactions, diagnostics } = expandMarketplaceReport(rows, headers, platform)
+        txs = transactions
+        if (txs.length) {
+          setDiag(diagnostics)
+          // Keyakinan ikut tersimpan pada barisnya, bukan hanya ditampilkan
+          // sekali saat impor. Angka periode ini akan dibaca berkali-kali
+          // sesudahnya, dan tanpa jejak ini tidak ada cara tahu bahwa satu bulan
+          // tertentu berasal dari berkas yang kolom biayanya tidak lengkap.
+          txs = txs.map((t) => ({ ...t, import_confidence: diagnostics.confidence }))
+        } else {
+          // Bukan format laporan pesanan — jatuh ke parser umum. Diagnostik
+          // kolom biaya tidak berlaku di jalur ini, jadi sengaja tidak diisi.
+          txs = rowsToTransactions(rows, headers, 'marketplace', rules)
+        }
       } else {
         txs = rowsToTransactions(rows, headers, channel, rules)
       }
@@ -170,6 +184,76 @@ export default function Import() {
               <span className="badge badge-indigo">{selected.length} {i.badgeSel}</span>
             </div>
           </div>
+
+          {/* Diagnostik deteksi kolom (task C3). Deteksi sinonim selama ini diam
+              saat gagal: kolom biaya yang tak dikenali membuat angka kebocoran
+              terlalu kecil tanpa satu pun tanda. Panel ini yang membuat
+              kegagalan itu terlihat. */}
+          {diag && (
+            <div className={`card card-pad diag${diag.confidence === 'rendah' ? ' diag-rendah' : ''}`} style={{ marginBottom: 14 }}>
+              <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 className="card-title">{i.diagTitle}</h3>
+                  <div className="card-sub">
+                    {i.diagRows.replace('{n}', diag.rowCount)}
+                    {diag.skippedRows > 0 && ` · ${i.diagSkipped.replace('{n}', diag.skippedRows)}`}
+                  </div>
+                </div>
+                <span className={`badge badge-${diag.confidence === 'tinggi' ? 'green' : diag.confidence === 'sedang' ? 'amber' : 'red'}`}>
+                  {i.diagConfidence} {i.confidenceLabel[diag.confidence]}
+                </span>
+              </div>
+
+              {diag.confidence === 'rendah' && (
+                <div className="alert alert-err" style={{ marginTop: 12, marginBottom: 0 }}>{i.diagWarnLow}</div>
+              )}
+
+              <div className="diag-cols">
+                <div>
+                  <div className="diag-head">{i.diagMatched}</div>
+                  <div className="flex gap" style={{ flexWrap: 'wrap' }}>
+                    {Object.entries(diag.matched).map(([peran, header]) => (
+                      <span key={peran} className="badge badge-green" title={header}>
+                        {i.roleLabel[peran] || peran}: {header}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {diag.unmatched.length > 0 && (
+                  <div>
+                    <div className="diag-head">{i.diagUnmatched}</div>
+                    <div className="flex gap" style={{ flexWrap: 'wrap' }}>
+                      {diag.unmatched.map((peran) => (
+                        <span key={peran} className="badge badge-amber">{i.roleLabel[peran] || peran}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {diag.unexplainedAmount > 0 && (
+                <p className="muted-sm" style={{ marginTop: 10, marginBottom: 0 }}>
+                  {i.diagUnexplained.replace('{amount}', rupiah(diag.unexplainedAmount))}
+                </p>
+              )}
+
+              {diag.unknownColumns.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="flex between gap" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="diag-head" style={{ marginBottom: 0 }}>{i.diagUnknown}</div>
+                    <button className="btn btn-ghost" onClick={() => {
+                      navigator.clipboard?.writeText(diag.unknownColumns.join('\n'))
+                        .then(() => { setTersalin(true); setTimeout(() => setTersalin(false), 2000) })
+                        .catch(() => { /* abaikan */ })
+                    }}>{tersalin ? i.diagCopied : i.diagCopy}</button>
+                  </div>
+                  <p className="muted-sm" style={{ marginTop: 6, marginBottom: 0, wordBreak: 'break-word' }}>
+                    {diag.unknownColumns.join(' · ')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Baris bertanggal meragukan dikelompokkan terpisah dan dikeluarkan dari
               tabel utama sampai diselesaikan, supaya tidak tenggelam di antara

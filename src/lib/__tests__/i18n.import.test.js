@@ -17,6 +17,15 @@ const KUNCI_TEKS = [
 
 const ALASAN = ['kosong', 'mustahil', 'tidak dikenali', 'unknown']
 
+// Diagnostik impor marketplace (task C3).
+const KUNCI_DIAG = [
+  'diagTitle', 'diagRows', 'diagSkipped', 'diagConfidence', 'diagWarnLow',
+  'diagMatched', 'diagUnmatched', 'diagUnexplained', 'diagUnknown',
+  'diagCopy', 'diagCopied',
+]
+const TINGKAT = ['tinggi', 'sedang', 'rendah']
+const PERAN = ['date', 'gross', 'net', 'admin', 'ongkir', 'iklan', 'order']
+
 describe('kunci i18n layar Impor', () => {
   for (const lang of LANGS) {
     describe(`bahasa ${lang}`, () => {
@@ -38,6 +47,34 @@ describe('kunci i18n layar Impor', () => {
       it('teks berjumlah menyediakan tempat untuk {n}', () => {
         expect(imp.dateFixTitle).toContain('{n}')
         expect(imp.dateBlock).toContain('{n}')
+      })
+
+      it('semua teks diagnostik impor ada', () => {
+        for (const k of KUNCI_DIAG) {
+          expect(imp[k], `importPage.${k} hilang di ${lang}`).toBeTruthy()
+        }
+      })
+
+      it('ketiga tingkat keyakinan punya label', () => {
+        for (const k of TINGKAT) {
+          expect(imp.confidenceLabel[k], `confidenceLabel.${k} hilang di ${lang}`).toBeTruthy()
+        }
+      })
+
+      it('setiap peran kolom punya nama yang bisa dibaca pengguna', () => {
+        for (const p of PERAN) {
+          expect(imp.roleLabel[p], `roleLabel.${p} hilang di ${lang}`).toBeTruthy()
+        }
+      })
+
+      it('peringatan keyakinan rendah memakai kalimat baku dari spec', () => {
+        if (lang === 'id') {
+          expect(imp.diagWarnLow).toBe(
+            'Angka kebocoran mungkin tidak lengkap — beberapa kolom biaya tidak terdeteksi di file ini.',
+          )
+        }
+        expect(imp.diagUnexplained).toContain('{amount}')
+        expect(imp.diagRows).toContain('{n}')
       })
     })
   }
