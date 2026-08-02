@@ -301,6 +301,7 @@ export const translations = {
       emptyTitle: 'Belum ada data penjualan untuk dianalisis', emptyDesc: 'Import laporan marketplace (Shopee/Tokopedia/TikTok/Lazada) di menu Import, pilih platformnya agar biaya admin, ongkir, dan iklan terbaca, lalu kebocoran dihitung otomatis di sini.', importBtn: 'Import Laporan Marketplace',
       kGross: 'Omzet Kotor', kGrossSub: 'sebelum potongan channel', kLeak: 'Total Kebocoran', leakPctSuffix: 'dari omzet', kNet: 'Penerimaan Bersih', kNetSub: 'yang benar-benar masuk', kMargin: 'Margin Asli', marginDikira: 'dikira',
       summaryTitle: 'Ringkasan Kebocoran (untuk Anda)', copy: 'Salin', copied: 'Tersalin',
+      pdfBtn: 'Unduh Laporan Kebocoran (PDF)', pdfBusy: 'Menyiapkan...',
       perChTitle: 'Kebocoran per Channel', perChSub: 'Potongan terbesar di atas', noChFee: 'Belum ada biaya channel terdeteksi. Import laporan marketplace agar biaya admin/ongkir/iklan terbaca.',
       detailTitle: 'Rincian per Channel', detailSub: 'Omzet, potongan, lalu bersih', thChannel: 'Channel', thOmzet: 'Omzet', thPotongan: 'Potongan', thBersih: 'Bersih', thPct: '%',
       breakdownTitle: 'Rincian Biaya (Kebocoran) & Laba', bAdmin: 'Admin/Komisi:', bOngkir: 'Ongkir:', bIklan: 'Iklan:', bOpex: 'Pengeluaran operasional:', bLabaAsli: 'Laba bersih ASLI:', bLabaDikira: 'Laba yang DIKIRA (abaikan fee):',
@@ -312,6 +313,7 @@ export const translations = {
       banner: 'Ini data contoh. Masuk untuk memakai datamu sendiri.',
       bannerSub: 'Angkanya milik toko fiktif. Tidak ada yang tersimpan, dan kamu belum perlu mendaftar untuk melihat ini.',
       daftar: 'Daftar gratis', masuk: 'Masuk', beranda: 'Kembali ke beranda',
+      bizName: 'Toko Contoh Nusantara',
     },
     reports: {
       emptyTitle: 'Belum ada data untuk laporan', emptyDesc: 'Tambahkan atau import transaksi terlebih dahulu untuk menghasilkan laporan.',
@@ -1061,6 +1063,7 @@ export const translations = {
       emptyTitle: 'No sales data to analyze yet', emptyDesc: 'Import a marketplace report (Shopee/Tokopedia/TikTok/Lazada) in the Import menu, pick the platform so admin fees, shipping, and ads are read, then leaks are computed automatically here.', importBtn: 'Import Marketplace Report',
       kGross: 'Gross Revenue', kGrossSub: 'before channel deductions', kLeak: 'Total Leak', leakPctSuffix: 'of revenue', kNet: 'Net Received', kNetSub: 'what actually came in', kMargin: 'Real Margin', marginDikira: 'assumed',
       summaryTitle: 'Leak Summary (for you)', copy: 'Copy', copied: 'Copied',
+      pdfBtn: 'Download Leak Report (PDF)', pdfBusy: 'Preparing...',
       perChTitle: 'Leak per Channel', perChSub: 'Largest deductions on top', noChFee: 'No channel fees detected yet. Import a marketplace report so admin/shipping/ad fees are read.',
       detailTitle: 'Per-Channel Detail', detailSub: 'Revenue, deductions, then net', thChannel: 'Channel', thOmzet: 'Revenue', thPotongan: 'Deduction', thBersih: 'Net', thPct: '%',
       breakdownTitle: 'Cost (Leak) & Profit Breakdown', bAdmin: 'Admin/Commission:', bOngkir: 'Shipping:', bIklan: 'Ads:', bOpex: 'Operating expenses:', bLabaAsli: 'REAL net profit:', bLabaDikira: 'ASSUMED profit (ignoring fees):',
@@ -1072,6 +1075,7 @@ export const translations = {
       banner: 'This is sample data. Sign in to use your own.',
       bannerSub: 'The numbers belong to a fictional shop. Nothing is saved, and you do not need an account to see this.',
       daftar: 'Sign up free', masuk: 'Sign in', beranda: 'Back to home',
+      bizName: 'Toko Contoh Nusantara',
     },
     reports: {
       emptyTitle: 'No data for reports yet', emptyDesc: 'Add or import transactions first to generate reports.',

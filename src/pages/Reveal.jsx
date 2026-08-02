@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { fetchTransactions } from '../lib/api'
+import { fetchTransactions, fetchProfile } from '../lib/api'
 import { rupiah, rupiahShort, monthKey } from '../lib/format'
-import { Search } from 'lucide-react'
+import { Search, FileDown } from 'lucide-react'
 import { revealLeak } from '../lib/reveal'
+import { downloadLeakReport } from '../lib/leakReport'
 import { useLang } from '../context/LangContext'
 
 // `demoTx` dipakai rute publik /demo: bila diisi, transaksi datang langsung
@@ -18,11 +19,20 @@ export default function Reveal({ demoTx = null }) {
   const [tx, setTx] = useState(null)
   const [period, setPeriod] = useState('all')
   const [copied, setCopied] = useState(false)
+  const [profile, setProfile] = useState(null)
+  const [unduh, setUnduh] = useState(false)
   const demo = demoTx !== null
 
   useEffect(() => {
     if (demoTx) { setTx(demoTx); return }
     fetchTransactions().then(setTx).catch(() => setTx([]))
+  }, [demoTx])
+
+  // Profil hanya diambil di mode ter-login. Mode demo memakai nama usaha fiktif
+  // supaya rute publik /demo tetap nol query ke database.
+  useEffect(() => {
+    if (demoTx) return
+    fetchProfile().then(setProfile).catch(() => {})
   }, [demoTx])
 
   const ml = (k) => { const [y, m] = k.split('-'); return `${t.common.months[Number(m) - 1]} ${y}` }
@@ -47,6 +57,20 @@ export default function Reveal({ demoTx = null }) {
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(insight); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* abaikan */ }
+  }
+
+  const bizName = demo ? t.demo.bizName : (profile?.business_name || t.app.business)
+
+  const unduhPdf = async () => {
+    setUnduh(true)
+    try {
+      await downloadLeakReport({
+        reveal: r,
+        bizName,
+        periodLabel: period === 'all' ? t.common.allPeriods : ml(period),
+        periodeFile: period,
+      })
+    } finally { setUnduh(false) }
   }
 
   return (
@@ -105,7 +129,12 @@ export default function Reveal({ demoTx = null }) {
                 <div className="card-title" style={{ marginBottom: 6 }}>{rev.summaryTitle}</div>
                 <div style={{ fontSize: 15, lineHeight: 1.55 }}>{insight}</div>
               </div>
-              <button className="btn btn-ghost" onClick={copy}>{copied ? rev.copied : rev.copy}</button>
+              <div className="flex gap" style={{ flexWrap: 'wrap' }}>
+                <button className="btn btn-ghost" onClick={copy}>{copied ? rev.copied : rev.copy}</button>
+                <button className="btn btn-primary" onClick={unduhPdf} disabled={unduh}>
+                  <FileDown size={16} aria-hidden="true" /> {unduh ? rev.pdfBusy : rev.pdfBtn}
+                </button>
+              </div>
             </div>
           </div>
 
