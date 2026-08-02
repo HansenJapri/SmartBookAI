@@ -317,6 +317,10 @@ export const translations = {
       catTitle: 'Pengeluaran per Kategori — {period}', catSub: 'Ke mana pengeluaran Anda paling banyak mengalir.',
       disclaimer: 'Estimasi pajak mengacu PP 55/2022; untuk pelaporan resmi, verifikasi dengan konsultan atau DJP. Laporan ini adalah bahan lampiran. Keputusan KUR ditentukan bank berdasarkan penilaian dan riwayat kredit (SLIK OJK), bukan oleh aplikasi ini.',
       eduTitle: 'Pelajari: KUR dan Pajak UMKM', eduSub: 'Penjelasan ringkas agar Anda paham cara memakai laporan di atas.',
+      // Kelengkapan antarmuka untuk penafian REFERENSI. Isi penafiannya sendiri
+      // tidak di sini — teks hukum baku ada di src/lib/reportDisclaimer.js.
+      refBadge: 'REFERENSI', refModalTitle: 'Baca dulu sebelum mengunduh',
+      refModalOk: 'Saya mengerti', refModalCancel: 'Batal',
     },
     audit: {
       tables: { transactions: 'Transaksi', products: 'Produk/Stok', suppliers: 'Pemasok', purchase_orders: 'Purchase Order', stock_opnames: 'Stock Opname', categories: 'Kategori', employees: 'Karyawan', payrolls: 'Penggajian', tasks: 'Tugas Operasional', attendance_rules: 'Aturan Absensi', kpi_bonus_rules: 'Jenjang KPI' },
@@ -1056,6 +1060,10 @@ export const translations = {
       catTitle: 'Expenses by Category — {period}', catSub: 'Where most of your spending goes.',
       disclaimer: 'Tax estimates refer to PP 55/2022; for official filing, verify with an advisor or the tax office (DJP). This report is supporting material. KUR decisions are made by the bank based on assessment and credit history (SLIK OJK), not by this app.',
       eduTitle: 'Learn: KUR and SME Taxes', eduSub: 'A brief explanation to help you use the reports above.',
+      // The disclaimer body stays in Indonesian on purpose: it is printed into
+      // the exported file handed to an Indonesian bank or the tax office.
+      refBadge: 'REFERENCE', refModalTitle: 'Read before downloading',
+      refModalOk: 'I understand', refModalCancel: 'Cancel',
     },
     audit: {
       tables: { transactions: 'Transactions', products: 'Products/Stock', suppliers: 'Suppliers', purchase_orders: 'Purchase Orders', stock_opnames: 'Stock Take', categories: 'Categories', employees: 'Employees', payrolls: 'Payroll', tasks: 'Operational Tasks', attendance_rules: 'Attendance Rules', kpi_bonus_rules: 'KPI Tiers' },
