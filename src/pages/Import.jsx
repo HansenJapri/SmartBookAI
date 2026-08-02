@@ -59,6 +59,32 @@ export default function Import() {
   const setCat = (id, cat) => setParsed((p) => p.map((tt) => tt._id === id ? { ...tt, category: cat } : tt))
   const setDir = (id, dir) => setParsed((p) => p.map((tt) => tt._id === id ? { ...tt, direction: dir, category: (catNames(dir)[0] || tt.category) } : tt))
 
+  // ---------- BARIS BERTANGGAL MERAGUKAN (task B6) ----------
+  // Hanya baris yang MASIH ikut disimpan yang perlu diselesaikan; baris yang
+  // sudah dilewati pengguna tidak lagi mengancam kebenaran periode laporan.
+  const raguTanggal = parsed?.filter((tt) => tt._dateUncertain && tt._include) || []
+
+  // Memakai tengah malam waktu lokal, sama seperti parseDateInfo(), supaya
+  // monthKey() (yang juga membaca waktu lokal) menempatkannya di bulan yang benar.
+  const keYmd = (iso) => {
+    const d = new Date(iso)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  const perbaikiTanggal = (id, ymd) => setParsed((p) => p.map((tt) => {
+    if (tt._id !== id || !ymd) return tt
+    const [y, m, d] = ymd.split('-').map(Number)
+    return { ...tt, occurred_at: new Date(y, m - 1, d).toISOString(), _dateUncertain: false }
+  }))
+
+  const pakaiHariIni = (ids) => setParsed((p) => p.map((tt) => (
+    ids.includes(tt._id) ? { ...tt, occurred_at: new Date().toISOString(), _dateUncertain: false } : tt
+  )))
+
+  const lewatiBaris = (ids) => setParsed((p) => p.map((tt) => (
+    ids.includes(tt._id) ? { ...tt, _include: false } : tt
+  )))
+
   const selected = parsed?.filter((tt) => tt._include) || []
   const totalIn = selected.filter((tt) => tt.direction === 'in').reduce((s, tt) => s + tt.amount, 0)
   const totalOut = selected.filter((tt) => tt.direction === 'out').reduce((s, tt) => s + tt.amount, 0)
@@ -66,7 +92,7 @@ export default function Import() {
   const doImport = async () => {
     setBusy(true); setErr('')
     try {
-      const payload = selected.map(({ _id, _include, _dateUncertain, ...tt }) => tt)
+      const payload = selected.map(({ _id, _include, _dateUncertain, _dateReason, _dateRaw, ...tt }) => tt)
       await addTransactionsBulk(payload)
       setDone(payload.length)
       setParsed(null)
@@ -145,9 +171,48 @@ export default function Import() {
             </div>
           </div>
 
-          {parsed.some((tt) => tt._dateUncertain && tt._include) && (
-            <div className="alert alert-err" style={{ marginBottom: 14 }}>
-              {i.dateWarnA} <b>{i.dateBadge}</b> {i.dateWarnB}
+          {/* Baris bertanggal meragukan dikelompokkan terpisah dan dikeluarkan dari
+              tabel utama sampai diselesaikan, supaya tidak tenggelam di antara
+              ratusan baris yang sehat. */}
+          {raguTanggal.length > 0 && (
+            <div className="card card-pad date-fix" style={{ marginBottom: 14 }}>
+              <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 className="card-title">{i.dateFixTitle.replace('{n}', raguTanggal.length)}</h3>
+                  <div className="card-sub">{i.dateFixSub}</div>
+                </div>
+                <div className="flex gap" style={{ flexWrap: 'wrap' }}>
+                  <button className="btn btn-ghost" onClick={() => pakaiHariIni(raguTanggal.map((x) => x._id))}>{i.dateUseTodayAll}</button>
+                  <button className="btn btn-ghost" onClick={() => lewatiBaris(raguTanggal.map((x) => x._id))}>{i.dateSkipAll}</button>
+                </div>
+              </div>
+              <div className="table-wrap" style={{ marginTop: 12 }}>
+                <table className="tbl">
+                  <thead>
+                    <tr>
+                      <th>{i.thDateRaw}</th><th>{i.thWhy}</th><th>{i.thDesc}</th>
+                      <th style={{ textAlign: 'right' }}>{i.thAmount}</th>
+                      <th>{i.thFix}</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {raguTanggal.map((tt) => (
+                      <tr key={tt._id}>
+                        <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{tt._dateRaw || <i>{i.dateEmpty}</i>}</td>
+                        <td className="muted-sm">{i.dateReason[tt._dateReason] || i.dateReason.unknown}</td>
+                        <td style={{ maxWidth: 240 }}>{tt.description}</td>
+                        <td style={{ textAlign: 'right' }} className={tt.direction === 'in' ? 'amt-in' : 'amt-out'}>{rupiah(tt.amount)}</td>
+                        <td>
+                          <input type="date" className="input" style={{ padding: '5px 8px', fontSize: 13 }}
+                            value={keYmd(tt.occurred_at)} onChange={(e) => perbaikiTanggal(tt._id, e.target.value)}
+                            aria-label={i.thFix} />
+                        </td>
+                        <td><button className="btn btn-ghost" onClick={() => lewatiBaris([tt._id])}>{i.dateSkipOne}</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -160,7 +225,7 @@ export default function Import() {
                 </tr>
               </thead>
               <tbody>
-                {parsed.map((tt) => (
+                {parsed.filter((tt) => !(tt._dateUncertain && tt._include)).map((tt) => (
                   <tr key={tt._id} style={{ opacity: tt._include ? 1 : 0.4 }}>
                     <td><input type="checkbox" checked={tt._include} onChange={() => toggle(tt._id)} /></td>
                     <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>
@@ -187,8 +252,16 @@ export default function Import() {
             </table>
           </div>
 
+          {/* Menyimpan ditahan selama masih ada baris meragukan. Ketiga pilihannya
+              masing-masing satu klik, jadi ini bukan jalan buntu — tujuannya
+              memastikan periode yang salah tidak pernah masuk tanpa disadari. */}
+          {raguTanggal.length > 0 && (
+            <div className="alert alert-err" style={{ marginBottom: 12 }}>
+              {i.dateBlock.replace('{n}', raguTanggal.length)}
+            </div>
+          )}
           <div className="flex gap">
-            <button className="btn btn-primary btn-lg" disabled={busy || selected.length === 0} onClick={doImport}>
+            <button className="btn btn-primary btn-lg" disabled={busy || selected.length === 0 || raguTanggal.length > 0} onClick={doImport}>
               {busy ? i.importing : `${i.importBtn} ${selected.length} ${i.txWord}`}
             </button>
             <button className="btn btn-ghost btn-lg" onClick={() => { setParsed(null); setFileName('') }}>{i.cancel}</button>

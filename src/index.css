@@ -911,6 +911,11 @@ table.tbl tr:hover td { background: var(--bg-soft); }
   .demo-banner-cta { width: 100%; justify-content: center; }
 }
 
+/* Bagian pemulihan tanggal meragukan saat impor (task B6). Dibingkai amber
+   agar terbaca sebagai blokade yang harus diselesaikan, bukan tabel biasa. */
+.date-fix { border: 1px solid #fde68a; background: var(--amber-50); }
+.date-fix .tbl { background: var(--card); border-radius: 10px; }
+
 /* Penafian REFERENSI laporan KUR & Pajak (task B2). Sengaja permanen: tidak
    ada tombol tutup dan tidak disembunyikan di balik tooltip. pre-line menjaga
    pemisah baris judul penafian dari badan teksnya. */
