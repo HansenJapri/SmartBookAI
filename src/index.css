@@ -897,6 +897,15 @@ table.tbl tr:hover td { background: var(--bg-soft); }
    ============================================================ */
 .ai-note { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: var(--warn-ink); background: var(--amber-50); border: 1px solid #fde68a; border-radius: 8px; padding: 6px 9px; margin-top: 8px; }
 
+/* Baseline "margin yang kamu kira" (task C2). */
+.baseline-ask { border: 1px solid var(--line-accent); background: var(--indigo-50); }
+.baseline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.chip-pick { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 13px; cursor: pointer; }
+.chip-pick.active { border-color: var(--indigo); color: var(--indigo-600); font-weight: 600; }
+.chip-pick input { margin: 0; }
+.baseline-compare { border: 1px solid var(--line-accent); background: var(--indigo-50); }
+@media (max-width: 560px) { .baseline-grid { grid-template-columns: 1fr; } }
+
 /* Mode demo publik /demo (task B4). */
 .demo-page { min-height: 100vh; background: var(--bg); }
 .demo-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--line); }

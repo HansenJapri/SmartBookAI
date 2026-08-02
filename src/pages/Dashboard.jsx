@@ -12,6 +12,7 @@ import {
 import { fetchTransactions, fetchLowStock, fetchTxCount, fetchActiveTarget, addTarget, deactivateTarget, fetchProfile } from '../lib/api'
 import { narasiAI } from '../lib/ai'
 import { sampleTransactions } from '../lib/sampleData'
+import BaselineAsk from '../components/BaselineAsk'
 import { rupiah, rupiahShort, fmtDateTime, fmtDate } from '../lib/format'
 import { summarize, trendForRange, channelMix, expenseByCategory } from '../lib/analytics'
 import { useCatalog } from '../context/CatalogContext'
@@ -142,6 +143,12 @@ export default function Dashboard() {
   return (
     <div className="d2" ref={rootRef}>
       <Reminders />
+
+      {/* Tebakan margin ditanyakan di layar pertama setelah masuk, bukan di
+          Setup.jsx: berkas itu adalah instruksi konfigurasi developer dan tidak
+          pernah dilihat pengguna. Disembunyikan saat pratinjau data contoh
+          supaya jawabannya tidak terekam berdasarkan angka fiktif. */}
+      {!demo && <BaselineAsk />}
 
       {/* Greeting + period selector */}
       <div className="d2-greet d2-rv">

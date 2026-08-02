@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { fetchTransactions, fetchProfile } from '../lib/api'
+import { fetchTransactions, fetchProfile, fetchBaseline } from '../lib/api'
 import { rupiah, rupiahShort, monthKey } from '../lib/format'
 import { Search, FileDown } from 'lucide-react'
 import { revealLeak } from '../lib/reveal'
@@ -20,6 +20,7 @@ export default function Reveal({ demoTx = null }) {
   const [period, setPeriod] = useState('all')
   const [copied, setCopied] = useState(false)
   const [profile, setProfile] = useState(null)
+  const [baseline, setBaseline] = useState(null)
   const [unduh, setUnduh] = useState(false)
   const demo = demoTx !== null
 
@@ -28,11 +29,12 @@ export default function Reveal({ demoTx = null }) {
     fetchTransactions().then(setTx).catch(() => setTx([]))
   }, [demoTx])
 
-  // Profil hanya diambil di mode ter-login. Mode demo memakai nama usaha fiktif
-  // supaya rute publik /demo tetap nol query ke database.
+  // Profil dan baseline hanya diambil di mode ter-login. Mode demo memakai nama
+  // usaha fiktif supaya rute publik /demo tetap nol query ke database.
   useEffect(() => {
     if (demoTx) return
     fetchProfile().then(setProfile).catch(() => {})
+    fetchBaseline().then(setBaseline).catch(() => {})
   }, [demoTx])
 
   const ml = (k) => { const [y, m] = k.split('-'); return `${t.common.months[Number(m) - 1]} ${y}` }
@@ -122,6 +124,21 @@ export default function Reveal({ demoTx = null }) {
               <div className="kpi-d down">{rev.marginDikira} {marginDikiraPct}%</div>
             </div>
           </div>
+
+          {/* Kartu pembanding tebakan vs kenyataan (task C2). Muncul HANYA kalau
+              pengguna benar-benar pernah menebak; baris kosong hasil "lewati"
+              tidak menampilkan apa pun. Jangan memaksa. */}
+          {baseline?.margin_perceived != null && (
+            <div className="card card-pad mt baseline-compare">
+              <div className="card-title">{rev.blTitle}</div>
+              <div style={{ fontSize: 15, lineHeight: 1.6, marginTop: 4 }}>
+                {rev.blBody
+                  .replace('{kira}', Number(baseline.margin_perceived))
+                  .replace('{asli}', marginAsliPct)
+                  .replace('{selisih}', Math.round((Number(baseline.margin_perceived) - marginAsliPct) * 10) / 10)}
+              </div>
+            </div>
+          )}
 
           <div className="card card-pad mt" style={{ background: 'var(--amber-50)', border: '1px solid rgba(245, 158, 11, 0.45)' }}>
             <div className="flex between gap" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>

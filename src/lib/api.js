@@ -1186,6 +1186,26 @@ export async function fetchTodayTotals() {
 }
 
 // ---------- TARGET PENJUALAN (untuk prediksi 3 skenario) ----------
+// ---------- BASELINE "MARGIN YANG KAMU KIRA" (task C2) ----------
+// Tebakan pengguna direkam SEKALI, sebelum mereka melihat angka aslinya di
+// Reveal. Sesudah itu jawabannya sudah terkontaminasi dan selisihnya — yang
+// justru menjadi nilai produk — tidak bisa direkonstruksi lagi.
+export async function fetchBaseline() {
+  const { data, error } = await wsSelect(await wsOwner(), 'user_baseline').limit(1)
+  if (error) throw error
+  return (data && data[0]) || null
+}
+
+// Upsert, bukan insert: pengguna bisa menekan simpan dua kali, dan indeks unik
+// pada user_id yang menjaga agar tetap satu baris per pengguna.
+export async function saveBaseline(jawaban) {
+  const owner = await wsOwner()
+  const { error } = await supabase
+    .from('user_baseline')
+    .upsert({ user_id: owner, ...jawaban }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
 export async function fetchActiveTarget() {
   const { data, error } = await wsSelect(await wsOwner(), 'sales_targets')
     .eq('is_active', true)
