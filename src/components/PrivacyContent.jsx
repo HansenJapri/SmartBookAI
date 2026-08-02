@@ -22,8 +22,8 @@ function PrivacyFallback() {
       </div>
 
       <h3>1. Identitas Pengendali Data Pribadi</h3>
-      <p>Pengendali Data Pribadi atas Aplikasi ini adalah <b>{CONTROLLER_NAME}</b> (selanjutnya
-        disebut "Kami"). Anda dapat menghubungi Kami melalui surel{' '}
+      <p>Pengendali Data Pribadi atas Aplikasi ini adalah <b>{CONTROLLER_NAME}</b>, selanjutnya
+        disebut "Kami". Anda dapat menghubungi Kami melalui surel{' '}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> untuk segala hal terkait data
         pribadi Anda.</p>
 
