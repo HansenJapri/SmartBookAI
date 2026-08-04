@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { canModule, canPath, filterNav, firstAllowedPath, isOwnerView, MODULES, OWNER_ONLY_KEYS } from '../rbac'
+import { canManageUsers, canModule, canPath, filterNav, firstAllowedPath, isOwnerView, MODULES, OWNER_ONLY_KEYS, staffDisplayName } from '../rbac'
 
 const NAV = [
   { sec: 'ringkasan', items: [{ key: 'dashboard' }] },
@@ -100,5 +100,68 @@ describe('MODULES', () => {
   it('enam modul sesuai blueprint dan punya label', () => {
     expect(MODULES.map((m) => m.key)).toEqual(['dashboard', 'operasional', 'transaksi', 'produk', 'hr', 'analisis'])
     for (const m of MODULES) expect(m.label.length).toBeGreaterThan(3)
+  })
+})
+
+// ============================================================
+// CRUD DATA PENGGUNA — hanya owner workspace yang sedang dibuka.
+// ============================================================
+describe('canManageUsers', () => {
+  it('mengizinkan owner workspace yang sedang dibuka', () => {
+    expect(canManageUsers({ isOwner: true, membership: null })).toBe(true)
+  })
+
+  it('menolak staf, termasuk yang punya semua modul', () => {
+    const semua = { modules: MODULES.map((m) => m.key) }
+    expect(canManageUsers({ isOwner: false, membership: semua })).toBe(false)
+  })
+
+  it('menolak keadaan rancu: mengaku owner tapi punya baris keanggotaan', () => {
+    expect(canManageUsers({ isOwner: true, membership: { modules: ['hr'] } })).toBe(false)
+  })
+
+  // Gagal-tertutup. Konteks workspace dimuat asinkron, jadi selama render
+  // pertama isOwner bisa undefined — saat itu tabel pengelolaan pengguna tidak
+  // boleh sempat muncul walau sekejap.
+  it('menolak nilai yang belum jelas (undefined / null / tanpa argumen)', () => {
+    expect(canManageUsers()).toBe(false)
+    expect(canManageUsers({})).toBe(false)
+    expect(canManageUsers({ isOwner: undefined })).toBe(false)
+    expect(canManageUsers({ isOwner: null })).toBe(false)
+  })
+
+  it('menolak nilai truthy yang bukan boolean true', () => {
+    expect(canManageUsers({ isOwner: 1 })).toBe(false)
+    expect(canManageUsers({ isOwner: 'yes' })).toBe(false)
+  })
+
+  it('sejalan dengan isOwnerView untuk staf yang membuka usaha orang lain', () => {
+    const isOwner = isOwnerView('user-1', 'owner-2')
+    expect(isOwner).toBe(false)
+    expect(canManageUsers({ isOwner, membership: { modules: ['hr'] } })).toBe(false)
+  })
+})
+
+describe('staffDisplayName', () => {
+  it('memakai nama bila ada', () => {
+    expect(staffDisplayName({ name: 'Budi Santoso', email: 'budi@x.com' })).toBe('Budi Santoso')
+  })
+
+  // Baris lama (sebelum kolom `name`) tetap harus mengenali orangnya, tanpa
+  // memampangkan alamat email lengkap di tabel.
+  it('jatuh ke bagian lokal email bila nama kosong', () => {
+    expect(staffDisplayName({ name: '', email: 'budi.s@usaha.com' })).toBe('budi.s')
+    expect(staffDisplayName({ email: 'budi.s@usaha.com' })).toBe('budi.s')
+    expect(staffDisplayName({ name: '   ', email: 'budi.s@usaha.com' })).toBe('budi.s')
+  })
+
+  it('tidak pernah membocorkan domain lewat jalur cadangan', () => {
+    expect(staffDisplayName({ email: 'x@rahasia.co.id' })).not.toContain('@')
+    expect(staffDisplayName({ email: 'x@rahasia.co.id' })).not.toContain('rahasia')
+  })
+
+  it('mengembalikan em dash bila tidak ada data sama sekali', () => {
+    expect(staffDisplayName({})).toBe('—')
+    expect(staffDisplayName(null)).toBe('—')
   })
 })

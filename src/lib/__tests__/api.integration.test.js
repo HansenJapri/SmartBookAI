@@ -457,3 +457,186 @@ describe('batas hak akses pengelolaan staf (owner-only)', () => {
     expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ modules: ['produk'] }))
   })
 })
+
+// ============================================================
+// TARGET PENJUALAN
+// Regresi untuk tiga cara fitur ini gagal diam-diam sebelumnya:
+//   1) nilai form yang bukan angka lolos ke PostgREST sebagai NaN,
+//   2) galat saat menonaktifkan target lama ditelan sehingga insert tetap
+//      jalan dan workspace berakhir dengan dua target aktif,
+//   3) deactivate yang tidak mengenai baris apa pun dilaporkan sukses.
+// ============================================================
+describe('addTarget', () => {
+  const base = { name: 'Q3', start_date: '2026-07-01', deadline: '2026-09-30' }
+
+  it('menolak target tanpa angka apa pun (CHECK amount > 0 di basis data)', async () => {
+    await expect(api.addTarget({ ...base })).rejects.toThrow(/minimal salah satu/i)
+  })
+
+  it('memperlakukan angka <= 0 sebagai "tidak diisi"', async () => {
+    await expect(api.addTarget({ ...base, revenue_target: '0', profit_target: '' }))
+      .rejects.toThrow(/minimal salah satu/i)
+  })
+
+  it('menolak input yang bukan angka alih-alih mengirim NaN ke database', async () => {
+    await expect(api.addTarget({ ...base, revenue_target: 'abc' })).rejects.toThrow(/harus berupa angka/i)
+  })
+
+  it('menolak nilai yang melampaui numeric(14,2)', async () => {
+    await expect(api.addTarget({ ...base, revenue_target: '1e13' })).rejects.toThrow(/terlalu besar/i)
+  })
+
+  it('mengisi amount dari revenue lalu profit demi kompatibilitas kolom lama', async () => {
+    const insertChain = makeChain({ data: { id: 't1' }, error: null })
+    fromImpl.mockImplementationOnce(() => makeChain({ data: null, error: null })) // deactivate
+    fromImpl.mockImplementationOnce(() => insertChain)
+    await api.addTarget({ ...base, profit_target: '1500000' })
+    expect(insertChain.insert).toHaveBeenCalledWith(expect.objectContaining({
+      revenue_target: null, profit_target: 1500000, amount: 1500000, user_id: 'owner-1',
+    }))
+  })
+
+  it('TIDAK menyisipkan target baru bila menonaktifkan target lama gagal', async () => {
+    const insertChain = makeChain({ data: { id: 't2' }, error: null })
+    fromImpl.mockImplementationOnce(() => makeChain({ data: null, error: new Error('rls') }))
+    fromImpl.mockImplementationOnce(() => insertChain)
+    await expect(api.addTarget({ ...base, revenue_target: '5000000' })).rejects.toThrow(/rls/)
+    expect(insertChain.insert).not.toHaveBeenCalled()
+  })
+})
+
+describe('deactivateTarget', () => {
+  it('melempar bila tidak ada baris yang terkena (target milik workspace lain)', async () => {
+    fromImpl.mockImplementationOnce(() => makeChain({ data: null, error: null, count: 0 }))
+    await expect(api.deactivateTarget('t-lain')).rejects.toThrow(/tidak ditemukan/i)
+  })
+
+  it('lolos bila satu baris terkena', async () => {
+    fromImpl.mockImplementationOnce(() => makeChain({ data: null, error: null, count: 1 }))
+    await expect(api.deactivateTarget('t1')).resolves.toBeUndefined()
+  })
+})
+
+describe('fetchTargetTransactions', () => {
+  it('memfilter rentang target di server, bukan di klien', async () => {
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.fetchTargetTransactions({ start_date: '2026-07-01', deadline: '2026-09-30' })
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'owner-1')
+    expect(chain.gte).toHaveBeenCalledWith('occurred_at', expect.any(String))
+    expect(chain.lte).toHaveBeenCalledWith('occurred_at', expect.any(String))
+  })
+
+  it('tanpa deadline hanya memberi batas bawah', async () => {
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.fetchTargetTransactions({ start_date: '2026-07-01', deadline: null })
+    expect(chain.gte).toHaveBeenCalled()
+    expect(chain.lte).not.toHaveBeenCalled()
+  })
+
+  it('mengembalikan array kosong tanpa menyentuh database bila target null', async () => {
+    await api.fetchTargetTransactions(null)
+    expect(fromImpl).not.toHaveBeenCalled()
+  })
+})
+
+// ============================================================
+// CRUD DATA PENGGUNA — penjaga owner di lapisan api.js.
+//
+// RLS `owner_id = auth.uid()` TIDAK cukup sendirian: staf yang sedang membuka
+// usaha orang lain tetap merupakan owner di usahanya sendiri, jadi database
+// dengan senang hati menerima tulisannya — hanya saja mendarat di workspace
+// yang salah. Penjaga di bawah menolak seluruh operasi selama workspace yang
+// dibuka bukan milik pengguna itu.
+// ============================================================
+describe('CRUD pengguna hanya untuk owner workspace aktif', () => {
+  const asStaffViewingOtherWorkspace = () => {
+    localStorage.setItem('bp-active-workspace', 'owner-lain')
+  }
+
+  it('fetchStaff ditolak saat membuka workspace orang lain', async () => {
+    asStaffViewingOtherWorkspace()
+    await expect(api.fetchStaff()).rejects.toThrow(/hanya pemilik usaha/i)
+    expect(fromImpl).not.toHaveBeenCalled()
+  })
+
+  it('addStaff ditolak dan tidak menyentuh database', async () => {
+    asStaffViewingOtherWorkspace()
+    await expect(api.addStaff('x@y.com', ['produk'])).rejects.toThrow(/hanya pemilik usaha/i)
+    expect(fromImpl).not.toHaveBeenCalled()
+  })
+
+  it('updateStaff ditolak', async () => {
+    asStaffViewingOtherWorkspace()
+    await expect(api.updateStaff('s1', { status: 'revoked' })).rejects.toThrow(/hanya pemilik usaha/i)
+    expect(fromImpl).not.toHaveBeenCalled()
+  })
+
+  it('deleteStaff ditolak', async () => {
+    asStaffViewingOtherWorkspace()
+    await expect(api.deleteStaff('s1')).rejects.toThrow(/hanya pemilik usaha/i)
+    expect(fromImpl).not.toHaveBeenCalled()
+  })
+
+  it('reinviteStaff ditolak (lewat updateStaff)', async () => {
+    asStaffViewingOtherWorkspace()
+    await expect(api.reinviteStaff('s1')).rejects.toThrow(/hanya pemilik usaha/i)
+  })
+
+  it('diizinkan saat workspace aktif memang milik sendiri', async () => {
+    localStorage.setItem('bp-active-workspace', 'owner-1')
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await expect(api.fetchStaff()).resolves.toEqual([])
+    expect(chain.eq).toHaveBeenCalledWith('owner_id', 'owner-1')
+  })
+
+  it('diizinkan saat belum ada workspace dipilih (default: usaha sendiri)', async () => {
+    const chain = makeChain({ data: [], error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await expect(api.fetchStaff()).resolves.toEqual([])
+  })
+})
+
+describe('addStaff — nama pengguna & peran', () => {
+  it('menyimpan nama yang sudah dirapikan spasinya', async () => {
+    const chain = makeChain({ data: { id: 's1' }, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.addStaff('budi@x.com', ['produk'], 'staf', '  Budi   Santoso  ')
+    expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ name: 'Budi Santoso' }))
+  })
+
+  it('nama kosong sah — tabel jatuh ke bagian lokal email', async () => {
+    const chain = makeChain({ data: { id: 's1' }, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.addStaff('budi@x.com', ['produk'])
+    expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ name: '' }))
+  })
+
+  it('menolak nama yang melampaui batas kolom', async () => {
+    await expect(api.addStaff('budi@x.com', ['produk'], 'staf', 'a'.repeat(61)))
+      .rejects.toThrow(/maksimal 60 karakter/i)
+  })
+
+  // Kepemilikan berasal dari staff_members.owner_id, bukan dari kolom role.
+  // Nilai role di luar daftar putih diturunkan ke 'staf', tidak pernah dipakai apa adanya.
+  it('tidak pernah menuliskan role owner walau diminta', async () => {
+    const chain = makeChain({ data: { id: 's1' }, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.addStaff('budi@x.com', ['produk'], 'owner')
+    expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ role: 'staf' }))
+  })
+})
+
+describe('updateStaff — whitelist patch', () => {
+  it('mengabaikan kolom sensitif dan hanya menulis yang sah', async () => {
+    const chain = makeChain({ data: { id: 's1' }, error: null })
+    fromImpl.mockImplementationOnce(() => chain)
+    await api.updateStaff('s1', {
+      modules: ['produk'], name: 'Budi',
+      owner_id: 'penyerang', member_id: 'penyerang', email: 'baru@x.com', role: 'owner',
+    })
+    expect(chain.update).toHaveBeenCalledWith({ modules: ['produk'], name: 'Budi' })
+  })
+})

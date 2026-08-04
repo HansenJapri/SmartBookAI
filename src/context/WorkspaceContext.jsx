@@ -89,9 +89,14 @@ export function WorkspaceProvider({ children }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
+// Fallback tanpa provider sengaja GAGAL-TERTUTUP (isOwner: false).
+// Sebelumnya nilainya `true`, sehingga komponen apa pun yang ter-render di luar
+// <WorkspaceProvider> — karena salah pasang rute, atau saat diuji terpisah —
+// otomatis dianggap pemilik usaha dan menampilkan seluruh tabel pengelolaan
+// pengguna. Default untuk pemeriksaan hak akses harus "tidak boleh".
 export function useWorkspace() {
   return useContext(Ctx) || {
-    user: null, isOwner: true, selectedWorkspace: '', membership: null,
+    user: null, isOwner: false, selectedWorkspace: '', membership: null,
     memberships: [], invites: [], visibleInvites: [], loading: false,
     refresh: async () => {}, switchWorkspace: () => {},
     accept: async () => {}, decline: async () => {}, snooze: () => {},

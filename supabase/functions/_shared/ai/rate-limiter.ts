@@ -23,6 +23,17 @@ export interface QuotaStatus {
   used: number
   cap: number
   resetAt: string | null
+  /**
+   * true = penghitung kuota TIDAK BISA DIBACA (RPC belum ter-deploy, izin
+   * dicabut), bukan kuota yang benar-benar habis.
+   *
+   * Dua keadaan ini sama-sama menghasilkan allowed=false, tapi artinya jauh
+   * berbeda bagi yang membaca pesannya: yang satu "tunggu besok", yang satu
+   * "ada migration yang belum dijalankan". Menyamakan keduanya di balik satu
+   * pesan "kuota habis" pernah membuat berjam-jam terbuang mencari penyebab
+   * yang sebenarnya tertulis jelas di log.
+   */
+  unavailable?: boolean
 }
 
 /** Bentuk error terstruktur saat kuota harian habis. */
@@ -57,9 +68,10 @@ export async function checkQuota(
     p_limit: cap,
   })
   if (error) {
-    // Gagal membaca kuota tidak boleh mengunci pengguna sepenuhnya, tapi juga
-    // tidak boleh membuka pintu lebar. Anggap tidak diizinkan agar aman biaya.
-    return { allowed: false, used: cap, cap, resetAt: null }
+    // Tetap fail-closed demi biaya — tapi ditandai `unavailable` supaya
+    // pemanggil bisa membedakannya dari kuota yang sungguh habis.
+    console.error('ai_quota_check gagal', feature, error.message)
+    return { allowed: false, used: cap, cap, resetAt: null, unavailable: true }
   }
   const row = Array.isArray(data) ? data[0] : data
   return {

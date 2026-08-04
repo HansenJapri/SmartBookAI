@@ -1,4 +1,28 @@
 import { supabase } from './supabase'
+import { getSelectedWorkspace } from './api'
+
+// Workspace yang sedang dibuka, dikirim ke Edge Function AI supaya ringkasan
+// & konteksnya diikat ke usaha ini saja. Server TIDAK mempercayainya begitu
+// saja — resolve_owner() di database memverifikasi keanggotaan aktif dan
+// menolak bila mengarang. Tanpa nilai ini, staf yang aktif di usaha lain
+// mendapat jawaban AI yang mencampur angka dua usaha.
+const activeOwner = () => getSelectedWorkspace() || undefined
+
+// Bahasa jawaban mengikuti pilihan ID/EN di header aplikasi.
+//
+// Diselipkan ke PESAN, bukan hanya dikirim sebagai field terpisah, karena
+// Edge Function yang ter-deploy sekarang belum membaca field `lang` —
+// arahan di dalam pesan bekerja pada versi lama maupun versi baru. Field
+// `lang` tetap dikirim supaya versi baru bisa memakainya langsung.
+const LANG_DIRECTIVE = {
+  id: 'Jawab dalam Bahasa Indonesia.',
+  en: 'Reply in English. Write your entire answer in English, including any refusal or disclaimer.',
+}
+
+export function withLangDirective(message, lang = 'id') {
+  const d = LANG_DIRECTIVE[lang === 'en' ? 'en' : 'id']
+  return `${d}\n\n${message}`
+}
 
 // Nama Edge Function di Supabase. Saat deploy, fungsi ini diberi nama
 // "BukuPencatatan", jadi nama di sini harus sama persis.
@@ -38,20 +62,32 @@ async function invokeFn(name, body, fallbackErr) {
 
 // Mengirim pertanyaan ke Edge Function AI (mode Tanya). History hanya untuk
 // konteks dalam sesi; tidak disimpan di server maupun database.
-export async function askAI(message, history = []) {
-  const data = await invokeFn(AI_FUNCTION, { message, history, device: deviceKind() },
-    'Asisten AI sedang tidak dapat dihubungi. Coba beberapa saat lagi.')
+export async function askAI(message, history = [], lang = 'id') {
+  const data = await invokeFn(AI_FUNCTION, {
+    message: withLangDirective(message, lang),
+    history, device: deviceKind(), owner: activeOwner(), lang,
+  }, 'Asisten AI sedang tidak dapat dihubungi. Coba beberapa saat lagi.')
   return cleanReply(data?.reply || '')
 }
 
 // Mode Catat (lama): kalimat bebas -> daftar kandidat transaksi.
 // Dipertahankan agar alur lama tetap jalan; alur baru memakai crudAI().
-export async function catatAI(message) {
-  return invokeFn('ai-catat', { message },
-    'Fitur catat via asisten sedang tidak dapat dihubungi. Coba beberapa saat lagi, atau catat manual di menu Transaksi.')
+// `note` dari fungsi ini ikut dibacakan asisten suara, jadi bahasanya
+// mengikuti pilihan pengguna. Kalimat transaksinya sendiri dikirim apa adanya.
+export async function catatAI(message, lang = 'id') {
+  return invokeFn('ai-catat', {
+    message: lang === 'en' ? `Write the "note" field in English.\n\n${message}` : message,
+    lang,
+  }, 'Fitur catat via asisten sedang tidak dapat dihubungi. Coba beberapa saat lagi, atau catat manual di menu Transaksi.')
 }
 
 // ---------- CRUD via prompt/voice (dengan slot-filling) ----------
+//
+// Edge Function `ai-crud` SUDAH TER-DEPLOY (v1, 3 Agustus 2026, verify_jwt=true)
+// beserta modul supabase/functions/_shared/ai/. Preflight terverifikasi.
+// Chatbot.jsx sudah tersambung ke sini, tetapi masih di balik sakelar
+// UNIVERSAL_CATAT_ENABLED — lihat alasannya di komponen itu.
+// Asisten suara tetap memakai `catatAI` (ai-catat).
 // Alur pemakaian:
 //   1. crudAI({ message })                       -> draft + pertanyaan pertama
 //   2. crudAI({ draft, field, answer })          -> ulangi sampai ready === true
@@ -61,6 +97,7 @@ export async function catatAI(message) {
 // Menjawab pertanyaan lanjutan TIDAK memanggil AI, jadi tidak memakan kuota.
 export async function crudAI({ message, draft, field, answer } = {}) {
   const body = draft ? { draft, field, answer } : { message }
+  body.owner = activeOwner()
   return invokeFn('ai-crud', body,
     'Asisten pencatatan sedang tidak dapat dihubungi. Coba beberapa saat lagi, atau pakai form manual.')
 }

@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { Users, Trash2, Pencil } from 'lucide-react'
 import Modal from '../components/Modal'
 import { fetchStaff, addStaff, updateStaff, deleteStaff, reinviteStaff } from '../lib/api'
-import { MODULES, STAFF_STATUS } from '../lib/rbac'
+import { MODULES, STAFF_STATUS, canManageUsers, staffDisplayName } from '../lib/rbac'
 import { fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
 import { useWorkspace } from '../context/WorkspaceContext'
+import { useAlert } from '../context/AlertContext'
 
-const blankForm = () => ({ id: null, email: '', modules: [] })
+const blankForm = () => ({ id: null, email: '', name: '', modules: [] })
 
 // Pengguna & Hak Akses (owner): undang staf via email, batasi per modul.
 // Staf mendaftar/login dengan email yang diundang -> otomatis aktif, dan
@@ -23,76 +24,101 @@ export default function Team() {
   // `membership === null`. Selama undangan belum diterima, membership memang
   // null — dan itu dulu membuat calon staf dianggap owner di halaman ini.
   const { isOwner, membership } = useWorkspace()
+  const { showConfirm } = useAlert()
+  // Satu sumber kebenaran untuk "boleh CRUD pengguna" — dipakai untuk menyembunyikan
+  // tabel DAN untuk menjaga tiap aksi. api.js memeriksa ulang di sisi jaringan.
+  const canManage = canManageUsers({ isOwner, membership })
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
   useEffect(() => {
-    if (!isOwner) { setList([]); return }
+    if (!canManage) { setList([]); return }
     fetchStaff().then(setList).catch(() => setList([]))
-  }, [isOwner])
+  }, [canManage])
 
   const toggleModule = (key) => setForm((f) => ({
     ...f,
     modules: f.modules.includes(key) ? f.modules.filter((m) => m !== key) : [...f.modules, key],
   }))
 
-  const save = async (e) => {
+  // Setiap aksi tulis lewat sini. Menyembunyikan tombol saja tidak cukup:
+  // handler bisa terpanggil lewat rute lama, state basi, atau ekstensi browser.
+  const guard = (fn) => async (...args) => {
+    if (!canManage) { setErr(tm.errOwnerOnly); return }
+    return fn(...args)
+  }
+
+  const save = guard(async (e) => {
     e.preventDefault()
     setErr('')
     const email = form.email.trim().toLowerCase()
+    const name = form.name.trim()
     if (!form.id && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr(tm.errInvalidEmail)
     if (form.modules.length === 0) return setErr(tm.errNoModule)
     setBusy(true)
     try {
       if (form.id) {
-        const upd = await updateStaff(form.id, { modules: form.modules })
+        const upd = await updateStaff(form.id, { modules: form.modules, name })
         setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
-        setMsg(tm.accessUpdatedMsg.replace('{email}', upd.email))
+        setMsg(tm.accessUpdatedMsg.replace('{name}', staffDisplayName(upd)))
       } else {
-        const created = await addStaff(email, form.modules)
+        const created = await addStaff(email, form.modules, 'staf', name)
         setList((prev) => [created, ...(prev || [])])
-        setMsg(tm.invitedMsg.replace('{email}', email))
+        setMsg(tm.invitedMsg.replace('{name}', staffDisplayName(created)))
       }
       setForm(null)
     } catch (e2) {
       setErr(e2.message?.includes('duplicate') ? tm.emailTakenErr : e2.message)
     } finally { setBusy(false) }
-  }
+  })
 
-  const setStatus = async (s, status) => {
+  const setStatus = guard(async (s, status) => {
     const labels = { revoked: tm.statusRevokedWord, active: tm.statusActivatedWord }
-    if (status === 'revoked' && !confirm(tm.confirmRevoke.replace('{email}', s.email))) return
+    const who = staffDisplayName(s)
+    if (status === 'revoked') {
+      const ok = await showConfirm({
+        type: 'error', title: tm.revoke,
+        message: tm.confirmRevoke.replace('{name}', who),
+        confirmText: tm.revoke,
+      })
+      if (!ok) return
+    }
     try {
       const upd = await updateStaff(s.id, { status })
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
-      setMsg(tm.accessChangedMsg.replace('{email}', s.email).replace('{status}', labels[status] || status))
+      setMsg(tm.accessChangedMsg.replace('{name}', who).replace('{status}', labels[status] || status))
     } catch (e2) { setErr(e2.message) }
-  }
+  })
 
-  const remove = async (s) => {
-    if (!confirm(tm.confirmDelete.replace('{email}', s.email))) return
+  const remove = guard(async (s) => {
+    const ok = await showConfirm({
+      type: 'error', title: tm.del,
+      message: tm.confirmDelete.replace('{name}', staffDisplayName(s)),
+      confirmText: tm.del,
+    })
+    if (!ok) return
     try {
       await deleteStaff(s.id)
       setList((prev) => prev.filter((x) => x.id !== s.id))
     } catch (e2) { setErr(e2.message) }
-  }
+  })
 
-  const reinvite = async (s) => {
+  const reinvite = guard(async (s) => {
     setErr('')
     try {
       const upd = await reinviteStaff(s.id)
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
-      setMsg(tm.reinvitedMsg.replace('{email}', s.email))
+      setMsg(tm.reinvitedMsg.replace('{name}', staffDisplayName(s)))
     } catch (e2) { setErr(e2.message) }
-  }
+  })
 
   if (!list) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   // Halaman ini untuk owner; staf yang nyasar ke sini melihat info keanggotaannya.
   // Penjaga rute di App.jsx sudah mengalihkan staf, ini pertahanan berlapis.
-  if (!isOwner) {
+  if (!canManage) {
     return (
       <div className="card card-pad">
         <h3 className="card-title">{tm.staffInfoTitle}</h3>
@@ -130,7 +156,7 @@ export default function Team() {
       ) : (
         <div className="table-wrap">
           <table className="tbl">
-            <thead><tr><th>{tm.thEmail}</th><th>{tm.thAccess}</th><th>{tm.thStatus}</th><th>{tm.thSince}</th><th></th></tr></thead>
+            <thead><tr><th>{tm.thName}</th><th>{tm.thAccess}</th><th>{tm.thStatus}</th><th>{tm.thSince}</th><th></th></tr></thead>
             <tbody>
               {list.map((s) => {
                 const st = STAFF_STATUS[s.status] || STAFF_STATUS.invited
@@ -140,7 +166,10 @@ export default function Team() {
                 const declined = Boolean(s.declined_at) && s.status === 'invited'
                 return (
                   <tr key={s.id}>
-                    <td><b>{s.email}</b></td>
+                    {/* Email sengaja TIDAK ditampilkan di tabel — lihat tm.thName.
+                        Alamatnya tetap ada di baris (dipakai undangan), hanya
+                        tidak dipampang di layar yang sering dilihat bersama. */}
+                    <td><b>{staffDisplayName(s)}</b></td>
                     <td>
                       {(s.modules || []).map((k) => (
                         <span key={k} className="pill pill-ch" style={{ marginRight: 4 }}>
@@ -165,7 +194,7 @@ export default function Team() {
                           <button className="linklike" onClick={() => setStatus(s, 'active')}>{tm.activate}</button>
                         )}
                         <button className="icon-btn" title={tm.editModulesTitle} aria-label={tm.editModulesTitle}
-                          onClick={() => { setErr(''); setForm({ id: s.id, email: s.email, modules: s.modules || [] }) }}>
+                          onClick={() => { setErr(''); setForm({ id: s.id, email: s.email, name: s.name || '', modules: s.modules || [] }) }}>
                           <Pencil size={15} />
                         </button>
                         <button className="icon-btn danger" title={tm.del} aria-label={tm.del} onClick={() => remove(s)}>
@@ -189,6 +218,15 @@ export default function Team() {
             </div>
             <div className="modal-body">
               {err && <div className="alert alert-err">{err}</div>}
+              <div className="field">
+                <label htmlFor="team-name">{tm.lStaffName}</label>
+                <input id="team-name" className="input" type="text" value={form.name} maxLength={60}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={tm.namePh} />
+                <p className="muted-sm" style={{ margin: '6px 0 0' }}>{tm.nameHint}</p>
+              </div>
+              {/* Email tetap dibutuhkan untuk mengirim undangan — ia satu-satunya
+                  identitas yang ada sebelum staf punya akun — tapi hanya muncul
+                  di formulir ini, tidak lagi di tabel. */}
               <div className="field">
                 <label htmlFor="team-email">{tm.lStaffEmail}</label>
                 <input id="team-email" className="input" type="email" value={form.email} disabled={Boolean(form.id)}

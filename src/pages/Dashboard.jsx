@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Wallet, Percent, Sparkles, RefreshCw,
@@ -9,7 +9,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { fetchTransactions, fetchLowStock, fetchTxCount, fetchActiveTarget, addTarget, deactivateTarget, fetchProfile } from '../lib/api'
+import { fetchTransactions, fetchLowStock, fetchTxCount, fetchActiveTarget, fetchTargetTransactions, addTarget, deactivateTarget, fetchProfile } from '../lib/api'
 import { narasiAI } from '../lib/ai'
 import { sampleTransactions } from '../lib/sampleData'
 import BaselineAsk from '../components/BaselineAsk'
@@ -509,9 +509,43 @@ function TargetCard({ tx }) {
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  // Dipisah dari `err` (galat aksi) karena konsekuensinya beda: selama muat
+  // gagal, form "buat target" TIDAK boleh tampil — lihat catatan di `load()`.
+  const [loadErr, setLoadErr] = useState('')
+  const [rangeTx, setRangeTx] = useState(null)
 
-  useEffect(() => { fetchActiveTarget().then(setTarget).catch(() => setTarget(null)) }, [])
-  const prog = useMemo(() => (target && tx ? computeTargetProgress(tx, target) : null), [target, tx])
+  const load = useCallback(async () => {
+    setLoadErr('')
+    try {
+      setTarget(await fetchActiveTarget())
+    } catch (e) {
+      // Dulu galat di sini ditelan jadi `setTarget(null)`, yang membuat kartu
+      // menampilkan form kosong seolah-olah belum ada target. Pengguna lalu
+      // membuat target "baru" di atas target yang sebenarnya masih hidup —
+      // itulah asal pasangan baris kembar di tabel sales_targets.
+      setTarget(undefined)
+      setLoadErr(e?.message || tg.errLoad)
+    }
+  }, [tg.errLoad])
+
+  useEffect(() => { load() }, [load])
+
+  // Capaian dihitung dari transaksi ber-rentang milik server bila tersedia;
+  // `tx` dari dashboard hanya cadangan saat permintaan itu belum/ gagal selesai.
+  useEffect(() => {
+    let alive = true
+    if (!target) { setRangeTx(null); return }
+    fetchTargetTransactions(target)
+      .then((rows) => { if (alive) setRangeTx(rows) })
+      .catch(() => { if (alive) setRangeTx(null) })
+    return () => { alive = false }
+  }, [target])
+
+  const progSource = rangeTx || tx
+  const prog = useMemo(
+    () => (target && progSource ? computeTargetProgress(progSource, target) : null),
+    [target, progSource],
+  )
 
   const create = async (e) => {
     e.preventDefault()
@@ -525,13 +559,19 @@ function TargetCard({ tx }) {
         name: form.name, start_date: form.start_date, deadline: form.end_date || null,
         revenue_target: rev > 0 ? rev : null, profit_target: prof > 0 ? prof : null,
       }))
-    } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
+    } catch (e2) { setErr(e2?.message || tg.errSave) } finally { setBusy(false) }
   }
   const stop = async () => {
     if (!target) return
-    setBusy(true)
-    try { await deactivateTarget(target.id); setTarget(null); setForm(emptyForm) }
-    catch { /* abaikan */ } finally { setBusy(false) }
+    setBusy(true); setErr('')
+    try {
+      await deactivateTarget(target.id)
+      setTarget(null); setForm(emptyForm)
+    } catch (e2) {
+      // Sebelumnya galat di sini ditelan diam-diam dan kartu tetap dikosongkan,
+      // jadi target "terhapus" di layar tapi hidup lagi setelah halaman dimuat ulang.
+      setErr(e2?.message || tg.errDelete)
+    } finally { setBusy(false) }
   }
 
   const rangeLabel = target
@@ -562,7 +602,16 @@ function TargetCard({ tx }) {
       {err && <div className="d2-alert" style={{ padding: '10px 14px' }}><div className="d2-alert-body"><span style={{ fontSize: 13 }}>{err}</span></div></div>}
 
       {target === undefined ? (
-        <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>{tg.loading}</p>
+        loadErr ? (
+          <>
+            <div className="d2-alert" style={{ padding: '10px 14px' }}>
+              <div className="d2-alert-body"><span style={{ fontSize: 13 }}>{loadErr}</span></div>
+            </div>
+            <button className="d2-btn-outline" onClick={load} disabled={busy}>{tg.retry}</button>
+          </>
+        ) : (
+          <p style={{ color: 'var(--d2-on-surface-variant)', fontSize: 14 }}>{tg.loading}</p>
+        )
       ) : !target ? (
         <form onSubmit={create}>
           <div>

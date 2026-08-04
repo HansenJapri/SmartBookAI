@@ -1,11 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircle, X, Send, Mic, MicOff, Trash2, HelpCircle, PencilLine } from 'lucide-react'
-import { askAI, catatAI } from '../lib/ai'
+import { MessageCircle, X, Send, Trash2, HelpCircle, PencilLine, AudioLines } from 'lucide-react'
+import { askAI, catatAI, crudAI } from '../lib/ai'
 import { addTransactionsBulk, fetchCategories, fetchTodayTotals } from '../lib/api'
+import { saveDraftAction } from '../lib/aiActions'
 import { rupiah } from '../lib/format'
 import AIDisclaimer from './AIDisclaimer'
+import VoiceAssistant from './VoiceAssistant'
+import { liveVoiceSupported } from '../lib/liveAudio'
+import { useLang } from '../context/LangContext'
 
 const CONSENT_KEY = 'bukupintar_ai_consent'
+
+// ============================================================
+// SAKELAR MODE CATAT UNIVERSAL (ai-crud).
+//
+// `false` = mode Catat memakai `ai-catat` lama: hanya transaksi kas.
+// `true`  = mode Catat memakai `ai-crud`: 11 entitas (transaksi, pelanggan,
+// produk, pemasok, karyawan, absensi, KPI, PO, tugas, pengingat) dengan
+// slot-filling, dan satu kalimat boleh menghasilkan beberapa catatan.
+//
+// DINYALAKAN 3 Agustus 2026 setelah P3 selesai. Sebelumnya sengaja dimatikan
+// karena `ai-crud` hanya sanggup satu aksi per kalimat, sehingga menyalakannya
+// akan menukar kemampuan "beberapa transaksi sekaligus" (dipakai sehari-hari)
+// dengan jangkauan entitas. P3 memulihkan kemampuan itu, jadi penukarannya
+// tidak ada lagi.
+//
+// Kalau perlu dikembalikan ke jalur lama, ubah ke `false`: `ai-catat` masih
+// ter-deploy dan cabang kodenya sengaja dibiarkan utuh di komponen ini.
+const UNIVERSAL_CATAT_ENABLED = true
+// ============================================================
 
 // Gabungkan tanggal (YYYY-MM-DD dari AI) dengan waktu jam:menit:detik SAAT INI.
 // Dibangun dari komponen tanggal lokal agar tanggal tidak bergeser ke UTC, dan
@@ -16,9 +39,35 @@ function occurredAtIso(dateStr) {
   const [y, m, d] = ds.split('-').map(Number)
   return new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString()
 }
-const SpeechRec = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null
+// ============================================================
+// SAKELAR TAB SUARA — sengaja dimatikan untuk rilis ini.
+//
+// Fitur suara 2 arah (Gemini Live) SUDAH LENGKAP dan tetap ada di repo:
+//   klien   : src/lib/liveAudio.js, liveClient.js, useLiveVoice.js,
+//             voiceCommand.js, voiceInstruction.js, voiceExecutor.js,
+//             src/components/VoiceAssistant.jsx
+//   backend : supabase/functions/voice-live-token (ter-deploy),
+//             RPC kuota + kunci sesi di database
+//   test    : liveAudio / liveClient / voiceCommand / liveToken
+//
+// Yang dimatikan HANYA pintu masuknya di UI. Untuk rilis ini pencatatan
+// berjalan lewat prompt saja; suara menyusul di pengembangan berikutnya.
+//
+// Menyalakan kembali: ubah baris di bawah menjadi `true`. Tidak ada langkah
+// lain — seluruh cabang render tab Suara sengaja DIBIARKAN UTUH di komponen
+// ini. Menghapusnya akan menghemat beberapa baris hari ini dan menuntut
+// menyusun ulang alur mode + subjudul + gerbang kemampuan nanti, yang jauh
+// lebih mudah salah daripada satu boolean.
+const VOICE_TAB_ENABLED = false
+// ============================================================
+
+// Catatan: input suara juga sudah dicabut dari mode Tanya/Catat. Dua pintu
+// masuk suara yang berbeda perilaku (dikte sekali jalan vs percakapan penuh)
+// hanya membingungkan — pengguna menekan mikrofon di mode Catat lalu heran
+// kenapa asisten tidak menjawab balik.
 
 export default function Chatbot() {
+  const { t, lang } = useLang()
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState('tanya') // 'tanya' (Q&A) | 'catat' (input transaksi)
   const [consent, setConsent] = useState(false)
@@ -28,9 +77,7 @@ export default function Chatbot() {
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
-  const [listening, setListening] = useState(false)
   const [cats, setCats] = useState([]) // kategori user (untuk select di kartu draf)
-  const recRef = useRef(null)
   const bodyRef = useRef(null)
 
   useEffect(() => {
@@ -61,22 +108,141 @@ export default function Chatbot() {
     setConsent(true)
   }
 
+  // Kartu aksi PERTAMA yang masih menunggu jawaban. Selama ada yang menunggu,
+  // ketikan pengguna dibaca sebagai JAWABAN atas pertanyaan itu — bukan sebagai
+  // perintah baru. Tanpa aturan ini, menjawab "tunai" akan ditafsirkan sebagai
+  // perintah pencatatan baru yang tidak berarti apa-apa.
+  //
+  // Dipindai dari DEPAN, bukan dari belakang: satu kalimat kini bisa melahirkan
+  // beberapa kartu sekaligus, dan orang menjawabnya berurutan dari atas.
+  const pendingActionIndex = () => {
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i]
+      if (m.type === 'action' && m.needsClarification && !m.saved) return i
+    }
+    return -1
+  }
+
+  const actionMessage = (res) => ({
+    role: 'assistant',
+    type: 'action',
+    draft: res.draft,
+    question: res.question || null,
+    summary: res.summary || [],
+    needsClarification: !!res.needsClarification,
+    requiresConfirmation: !!res.requiresConfirmation,
+    saved: false,
+    savedText: '',
+  })
+
+  const mergeActionResponse = (idx, res) => {
+    setMessages((all) => all.map((m, i) => (i === idx ? {
+      ...m,
+      draft: res.draft,
+      question: res.question || null,
+      summary: res.summary || m.summary,
+      needsClarification: !!res.needsClarification,
+      requiresConfirmation: !!res.requiresConfirmation,
+    } : m)))
+  }
+
+  // Kirim jawaban satu field ke server. Tidak memakai kuota AI: putaran
+  // slot-filling dijalankan deterministik di Edge Function.
+  const answerField = async (idx, answer) => {
+    const m = messages[idx]
+    if (!m?.question) return
+    setBusy(true); setErr('')
+    try {
+      const res = await crudAI({ draft: m.draft, field: m.question.field, answer })
+      mergeActionResponse(idx, res)
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const chooseOption = async (idx, value, shownText) => {
+    setMessages((all) => [...all, { role: 'user', text: shownText || String(value) }])
+    await answerField(idx, value)
+  }
+
+  // Suntingan pada kartu ringkasan bersifat lokal — tidak memanggil server.
+  const patchAction = (idx, field, value) => {
+    setMessages((all) => all.map((m, i) => {
+      if (i !== idx || m.type !== 'action') return m
+      return {
+        ...m,
+        draft: { ...m.draft, values: { ...m.draft.values, [field]: value } },
+        summary: m.summary.map((s) => (s.field === field ? { ...s, value } : s)),
+      }
+    }))
+  }
+
+  const saveAction = async (idx) => {
+    const m = messages[idx]
+    if (!m || m.saved || saving) return
+    setSaving(true); setErr('')
+    try {
+      const text = await saveDraftAction(m.draft)
+      setMessages((all) => all.map((x, i) => (i === idx ? { ...x, saved: true, savedText: text } : x)))
+      // Rekap angka DIHITUNG DARI DATABASE, bukan dari AI — pola bebas
+      // halusinasi yang sama dengan alur draf transaksi lama.
+      //
+      // Ditahan selama masih ada kartu lain yang belum disimpan: menampilkan
+      // "laba hari ini" tiga kali berturut-turut dengan angka yang berubah-ubah
+      // di tengah pemeriksaan hanya membuat bingung. Rekapnya menyusul setelah
+      // kartu terakhir tersimpan.
+      const masihAda = messages.some((x, j) => j !== idx && x.type === 'action' && !x.saved)
+      if (m.draft?.entity === 'transaksi' && !masihAda) {
+        try {
+          const tot = await fetchTodayTotals()
+          setMessages((all) => [...all, {
+            role: 'assistant',
+            text: `Ringkasan hari ini: pemasukan ${rupiah(tot.income)}, pengeluaran ${rupiah(tot.expense)}, laba ${rupiah(tot.profit)}.`,
+          }])
+        } catch { /* rekap opsional */ }
+      }
+    } catch (e) {
+      setErr('Gagal menyimpan: ' + e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const send = async () => {
     const text = input.trim()
     if (!text || busy) return
     setErr('')
+    const pendingIdx = mode === 'catat' && UNIVERSAL_CATAT_ENABLED ? pendingActionIndex() : -1
     const next = [...messages, { role: 'user', text }]
     setMessages(next)
     setInput('')
+    if (pendingIdx >= 0) { await answerField(pendingIdx, text); return }
     setBusy(true)
     try {
       if (mode === 'tanya') {
         // Riwayat hanya dari pesan teks biasa (kartu draf tidak ikut).
         const history = messages.filter((m) => !m.type && typeof m.text === 'string').slice(-6)
-        const reply = await askAI(text, history)
+        const reply = await askAI(text, history, lang)
         setMessages((m) => [...m, { role: 'assistant', text: reply }])
+      } else if (UNIVERSAL_CATAT_ENABLED) {
+        const res = await crudAI({ message: text })
+        // Satu kalimat bisa menghasilkan beberapa catatan. Tiap aksi jadi kartu
+        // sendiri supaya bisa diperiksa, disunting, dan disimpan satu per satu.
+        const daftar = Array.isArray(res?.actions) && res.actions.length ? res.actions : [res]
+        setMessages((m) => [
+          ...m,
+          ...(daftar.length > 1
+            ? [{ role: 'assistant', text: `Saya menangkap ${daftar.length} catatan dari kalimat itu. Periksa satu per satu ya:` }]
+            : []),
+          ...daftar.map(actionMessage),
+          ...(res?.truncated
+            ? [{ role: 'assistant', text: `Saya hanya memproses ${daftar.length} catatan pertama. Sisanya kirim di pesan terpisah ya.` }]
+            : []),
+        ])
       } else {
-        const res = await catatAI(text)
+        const res = await catatAI(text, lang)
         const drafts = res?.transactions || []
         if (!drafts.length) {
           setMessages((m) => [...m, {
@@ -97,24 +263,6 @@ export default function Chatbot() {
 
   const onKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-  }
-
-  const toggleVoice = () => {
-    if (!SpeechRec) { setErr('Perangkat/peramban ini belum mendukung input suara. Gunakan mikrofon keyboard HP Anda.'); return }
-    if (listening) { recRef.current?.stop(); return }
-    const rec = new SpeechRec()
-    rec.lang = 'id-ID'
-    rec.interimResults = false
-    rec.continuous = false
-    rec.onresult = (ev) => {
-      const t = ev.results[0][0].transcript
-      setInput((prev) => (prev ? prev + ' ' : '') + t)
-    }
-    rec.onerror = () => setErr('Gagal menangkap suara. Coba lagi.')
-    rec.onend = () => setListening(false)
-    recRef.current = rec
-    setListening(true)
-    rec.start()
   }
 
   const clearChat = () => { setMessages([]); setErr('') }
@@ -174,21 +322,41 @@ export default function Chatbot() {
     )
   }
 
+  // Mode suara hanya sah bila sakelarnya menyala. Dipakai sebagai SATU sumber
+  // kebenaran di seluruh render: kalau tiap tempat memeriksa `mode === 'suara'`
+  // sendiri-sendiri, satu yang terlewat saat sakelar mati akan menyembunyikan
+  // badan chat tanpa menampilkan apa pun sebagai gantinya — panel kosong.
+  const voiceMode = VOICE_TAB_ENABLED && mode === 'suara'
+
   return (
     <div className="chat-panel" role="dialog" aria-label="Asisten AI">
       <div className="chat-head">
         <div>
           <b>Asisten SmartBook</b>
-          <div className="chat-sub">{mode === 'tanya' ? 'Panduan & tanya jawab usaha Anda' : 'Catat transaksi lewat ketikan / suara'}</div>
+          <div className="chat-sub">
+            {voiceMode ? t.voice.subtitle
+              : mode === 'tanya' ? 'Panduan & tanya jawab usaha Anda'
+                : 'Catat transaksi lewat ketikan'}
+          </div>
         </div>
         <button className="icon-btn" onClick={() => setOpen(false)} aria-label="Tutup"><X size={18} /></button>
       </div>
 
       {!consent ? (
         <div className="chat-consent">
-          <p>Asisten AI membantu Anda memakai aplikasi, menjawab pertanyaan angka usaha, dan mencatat transaksi dari ketikan atau suara.</p>
+          {/* Kalimat persetujuan ikut sakelar tab suara. Menjanjikan input
+              suara saat pintunya ditutup membuat teks izin ini tidak akurat —
+              dan teks izin adalah hal terakhir yang boleh meleset. */}
+          <p>
+            Asisten AI membantu Anda memakai aplikasi, menjawab pertanyaan angka usaha,
+            dan mencatat transaksi dari {VOICE_TAB_ENABLED ? 'ketikan atau suara' : 'ketikan'}.
+          </p>
           <ul>
-            <li>Yang dikirim ke layanan AI hanya <b>ringkasan angka</b> dan <b>kalimat yang Anda ketik/ucapkan</b> — bukan data pelanggan atau nomor rekening.</li>
+            <li>
+              Yang dikirim ke layanan AI hanya <b>ringkasan angka</b> dan{' '}
+              <b>kalimat yang Anda {VOICE_TAB_ENABLED ? 'ketik/ucapkan' : 'ketik'}</b> — bukan
+              data pelanggan atau nomor rekening.
+            </li>
             <li>Percakapan <b>tidak disimpan</b>. Transaksi hasil mode Catat baru tersimpan <b>setelah Anda tekan Simpan</b>.</li>
             <li>Saat ini memakai layanan AI gratis, jadi <b>jangan mengetik informasi yang sangat rahasia</b>.</li>
           </ul>
@@ -204,8 +372,19 @@ export default function Chatbot() {
             <button type="button" className={mode === 'catat' ? 'on-in' : ''} onClick={() => { setMode('catat'); setErr('') }}>
               <PencilLine size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />Catat
             </button>
+            {VOICE_TAB_ENABLED && liveVoiceSupported() && (
+              <button type="button" className={mode === 'suara' ? 'on-in' : ''} onClick={() => { setMode('suara'); setErr('') }}>
+                <AudioLines size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />{t.voice.tab}
+              </button>
+            )}
           </div>
 
+          {/* Mode Suara memakai alur sendiri (sesi persisten + konfirmasi lisan),
+              jadi dirender terpisah dari daftar pesan mode Tanya/Catat. */}
+          {voiceMode && <VoiceAssistant />}
+
+          {!voiceMode && (
+          <>
           <div className="chat-body" ref={bodyRef}>
             {messages.length === 0 && mode === 'tanya' && (
               <div className="chat-hint">
@@ -222,7 +401,7 @@ export default function Chatbot() {
             )}
             {messages.length === 0 && mode === 'catat' && (
               <div className="chat-hint">
-                <p>Ketik atau ucapkan transaksi Anda, nanti saya buatkan kartunya untuk Anda periksa dulu. Contoh:</p>
+                <p>Ketik transaksi Anda, nanti saya buatkan kartunya untuk Anda periksa dulu. Contoh:</p>
                 <div className="chat-chips">
                   <button onClick={() => setInput('Laku 3 kue coklat total 45 ribu')}>Laku 3 kue coklat 45rb</button>
                   <button onClick={() => setInput('Beli gas 22 ribu sama plastik 10 ribu')}>Beli gas 22rb + plastik 10rb</button>
@@ -234,6 +413,68 @@ export default function Chatbot() {
             )}
 
             {messages.map((m, i) => {
+              if (m.type === 'action') {
+                const op = m.draft?.operation
+                const judul = op === 'delete' ? 'Menghapus' : op === 'update' ? 'Mengubah' : 'Menambah'
+                // Yang ditampilkan: field yang sudah terisi + field wajib.
+                // Sisanya disembunyikan agar kartu tidak jadi formulir panjang.
+                const terlihat = (m.summary || []).filter(
+                  (s) => s.required || (s.value !== null && s.value !== undefined && s.value !== ''),
+                )
+                return (
+                  <div key={i} className="chat-msg assistant draft-wrap">
+                    <div style={{ marginBottom: 6 }}>
+                      {m.saved ? `✅ ${m.savedText}` : `${judul} ${m.draft?.entityLabel || 'data'}`}
+                    </div>
+
+                    {!m.saved && m.needsClarification && m.question && (
+                      <div className="draft-card">
+                        <div>{m.question.question}</div>
+                        {!!m.question.options?.length && (
+                          <div className="chat-chips">
+                            {m.question.options.slice(0, 12).map((o) => (
+                              <button key={o} type="button" disabled={busy} onClick={() => chooseOption(i, o)}>{o}</button>
+                            ))}
+                          </div>
+                        )}
+                        {!m.question.required && (
+                          <button type="button" className="linklike" disabled={busy}
+                            onClick={() => chooseOption(i, 'lewati', 'Lewati')}>Lewati pertanyaan ini</button>
+                        )}
+                      </div>
+                    )}
+
+                    {!m.saved && !m.needsClarification && (
+                      <>
+                        <div className="draft-card">
+                          {terlihat.map((s) => (
+                            <div key={s.field} className="draft-field">
+                              <label htmlFor={`act-${i}-${s.field}`}>{s.label}</label>
+                              {s.options?.length ? (
+                                <select id={`act-${i}-${s.field}`} className="input" value={s.value ?? ''}
+                                  onChange={(e) => patchAction(i, s.field, e.target.value)}>
+                                  <option value="">(kosong)</option>
+                                  {s.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                </select>
+                              ) : (
+                                <input id={`act-${i}-${s.field}`} className="input"
+                                  type={s.type === 'money' || s.type === 'number' ? 'number' : s.type === 'date' ? 'date' : 'text'}
+                                  value={s.value ?? ''}
+                                  onChange={(e) => patchAction(i, s.field, e.target.value)} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <AIDisclaimer text="Hasil baca AI bisa keliru — periksa isinya sebelum simpan." />
+                        <button className="btn btn-primary btn-block" style={{ marginTop: 8 }}
+                          disabled={saving} onClick={() => saveAction(i)}>
+                          {saving ? 'Menyimpan...' : 'Simpan'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )
+              }
               if (m.type === 'draft') {
                 return (
                   <div key={i} className="chat-msg assistant draft-wrap">
@@ -307,14 +548,9 @@ export default function Chatbot() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKey}
               placeholder={mode === 'tanya'
-                ? 'Tulis pertanyaan, atau tekan mikrofon untuk bicara...'
+                ? 'Tulis pertanyaan Anda...'
                 : 'cth: laku 3 kue coklat total 45 ribu...'}
             />
-            {SpeechRec && (
-              <button className="icon-btn" onClick={toggleVoice} title="Input suara" aria-label="Input suara">
-                {listening ? <MicOff size={18} style={{ color: 'var(--red)' }} /> : <Mic size={18} />}
-              </button>
-            )}
             <button className="icon-btn" onClick={() => setInput('')} title="Hapus teks" aria-label="Hapus teks" disabled={!input}>
               <Trash2 size={18} />
             </button>
@@ -326,6 +562,8 @@ export default function Chatbot() {
             <button className="linklike" onClick={clearChat} disabled={!messages.length}>Bersihkan percakapan</button>
             <span className="muted-sm">Jawaban AI bersifat bantuan, periksa kembali angka penting.</span>
           </div>
+          </>
+          )}
         </>
       )}
     </div>

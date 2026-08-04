@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 import { fetchFeedback, addFeedback, deleteFeedback } from '../lib/api'
 import { fmtDateTime } from '../lib/format'
 import { MessageSquare } from 'lucide-react'
@@ -25,6 +26,7 @@ function Stars({ value, onChange, label }) {
 export default function Feedback() {
   const { user } = useAuth()
   const { t } = useLang()
+  const { showAlert } = useAlert()
   const f = t.feedback
   const CATS = Object.keys(f.cats).map((v) => ({ v, label: f.cats[v] }))
   const [list, setList] = useState(null)
@@ -65,7 +67,11 @@ export default function Feedback() {
 
   const remove = async (id) => {
     if (!confirm(f.confirmDel)) return
-    try { await deleteFeedback(id); await load() } catch (e2) { alert(e2.message) }
+    try {
+      await deleteFeedback(id); await load()
+    } catch (e2) {
+      showAlert({ type: 'error', title: f.errDelTitle, message: e2?.message || f.errDelete })
+    }
   }
 
   return (

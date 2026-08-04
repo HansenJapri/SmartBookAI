@@ -16,6 +16,7 @@ export type FeatureName =
   | 'crud'
   | 'ocr'
   | 'voice_live'
+  | 'voice_crud'
   | 'voice_tts'
 
 export type KeySlot = 'A' | 'B' | 'C'
@@ -55,11 +56,28 @@ export const FEATURE_ROUTES: Record<FeatureName, FeatureRoute> = {
     quotaFeature: 'insight_stok',
     dailyCap: 10,
   },
+  // Percakapan suara: model inilah yang mendengar dan menjawab dengan suara.
   voice_live: {
     key: 'B',
     model: 'gemini-2.5-flash-native-audio-dialog',
     quotaFeature: 'voice',
     dailyCap: 10 * 60, // 10 menit, disimpan sebagai DETIK
+  },
+  // Perintah suara yang MENGUBAH DATA dipisah ke model sendiri. Alasannya
+  // bukan performa melainkan pembatasan: hanya sesi ini yang pernah menerima
+  // deklarasi fungsi CRUD, sehingga obrolan santai di voice_live secara
+  // struktural tidak punya jalur menuju tabel mana pun.
+  //
+  // Nilai `model` untuk kedua rute voice adalah PREFERENSI, bukan keharusan.
+  // voice-live-token menanyakan ke API model apa yang benar-benar mendukung
+  // bidiGenerateContent pada kunci ini dan memakai yang paling cocok. Nama Live
+  // berlabel preview terlalu sering berganti akhiran untuk dipatok di sini —
+  // dipatok berarti fitur mati diam-diam setiap Google mengganti namanya.
+  voice_crud: {
+    key: 'B',
+    model: 'gemini-3-flash-live',
+    quotaFeature: 'voice',
+    dailyCap: 10 * 60,
   },
   voice_tts: {
     key: 'B',

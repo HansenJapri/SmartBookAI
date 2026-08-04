@@ -208,7 +208,9 @@ const ATTENDANCE: EntitySpec = {
   entity: 'absensi',
   label: 'Absensi & Cuti',
   module: 'hr',
-  table: 'attendances',
+  // Nama tabel di database TUNGGAL (`attendance`), bukan jamak. Salah ketik di
+  // sini membuat validasi target update selalu berkata "data tidak ditemukan".
+  table: 'attendance',
   allow: ['create', 'update'],
   confirmOnCreate: false,
   fields: [
@@ -305,6 +307,30 @@ const SUPPLIER: EntitySpec = {
   ],
 }
 
+// ---------- PELANGGAN (CRM) ----------
+//
+// CATATAN DESAIN: entitas ini hanya untuk perintah yang MEMANG tentang
+// pelanggan ("tambah pelanggan Budi 08123"). Untuk penjualan, model TIDAK
+// diberi field `customer_id` — ia cukup menangkap nama & kontak dari kalimat,
+// lalu KLIEN yang mencocokkannya ke baris pelanggan secara deterministik
+// (resolveCustomer di api.js). Model tidak perlu tahu ID sama sekali, sehingga
+// tidak punya kesempatan mengarang ID yang tidak ada.
+const CUSTOMER: EntitySpec = {
+  entity: 'pelanggan',
+  label: 'Pelanggan',
+  module: 'transaksi',
+  table: 'customers',
+  allow: ['create', 'update', 'delete'],
+  confirmOnCreate: false,
+  fields: [
+    { name: 'name', label: 'Nama pelanggan', type: 'string', required: true, max: 120, ask: 'Nama pelanggannya siapa?' },
+    { name: 'phone', label: 'No. WhatsApp', type: 'string', required: false, max: 30, ask: 'Nomor WhatsApp-nya berapa? Berguna untuk pengingat tagihan. Boleh dilewati.' },
+    { name: 'email', label: 'Email', type: 'string', required: false, max: 120, ask: 'Emailnya apa? Boleh dilewati.' },
+    { name: 'address', label: 'Alamat', type: 'text', required: false, max: 300, ask: 'Alamatnya di mana? Boleh dilewati.' },
+    { name: 'note', label: 'Catatan', type: 'text', required: false, max: 300, ask: 'Ada catatan tentang pelanggan ini? Boleh dilewati.' },
+  ],
+}
+
 // ---------- PURCHASE ORDER ----------
 const PURCHASE_ORDER: EntitySpec = {
   entity: 'purchase_order',
@@ -351,9 +377,16 @@ const TASK: EntitySpec = {
     },
     { name: 'due_date', label: 'Tenggat', type: 'date', required: false, ask: 'Tenggatnya kapan? Boleh dilewati.' },
     {
+      // Nilai WAJIB sama persis dengan CHECK constraint `tasks_status_check`
+      // di database (antre/dikerjakan/selesai). Nilai Inggris ditolak Postgres.
       name: 'status', label: 'Status', type: 'enum', required: false,
-      enumValues: ['todo', 'progress', 'done'], fallback: 'todo',
-      ask: 'Statusnya apa (belum, sedang dikerjakan, selesai)?',
+      enumValues: ['antre', 'dikerjakan', 'selesai'], fallback: 'antre',
+      ask: 'Statusnya apa (antre, dikerjakan, atau selesai)?',
+    },
+    {
+      name: 'priority', label: 'Prioritas', type: 'enum', required: false,
+      enumValues: ['rendah', 'normal', 'tinggi'], fallback: 'normal',
+      ask: 'Seberapa penting tugas ini (rendah, normal, tinggi)? Boleh dilewati.',
     },
     { name: 'note', label: 'Catatan', type: 'text', required: false, max: 300, ask: 'Ada detail tambahan? Boleh dilewati.' },
   ],
@@ -382,6 +415,7 @@ export const ENTITY_SPECS: Record<string, EntitySpec> = {
   kpi_kriteria: KPI_CRITERIA,
   kpi_skor: KPI_SCORE,
   pemasok: SUPPLIER,
+  pelanggan: CUSTOMER,
   purchase_order: PURCHASE_ORDER,
   tugas: TASK,
   pengingat: REMINDER,
