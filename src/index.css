@@ -647,6 +647,14 @@ select.input { cursor: pointer; text-align: center; text-align-last: center; }
 .kpi-ic { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
 
 .two-col { display: grid; grid-template-columns: 1.55fr 1fr; gap: 18px; }
+/* Halaman KPI: kartu kanan (Jenjang Bonus & Potongan) punya DUA kolom rupiah,
+   jadi justru dia yang butuh ruang lebih — kebalikan dari proporsi default.
+   WAJIB dibungkus min-width: tanpa itu spesifisitasnya (0,2,0) mengalahkan
+   media query penumpuk di bawah (0,1,0), sehingga di HP halaman ini tetap
+   dua kolom sempit — persis kebalikan dari yang diminta. */
+@media (min-width: 901px) {
+  .two-col.two-col-kpi { grid-template-columns: 1fr 1.15fr; }
+}
 @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .grid-kpi { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
@@ -1033,6 +1041,35 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .draft-field { display: flex; flex-direction: column; gap: 3px; }
 .draft-field label { font-size: 11.5px; color: var(--muted); }
 .draft-field .input { font-size: 13.5px; padding: 8px 10px; width: 100%; }
+
+/* ---------- Jenjang Bonus & Potongan KPI ----------
+   Kolom angka dulu dikunci maxWidth 90-140px lewat gaya inline, sehingga
+   nominal ratusan ribu terpotong dan sulit diperiksa. Lebarnya kini diatur
+   per-kolom di sini, dan tiap nominal ditemani nilai terformat (Rp 500.000)
+   supaya jumlah digitnya bisa dibaca sekilas tanpa menghitung satu per satu. */
+.tbl-tier { min-width: 540px; }
+.tbl-tier td { vertical-align: top; }
+.tbl-tier .col-score { width: 104px; }
+.tbl-tier .col-money { width: 152px; }
+.tbl-tier .col-label { min-width: 150px; }
+.tbl-tier .col-act { width: 44px; }
+.tbl-tier .num-hint { display: block; margin-top: 4px; font-size: 11.5px; line-height: 1.3; color: var(--muted); white-space: nowrap; }
+.tbl-tier .num-hint.is-bonus { color: var(--green); }
+.tbl-tier .num-hint.is-cut { color: var(--red); }
+
+/* Kepala kartu berisi judul+subjudul di kiri dan tombol aksi di kanan.
+   `space-between` saja TIDAK cukup: ia membagi sisa ruang, jadi begitu
+   subjudulnya cukup panjang untuk memenuhi barisnya, teks menempel ke tombol.
+   `gap` memberi jarak minimum yang tidak bisa dimakan teks, `flex:none`
+   menjaga tombol tidak ikut menyempit, dan `min-width:0` mengizinkan blok
+   teks membungkus alih-alih memaksa barisnya melebar. */
+.card-head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.card-head-row > :first-child { min-width: 0; }
+.card-head-row > .btn { flex: none; white-space: nowrap; }
+@media (max-width: 520px) {
+  .card-head-row { flex-direction: column; gap: 10px; }
+  .card-head-row > .btn { align-self: flex-start; }
+}
 .draft-warn { font-size: 12px; color: var(--warn-ink); }
 
 /* Navigasi bawah (mobile-first) */

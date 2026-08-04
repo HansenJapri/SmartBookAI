@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "src/components/Chatbot.jsx": {
-    "mtime": 1785766192.09986,
-    "ast_hash": "832fbe2967daec4f08912af20717cf24",
+    "mtime": 1785765464.529681,
+    "ast_hash": "4b69c137261c9d1dc596f304093ce94f",
     "semantic_hash": ""
   },
   "src/components/CrudList.jsx": {
@@ -650,8 +650,8 @@
     "semantic_hash": ""
   },
   "src/pages/Kpi.jsx": {
-    "mtime": 1785839035.0264046,
-    "ast_hash": "934061739ae89e274e2b81badeb0621e",
+    "mtime": 1785316108.994172,
+    "ast_hash": "6916ee6252455fa00019d42f66e3f198",
     "semantic_hash": ""
   },
   "src/pages/Landing.jsx": {
@@ -1480,28 +1480,13 @@
     "semantic_hash": ""
   },
   "ARSITEKTUR-AI-CATAT-UNIVERSAL.md": {
-    "mtime": 1785766021.7290263,
-    "ast_hash": "638ca78390a9d5a27e769bcb8bd800bf",
+    "mtime": 1785739755.268939,
+    "ast_hash": "0dae7b3403dea0bb978693260cf4f7eb",
     "semantic_hash": ""
   },
   "supabase/migration_customers_p2.sql": {
     "mtime": 1785739339.6380055,
     "ast_hash": "e1a66f8c2605ff4cad277ed435c42e6f",
-    "semantic_hash": ""
-  },
-  "PANDUAN-UJI-MANUAL-SMARTBOOKAI.md": {
-    "mtime": 1785830736.072305,
-    "ast_hash": "5e3b3f7b1ca0eb98d613f6e8506997f1",
-    "semantic_hash": ""
-  },
-  "RENCANA-LAUNCH-BERTAHAP.md": {
-    "mtime": 1785771944.3373308,
-    "ast_hash": "493cef6b15c9f5fc9ed3e616455aea18",
-    "semantic_hash": ""
-  },
-  "STRATEGI-QA-SMARTBOOKAI.md": {
-    "mtime": 1785827021.3813236,
-    "ast_hash": "e814e371ad2373be72e58290f31eda01",
     "semantic_hash": ""
   }
 }
