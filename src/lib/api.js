@@ -347,12 +347,11 @@ export async function updateProfile(patch) {
 }
 
 // ---------- PERSETUJUAN (CONSENT) ----------
-// Mencatat persetujuan Syarat & Ketentuan + Kebijakan Privasi melalui RPC,
-// agar stempel waktu diambil dari server (tidak bisa dipalsukan dari perangkat).
-export async function acceptTerms(version) {
-  const { error } = await supabase.rpc('accept_terms', { p_version: version })
-  if (error) throw error
-}
+// Tidak ada fungsi pencatatan persetujuan dari dalam aplikasi. Persetujuan
+// S&K + Kebijakan Privasi diminta SEKALI saat pembuatan akun (halaman Daftar)
+// dan disalin trigger handle_new_user ke kolom persetujuan pada profil.
+// RPC accept_terms() di database sengaja dibiarkan ada untuk keperluan
+// perbaikan data manual, tetapi tidak lagi dipanggil oleh klien.
 
 // ---------- HAK SUBJEK DATA (UU PDP): EKSPOR & HAPUS DATA ----------
 // Mengumpulkan seluruh data milik pengguna untuk diunduh (portabilitas data).

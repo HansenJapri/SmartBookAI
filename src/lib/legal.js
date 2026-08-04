@@ -4,8 +4,9 @@
 export const APP_NAME = 'SmartBook AI'
 
 // Versi dokumen persetujuan (gabungan Syarat & Ketentuan + Kebijakan Privasi).
-// Naikkan versi ini setiap kali isi dokumen berubah secara berarti, agar
-// pengguna lama diminta menyetujui kembali versi terbaru.
+// Dicatat pada profil sebagai jejak versi yang disetujui saat akun dibuat.
+// Persetujuan hanya diminta SEKALI, yaitu di halaman Daftar; menaikkan versi
+// TIDAK memunculkan dialog persetujuan ulang di dalam aplikasi.
 export const TERMS_VERSION = 'v4'
 export const TERMS_EFFECTIVE = '2 Agustus 2026'
 
@@ -24,8 +25,3 @@ export const TERMS_EFFECTIVE = '2 Agustus 2026'
 // kewajiban UU PDP terputus tanpa jalur pemulihan.
 export const CONTROLLER_NAME = 'Sovralytics Technology (usaha perorangan)'
 export const CONTACT_EMAIL = 'sovralyticstech@gmail.com'
-
-// Kunci localStorage untuk menyimpan jejak persetujuan di perangkat ini.
-// Sumber kebenaran utama tetap di database (kolom accepted_terms pada profil);
-// nilai ini hanya cache agar dialog tidak berkedip saat memuat halaman.
-export const TERMS_ACK_KEY = `bukupintar_terms_ack_${TERMS_VERSION}`

@@ -9,7 +9,6 @@ import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
 import { normalizePhone } from '../lib/validators'
 import { fmtDateTime } from '../lib/format'
-import { TERMS_VERSION } from '../lib/legal'
 import { Link } from 'react-router-dom'
 import { Pencil, Trash2 } from 'lucide-react'
 import CrudList from '../components/CrudList'
@@ -220,7 +219,11 @@ export default function Settings() {
       {/* STATUS PERSETUJUAN */}
       <div className="card card-pad" style={{ marginBottom: 20 }}>
         <h3 className="card-title">{sg.consentTitle}</h3>
-        {profile.accepted_terms && profile.terms_version === TERMS_VERSION ? (
+        {/* Persetujuan diminta sekali saat pembuatan akun. Perbedaan versi
+            dokumen TIDAK lagi dianggap "belum setuju" (tidak ada dialog
+            persetujuan ulang di aplikasi); versi yang disetujui tetap
+            ditampilkan sebagai jejak. */}
+        {profile.accepted_terms ? (
           <div className="alert alert-ok" style={{ marginBottom: 12 }}>
             {sg.consentOk}
             {profile.accepted_terms_at ? <> {sg.consentOkAt} <b>{fmtDateTime(profile.accepted_terms_at)}</b></> : null}.
