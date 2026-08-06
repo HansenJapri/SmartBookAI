@@ -15,6 +15,8 @@ export type FeatureName =
   | 'chat'
   | 'crud'
   | 'ocr'
+  | 'catat'
+  | 'hpp_draft'
   | 'voice_live'
   | 'voice_crud'
   | 'voice_tts'
@@ -27,7 +29,9 @@ export interface FeatureRoute {
   /** Model cadangan bila percobaan pertama gagal validasi (maks 1x retry). */
   fallbackModel?: string
   /** Nama fitur untuk penghitung kuota (workspace_ai_usage.feature). */
-  quotaFeature: 'insight_dashboard' | 'insight_stok' | 'chat' | 'crud' | 'ocr' | 'voice'
+  quotaFeature:
+    | 'insight_dashboard' | 'insight_stok' | 'chat' | 'crud' | 'ocr'
+    | 'catat' | 'hpp_draft' | 'voice'
   /** Batas harian per WORKSPACE. Voice dalam DETIK, sisanya jumlah panggilan. */
   dailyCap: number
 }
@@ -97,6 +101,28 @@ export const FEATURE_ROUTES: Record<FeatureName, FeatureRoute> = {
     model: 'gemini-3.1-flash-lite',
     fallbackModel: 'gemini-3.5-flash-lite',
     quotaFeature: 'ocr',
+    dailyCap: 10,
+  },
+  // Pencatatan bahasa alami (ai-catat) dan draf HPP (ai-hpp-draft) dulu memakai
+  // jalur sendiri: key & model hardcoded, plus RPC kuota terpisah `bump_ai_usage`
+  // yang menghitung per-USER dan reset tengah malam UTC. Akibatnya kuota mereka
+  // tidak pernah muncul di penghitung workspace, dan — karena RPC itu menaikkan
+  // penghitung SEBELUM Gemini dipanggil — pengguna tetap tertagih saat AI gagal.
+  //
+  // Model SENGAJA dipertahankan `gemini-2.5-flash` persis seperti sebelumnya:
+  // migrasi ini soal routing & kuota, bukan mengubah kualitas keluaran AI.
+  // Keduanya tidak diberi fallbackModel karena tidak ada validasi pasca-AI yang
+  // bisa memicu retry secara bermakna (berbeda dari OCR yang punya checksum).
+  catat: {
+    key: 'C',
+    model: 'gemini-2.5-flash',
+    quotaFeature: 'catat',
+    dailyCap: 40,
+  },
+  hpp_draft: {
+    key: 'C',
+    model: 'gemini-2.5-flash',
+    quotaFeature: 'hpp_draft',
     dailyCap: 10,
   },
 }

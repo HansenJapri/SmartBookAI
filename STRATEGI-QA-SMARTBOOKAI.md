@@ -1,6 +1,9 @@
 # Dokumen Strategi & Blueprint QA Smartbook AI
 
-> **Versi** 1.0 · **Tanggal** 4 Agustus 2026 · **Status** Blueprint pra-rilis
+> **Versi** 1.1 · **Tanggal** 5 Agustus 2026 · **Status** Blueprint pra-rilis
+> **Perubahan v1.1** — §0.2b (temuan T-1) dikoreksi setelah verifikasi kode: klaim
+> "tanpa kuota" **keliru**, dan cakupan pelanggarannya lebih luas dari dua fungsi.
+> §0.4, §5.1, §5.3 diperbarui mengikuti infrastruktur yang sudah terpasang.
 > **Berlaku untuk** SmartBook AI / BukuPintar AI — SaaS pembukuan & operasional UMKM (React 18 + Vite 5 + Supabase + Gemini)
 
 ---
@@ -30,26 +33,61 @@ Brief awal mencontohkan pengujian *"ringkasan buku dari dokumen PDF"*. **Fitur i
 | Insight Dashboard | `ai-narasi` | `insight_dashboard` | `gemini-3.5-flash-lite` | 10 panggilan |
 | Insight Stok | `ai-stok-insight` | `insight_stok` | `gemini-3.5-flash-lite` | 10 panggilan |
 | Suara (dialog + CRUD + TTS) | `voice-live-token` | `voice_*` | `gemini-2.5-*` / `gemini-3-flash-live` | 600 detik |
-| Pencatatan bahasa alami | `ai-catat` | ⚠️ **tidak lewat router** | `GEMINI_API_KEY` + model hardcoded | ⚠️ **tanpa kuota** |
-| Draft HPP | `ai-hpp-draft` | ⚠️ **tidak lewat router** | `gemini-2.5-flash` hardcoded | ⚠️ **tanpa kuota** |
+| Pencatatan bahasa alami | `ai-catat` | `catat` | `gemini-2.5-flash` | 40 panggilan |
+| Draft HPP | `ai-hpp-draft` | `hpp_draft` | `gemini-2.5-flash` | 10 panggilan |
 
 Semua **[REPO]**, diverifikasi dari `_shared/ai/config.ts` dan pemanggilan `getGeminiClient()` di tiap `index.ts`.
+
+> **Dikoreksi 5 Agt 2026.** Dua baris terakhir sebelumnya ditandai "⚠️ tidak lewat
+> router / tanpa kuota". Keduanya kini sudah dimigrasikan (lihat T-1 di bawah).
 
 ### 0.2b Temuan audit kode saat penyusunan dokumen ini
 
 Dua temuan muncul saat memverifikasi tabel di atas. Keduanya **[REPO]**, bukan dugaan.
 
-**T-1 — Dua Edge Function melewati router AI dan sistem kuota.**
+**T-1 — Edge Function yang melewati router AI dan sistem kuota terpusat.**
 `config.ts` menyatakan aturannya sendiri: *"Semua Edge Function AI WAJIB mengambil key & model dari sini lewat `getGeminiClient(feature)`. Jangan hardcode key/model di tempat lain."* `rate-limiter.ts` menambahkan: *"Alur wajib di setiap endpoint AI: `checkQuota()` SEBELUM memanggil Gemini."*
 
-| Fungsi | Melanggar | Bukti |
+> ### ⚠️ Koreksi terhadap v1.0 (5 Agt 2026)
+>
+> Versi 1.0 menyatakan `ai-catat` dan `ai-hpp-draft` berjalan **"tanpa kuota"**
+> dan bahwa *"pengguna dapat memanggilnya berulang tanpa batas aplikasi"*.
+> **Pernyataan itu salah.** Verifikasi kode menunjukkan keduanya **punya** rem
+> kuota, lewat sistem yang berbeda: RPC `bump_ai_usage`
+> (`supabase/migration_ai_usage.sql:27`) — `ai-catat` 40/hari, `ai-hpp-draft`
+> 10/hari. Estimasi biaya terburuk di v1.0 karena itu terlalu pesimistis.
+>
+> Yang **benar** dari T-1 hanya bagian ini: key & model memang di-hardcode, dan
+> keduanya memang tidak lewat `getGeminiClient()` + `checkQuota()`.
+
+**Masalah sebenarnya bukan ketiadaan kuota, melainkan adanya DUA sistem kuota paralel:**
+
+| # | Cacat | Akibat |
 |---|---|---|
-| `ai-catat` | Key & model hardcoded, tanpa `checkQuota` | `index.ts:19` `Deno.env.get('GEMINI_API_KEY')`; tidak ada `getGeminiClient` maupun `checkQuota` |
-| `ai-hpp-draft` | Key & model hardcoded, tanpa `checkQuota` | `index.ts:13` + `index.ts:17` `const MODEL = 'gemini-2.5-flash'` |
+| 1 | `bump_ai_usage` menaikkan penghitung **SEBELUM** Gemini dipanggil, tanpa pengembalian | Gemini balas 502 → kuota pengguna tetap terpakai. Melanggar langsung metrik §1.3 *"Kuota ter-commit saat panggilan AI gagal = 0"* dan skenario BDD §4 *"Kuota harian pengguna TIDAK berkurang"* |
+| 2 | Menghitung per-**USER** (`auth.uid()`), bukan per-**WORKSPACE** | Workspace berisi 5 staf mendapat 5 × 40 = 200 panggilan `catat`/hari, bukan 40. Model biaya per-workspace tidak berlaku |
+| 3 | Reset tengah malam **UTC**, bukan **Pacific** | Dua fitur AI di aplikasi yang sama reset pada jam berbeda |
 
-**Dampak:** `ai-catat` adalah jalur pencatatan utama lewat AI — dan ia **tidak dibatasi kuota**. Seluruh perhitungan biaya yang mengandalkan cap 10 panggilan/hari tidak berlaku untuk jalur ini. Pengguna (atau skrip) dapat memanggilnya berulang tanpa batas aplikasi; satu-satunya rem adalah rate limit Google.
+**Cakupan lebih luas dari dua fungsi.** Pemeriksaan invarian otomatis atas
+seluruh `supabase/functions/*/index.ts` menemukan **tiga pelanggar lain** yang
+tidak tercatat di v1.0:
 
-**Aksi:** migrasikan keduanya ke `getGeminiClient()` + `checkQuota()`/`commitQuota()` **sebelum rilis**. Ditambahkan sebagai gerbang **G-18**.
+| Fungsi | Melanggar | Status |
+|---|---|---|
+| `ai-admin` | Key & model hardcoded, tanpa `getGeminiClient`/`checkQuota` | **Belum dimigrasi** — panel admin internal, bukan jalur pengguna |
+| `makro-harian` | Key & model hardcoded, tanpa `getGeminiClient`/`checkQuota` | **Belum dimigrasi** — job cron, perlu keputusan cap tersendiri |
+| `voice-live-token` | Menyentuh endpoint Gemini tanpa `getGeminiClient` | **Belum dimigrasi** — menanyakan dukungan `bidiGenerateContent`, bukan `generateContent` biasa |
+
+**Status per 5 Agt 2026:** `ai-catat` dan `ai-hpp-draft` **sudah dimigrasikan**
+ke `getGeminiClient()` + `checkQuota()`/`commitQuota()` dengan rute `catat`
+(cap 40) dan `hpp_draft` (cap 10) di `config.ts`. Model dipertahankan persis
+`gemini-2.5-flash` agar kualitas keluaran tidak ikut berubah. Tiga fungsi sisa
+tercatat sebagai utang di `PENGECUALIAN_TERCATAT`
+(`_shared/ai/invariant_test.ts`) — pelanggar **baru** membuat test merah,
+sementara yang lama tidak menyembunyikan diri di balik suite hijau.
+
+**Aksi tersisa:** putuskan penanganan `ai-admin`, `makro-harian`, dan
+`voice-live-token`. Gerbang **G-18** tetap terbuka sampai itu selesai.
 
 **T-2 — Nama deploy berbeda dari nama folder.**
 Folder `supabase/functions/ai/` di-deploy dengan nama `BukuPencatatan` (dirujuk konsisten oleh `eval/`, `e2e/`, `postman/`, dan `src/lib/ai.js`). Ini konsisten, bukan bug — tapi wajib didokumentasikan agar anggota tim baru tidak mencari folder bernama `BukuPencatatan`.
@@ -58,13 +96,13 @@ Folder `supabase/functions/ai/` di-deploy dengan nama `BukuPencatatan` (dirujuk 
 
 | Dokumen | Peran | Status |
 |---|---|---|
-| `QA.md` | Katalog test case manual (Suite A–K) | **Usang.** Klaim "22/22 test otomatis" — repo sekarang punya 32 berkas Vitest. Tidak memuat AI, HR, Gudang, Voice, RBAC |
+| `QA.md` | Katalog test case manual (Suite A–N) | **Diperbarui 5 Agt 2026 (v2.0).** Klaim "22/22 test otomatis" dikoreksi; ditambah Suite I (AI), J (Suara), L (Gudang/PO/Opname), M (HR & Payroll), N (RBAC & Audit) |
 | `PANDUAN_EKSEKUSI_TEST.md` | Cara menjalankan Vitest/Newman/Playwright | Akurat, tetap dipakai |
 | `STRATEGI_PENGUJIAN_RAG_RADAR_HARGA.md` | Strategi khusus RAG Radar | Tetap dipakai, subset dari §1.3 |
 | `SECURITY.md` | Runbook insiden & UU PDP | Tetap dipakai, rujukan §1.7 |
 | **Dokumen ini** | Payung strategi + gerbang rilis | Baru |
 
-**Aksi wajib:** perbarui `QA.md` §10 dan tambahkan Suite untuk AI/HR/Gudang/Voice/RBAC sebelum rilis.
+**Selesai 5 Agt 2026:** `QA.md` §10 sudah dikoreksi dan Suite AI/Suara/Gudang/HR/RBAC sudah ditambahkan (v2.0).
 
 ### 0.4 Apa yang sudah ada vs belum ada
 
@@ -74,16 +112,19 @@ Folder `supabase/functions/ai/` di-deploy dengan nama `BukuPencatatan` (dirujuk 
 | Integration test facade AI | ✅ Ada | `radar.ai.integration.test.js`, `api.integration.test.js` |
 | E2E Playwright | ✅ Ada | 7 spec + 1 setup di `e2e/` (2 spec sengaja stub/skip), dijalankan atas build produksi via `vite preview` |
 | Kontrak API | ✅ Ada | `postman/` — 3 folder, 11 request, 25 assertion |
-| Eval AI golden-set | ✅ Ada | `eval/chatbot-eval.mjs` — 7 kasus, live Gemini |
-| **Component test (UI)** | ❌ **Tidak ada** | Tak ada `@testing-library/react`; `vite.config.js` tak set `environment` → Vitest jalan di Node, DOM tidak tersedia |
-| **Pengukuran coverage** | ❌ **Tidak ada** | `@vitest/coverage-v8` belum terpasang |
-| **Accessibility otomatis** | ❌ **Tidak ada** | Tak ada `axe-core` / `@axe-core/playwright` |
-| **Load / performance test** | ❌ **Tidak ada** | Tak ada k6 / Artillery / Lighthouse CI |
-| **Test Edge Function di sumber** | ❌ **Tidak ada** | Tak ada `*_test.ts` di `supabase/functions/`. Guard kritis (`action-blocklist.ts`, `rate-limiter.ts`) hanya diuji lewat cerminan di sisi klien |
-| **CI pipeline** | ❌ **Tidak ada** | Tak ada `.github/workflows/` |
-| **Lintas browser** | ⚠️ Sebagian | Playwright hanya `chromium`. Firefox & mobile hanya manual |
+| Eval AI golden-set | ✅ Ada (diperluas 5 Agt) | `eval/chatbot-eval.mjs` — **40 kasus**, 3 endpoint, live Gemini. Penilainya diuji 30 unit test |
+| **Component test (UI)** | ✅ **Ada** (5 Agt) | 40 test di `src/components/__tests__/` — Modal (focus trap), TransactionModal, OtpInput, PasswordChecklist, AppLock, ErrorBoundary. `environment: 'jsdom'` + `src/test/setup.js` |
+| **Pengukuran coverage** | ✅ **Ada** (5 Agt) | `@vitest/coverage-v8`, di-scope ke `src/lib/**` di `vite.config.js` |
+| **Accessibility otomatis** | ✅ **Ada** (5 Agt) | `@axe-core/playwright` — `e2e/a11y.spec.js` (publik) + `e2e/a11y.authenticated.spec.js` (dalam `/app`), helper `e2e/helpers/axe.js` |
+| **Performance (frontend)** | ✅ **Ada** (5 Agt) | `npm run test:perf` (LCP/CLS/FCP via PerformanceObserver) + `npm run cek:bundle` (anggaran gzip muat pertama) |
+| **Load test (backend)** | ⚠️ **Ditulis, belum dijalankan** | `load/rest-transaksi.js` (k6). Butuh proyek Supabase uji — membebani DB sungguhan |
+| **Test Edge Function di sumber** | ✅ **Ada** (5 Agt) | 148 test Deno: `guards/action-blocklist_test.ts`, `rate-limiter_test.ts`, `config_test.ts`, `invariant_test.ts` |
+| **CI pipeline** | ✅ **Ada** (5 Agt) | `.github/workflows/test.yml` — 5 gerbang: Vitest+coverage → npm audit → deno test → build+audit rahasia → Playwright |
+| **Lintas browser** | ✅ **Ada** (5 Agt) | Playwright: `chromium`, `firefox`, `Mobile Chrome` (Pixel 5) |
+| **Isolasi jaringan terverifikasi** | ✅ **Ada** (5 Agt) | `BLOCK_NET=1` di `src/test/setup.js` memblokir fetch/XHR/WebSocket/http/https/net |
 
-Enam baris ❌ itulah pekerjaan utama fase QA ini.
+Seluruh baris ❌ sudah tertutup. Yang tersisa hanya **load test backend**, yang
+sengaja belum dijalankan karena membebani database sungguhan.
 
 ---
 
@@ -206,18 +247,61 @@ Uji *guard* dan *kontrak*, bukan kualitas bahasa. Tidak membakar kuota.
 - Uji `checkActionAllowed()` terhadap seluruh `BLOCKED_TABLES` (18) dan `BLOCKED_PATTERNS` (13) **[REPO]**, termasuk kasus yang sudah dikomentari di kode: `update_2fa` harus tertangkap meski `\b2fa\b` gagal.
 - Uji `buildAggregateSummary()` — untuk setiap field di `SENSITIVE_FIELDS`, pastikan tidak pernah muncul di keluaran. Sudah ada di `aiSummary.test.js`, **perluas** ke tiap kolom baru.
 - Uji `selectRagPrices` / `isTrusted` — subdomain palsu (`kontan.co.id.attacker.com`) wajib ditolak. Sudah ada di `ragPrice.test.js`.
-- **Baru:** jalankan guard Edge Function di sumbernya, bukan cuma cerminannya:
+- **Sudah ada (5 Agt):** guard Edge Function diuji di sumbernya, bukan cuma cerminannya.
   ```bash
-  deno test supabase/functions/_shared/ai/guards/
+  cd supabase/functions && deno test --allow-import --allow-read _shared/ai/
   ```
-  Saat ini `action-blocklist.ts` dan `rate-limiter.ts` **tidak punya test di sumber** — hanya diuji lewat salinan logika di sisi klien. Kalau file `.ts` diubah, tidak ada yang berteriak.
+  **148 test, 0 gagal.** Menguji 18/18 `BLOCKED_TABLES` dan 13/13 `BLOCKED_PATTERNS` satu per satu (termasuk varian huruf besar, spasi, awalan skema, dan penyisipan lewat 7 kunci argumen), 10 kontrol positif agar guard tidak menolak semua aksi, plus kontrak kuota dan invarian G-18.
+
+  > **Catatan jalur:** perintah di v1.0 menunjuk `_shared/ai/guards/`, padahal
+  > `rate-limiter.ts` ada **satu tingkat di atas** folder itu — perintah lama
+  > tidak akan pernah menjangkaunya. Dijalankan dari `supabase/functions/` agar
+  > `deno.json` di sana yang dipakai; dari root repo, Deno ikut membaca
+  > `package.json` frontend dan type-check gagal mencari `npm:@types/node`.
 
 **Lapis 2 — Golden-set eval terhadap model live (di luar CI).**
-Sudah ada: `npm run eval:ai` → `eval/chatbot-eval.mjs`, 7 kasus, penilaian pass-rate **[REPO]**.
+`npm run eval:ai` → `eval/chatbot-eval.mjs`. **Diperluas 7 → 40 kasus (5 Agt 2026)**
+dengan distribusi persis seperti yang diusulkan dokumen ini:
 
-- **Perluas dari 7 → minimal 40 kasus**, distribusi usulan: 10 anti-halusinasi, 10 prompt injection (5 langsung, 3 lewat teks struk OCR, 2 lewat suara), 10 kontrol positif (pertanyaan sah wajib dijawab), 5 batas lingkup, 5 format.
-- **Kontrol positif itu wajib.** Tanpa itu, model yang menolak *semua* pertanyaan akan lulus sempurna. Harness sekarang sudah memuatnya (`kontrol-positif-hpp`) — pertahankan proporsinya.
+| Kategori | Jumlah | Endpoint |
+|---|---|---|
+| Anti-halusinasi | 10 | `chat` |
+| Prompt injection | 10 | 5 `chat` langsung · 3 `ocr` (teks di dalam gambar struk) · 2 `catat` (jalur yang sama dipakai asisten suara) |
+| Kontrol positif | 10 | 8 `chat` · 1 `catat` · 1 `ocr` |
+| Batas lingkup | 5 | `chat` |
+| Format | 5 | `chat` |
+
+- **Kontrol positif itu wajib.** Tanpa itu, model yang menolak *semua* pertanyaan akan lulus sempurna. Harness melaporkan pass-rate-nya terpisah sebagai penjaga over-refusal.
+- **Kasus injeksi OCR memakai gambar yang dibuat program** (`eval/lib/strukPng.mjs`, PNG murni Node tanpa dependensi), bukan fixture foto — kalau bergantung pada berkas yang harus disiapkan manual, tiga kasus itu akan selamanya ter-skip.
+- **Tujuh ID lama dipertahankan** (`scope-politik`, `scope-coding`, `format-no-markdown`, `halusinasi-angka`, `halusinasi-menu`, `prompt-injection`, `kontrol-positif-hpp`) agar hasil lintas rilis tetap bisa dibandingkan.
 - Jalankan **setiap kali prompt atau nama model berubah**, tidak per commit (butuh kuota + jaringan, hasil non-deterministik).
+
+> ### ⚠️ Suite penuh tidak muat dalam kuota satu hari
+>
+> 33 dari 40 kasus memakai endpoint `chat` yang capnya **10/hari/workspace**.
+> Ini konsekuensi cap biaya yang memang disengaja, bukan cacat harness. Karena itu:
+>
+> - Anggaran kuota dicetak **sebelum** ada panggilan: `npm run eval:ai:list`.
+> - Respons `429 DAILY_LIMIT_REACHED` menghentikan endpoint itu dan sisanya
+>   ditandai **SKIP, bukan GAGAL** — kehabisan kuota bukan regresi model, dan
+>   menghitungnya sebagai gagal membuat laporannya tidak berarti.
+> - Setiap kategori muat sendiri-sendiri, jadi suite dijalankan bertahap:
+>
+> ```bash
+> node eval/chatbot-eval.mjs --only=halusinasi        # 10 chat
+> node eval/chatbot-eval.mjs --only=injeksi           # 5 chat + 2 catat + 3 ocr
+> node eval/chatbot-eval.mjs --only=kontrol-positif   # 8 chat + 1 catat + 1 ocr
+> node eval/chatbot-eval.mjs --only=lingkup,format    # 10 chat
+> ```
+>
+> Alternatifnya: naikkan cap sementara di workspace uji khusus.
+
+**Alat ukurnya sendiri diuji.** Fungsi penilai (`eval/lib/penilai.mjs`) punya 30
+unit test di `src/lib/__tests__/evalGoldenSet.test.js` yang ikut `npm test` —
+gratis, tanpa kuota. Penilai yang salah gagal DIAM-DIAM: angkanya tetap tercetak
+rapi, hanya artinya keliru. Test itu membuktikan penilainya membedakan (tolakan
+vs jawaban substantif, angka dikarang vs "belum tercatat"), bukan sekadar
+mengembalikan `true`.
 - **Ragas / TruLens** relevan khusus untuk grounding RAG Radar (metrik *faithfulness* & *answer relevance*), tapi keduanya ekosistem Python sementara repo ini JavaScript. Rekomendasi: **tetap pakai harness `.mjs` yang sudah jalan**, tambahkan pemeriksaan grounding sebagai assertion (`numberAppearsIn` sudah menyediakan primitifnya). Adopsi Ragas hanya bila tim siap memelihara toolchain kedua.
 
 **Lapis 3 — E2E dengan jaringan di-stub.**
@@ -735,59 +819,142 @@ Rilis **hanya** boleh jalan bila seluruh baris **GATE** berstatus LULUS. Satu GA
 
 ### 5.1 Gerbang wajib (Blocker bila gagal)
 
+Status per **5 Agustus 2026**. ✅ = terverifikasi otomatis · ❌ = gagal terukur ·
+🔑 = otomatis, menunggu kredensial · 👤 = tetap butuh uji manual.
+
 | # | Kriteria | Ambang | Cara verifikasi | Status |
 |---|---|---|---|---|
-| G-01 | Test case P0 lulus | 100% | `QA.md` + rekap manual | ⬜ |
-| G-02 | Bug Blocker / Critical terbuka | 0 | Bug tracker | ⬜ |
-| G-03 | Unit + integration test lulus | 100% | `npm test` | ⬜ |
-| G-04 | E2E alur P0 lulus | 100% | `npm run test:e2e` | ⬜ |
-| G-05 | Isolasi data antar-workspace | 0 kebocoran | Uji negatif REST API dengan 2 JWT | ⬜ |
-| G-06 | PII di payload LLM | 0 | `aiSummary.test.js` hijau | ⬜ |
-| G-07 | Rahasia di bundle frontend | 0 | `grep -ri "service_role\|GEMINI_KEY" dist/` | ⬜ |
-| G-08 | Prompt injection lolos | 0 dari 10 kasus | `npm run eval:ai` + uji OCR manual | ⬜ |
-| G-09 | Blocklist tabel & pola | 18/18 dan 13/13 tertahan | `deno test` guard | ⬜ |
-| G-10 | Bypass RBAC | 0 | Uji staf vs pemilik | ⬜ |
-| G-11 | Kerentanan npm *critical* | 0 | `npm audit --production` | ⬜ |
-| G-12 | Konsistensi angka laporan vs transaksi | 100% | Rekonsiliasi manual | ⬜ |
-| G-13 | Build produksi sukses | Tanpa error | `npm run build` | ⬜ |
-| G-14 | Error console browser | 0 di semua halaman | Jelajah manual + E2E | ⬜ |
-| G-15 | Draf AI tersimpan tanpa persetujuan | 0 | `chatbot.authenticated.spec.js` | ⬜ |
-| G-16 | PIC keamanan terisi di `SECURITY.md` | Terisi | Tinjau dokumen — **saat ini masih "(isi:)"** | ⬜ |
-| G-17 | Checklist konfigurasi pra-launch | 100% | `QA.md` §8 (migrasi, SMTP, env, redirect URL) | ⬜ |
-| G-18 | **Setiap Edge Function AI lewat `getGeminiClient()` + `checkQuota()`** | 0 pengecualian | Temuan T-1: `ai-catat` & `ai-hpp-draft` masih bypass → **saat ini GAGAL** | ⬜ |
+| G-01 | Test case P0 lulus | 100% | `QA.md` + rekap manual | 👤 ⬜ |
+| G-02 | Bug Blocker / Critical terbuka | 0 | Bug tracker | 👤 ⬜ |
+| G-03 | Unit + integration test lulus | 100% | `npm test` | ✅ **LULUS** — 827/827, 47 berkas |
+| G-04 | E2E alur P0 lulus | 100% | `npm run test:e2e` | ✅ **LULUS** — 36 lulus, 0 gagal (34 skip: butuh kredensial) |
+| G-05 | Isolasi data antar-workspace | 0 kebocoran | Uji negatif REST API dengan 2 JWT | 🔑 ⬜ |
+| G-06 | PII di payload LLM | 0 | `aiSummary.test.js` hijau | ✅ **LULUS** |
+| G-07 | Rahasia di bundle frontend | 0 | `grep -ri "service_role\|GEMINI_KEY" dist/` | ✅ **LULUS** — 0 hasil dari 63 berkas |
+| G-08 | Prompt injection lolos | 0 dari 10 kasus | `node eval/chatbot-eval.mjs --only=injeksi` (10 kasus: 5 langsung, 3 OCR, 2 suara — muat dalam kuota sehari) | 🔑 ⬜ — kasus siap, butuh `EVAL_EMAIL`/`EVAL_PASSWORD` |
+| G-09 | Blocklist tabel & pola | 18/18 dan 13/13 tertahan | `deno test` guard | ✅ **LULUS** — 148 test, 0 gagal |
+| G-10 | Bypass RBAC | 0 | Uji staf vs pemilik | 🔑 ⬜ |
+| G-11 | Kerentanan npm *critical* | 0 | `npm audit --production` | ✅ **LULUS** — 0 critical (jspdf 2.5.2 → 4.2.1) |
+| G-12 | Konsistensi angka laporan vs transaksi | 100% | Rekonsiliasi manual | 👤 ⬜ |
+| G-13 | Build produksi sukses | Tanpa error | `npm run build` | ✅ **LULUS** |
+| G-14 | Error console browser | 0 di semua halaman | Jelajah manual + E2E | 👤 ⬜ |
+| G-15 | Draf AI tersimpan tanpa persetujuan | 0 | `chatbot.authenticated.spec.js` | 🔑 ⬜ |
+| G-16 | PIC keamanan terisi di `SECURITY.md` | Terisi | Tinjau dokumen — **masih "(isi:)"** | 👤 ❌ **GAGAL** |
+| G-17 | Checklist konfigurasi pra-launch | 100% | `QA.md` §8 (migrasi, SMTP, env, redirect URL) | 👤 ⬜ |
+| G-18 | **Setiap Edge Function AI lewat `getGeminiClient()` + `checkQuota()`** | 0 pengecualian | `invariant_test.ts` atas seluruh `functions/*/index.ts` | ❌ **GAGAL** — `ai-catat` & `ai-hpp-draft` **sudah beres**; sisa `ai-admin`, `makro-harian`, `voice-live-token` (lihat T-1) |
+
+**Ringkasan:** 7 gerbang LULUS otomatis · 2 GAGAL · 4 menunggu kredensial ·
+5 menunggu uji manual. Dua yang GAGAL (G-16, G-18) sama-sama tidak butuh
+pekerjaan besar — satu mengisi kontak, satu memutuskan nasib 3 fungsi sisa.
 
 ### 5.2 Gerbang kualitas (boleh rilis dengan pengecualian tertulis + tanggal perbaikan)
 
-| # | Kriteria | Ambang | Status |
+| # | Kriteria | Ambang | Status per 5 Agt 2026 |
 |---|---|---|---|
-| Q-01 | Test case P1 lulus | ≥ 95% | ⬜ |
-| Q-02 | Coverage `src/lib/**` | ≥ 85% | ⬜ |
-| Q-03 | Coverage cabang modul uang | ≥ 90% | ⬜ |
-| Q-04 | Pelanggaran axe critical/serious | 0 di 6 halaman kritis | ⬜ |
-| Q-05 | Waktu muat awal | < 3 detik | ⬜ |
-| Q-06 | LCP / CLS | < 2.5s / < 0.1 | ⬜ |
-| Q-07 | Assertion golden-set AI lulus | ≥ 90% | ⬜ |
-| Q-08 | Kontrol positif AI dijawab | ≥ 95% | ⬜ |
-| Q-09 | Test flaky | 0 (3× berturut) | ⬜ |
-| Q-10 | Firefox + viewport mobile lulus | Alur P0 | ⬜ |
-| Q-11 | Kerentanan npm *high* | 0 atau mitigasi tertulis | ⬜ |
-| Q-12 | Component test komponen kritis | ≥ 6 | ⬜ |
+| Q-01 | Test case P1 lulus | ≥ 95% | 👤 ⬜ |
+| Q-02 | Coverage `src/lib/**` | ≥ 85% | ❌ **GAGAL** — 78,91% baris (selisih 6,1 pp; naik dari 71,45%) |
+| Q-03 | Coverage cabang modul uang | ≥ 90% | ✅ **LULUS** — `hpp` 96,42% · `aging` 97,50% · `kpi` 100% · `invoice` 77,77%* |
+| Q-04 | Pelanggaran axe critical/serious | 0 di 6 halaman kritis | ✅ **LULUS** untuk halaman publik (3 engine). Halaman `/app` menunggu kredensial |
+| Q-05 | Waktu muat awal | < 3 detik | ✅ **LULUS*** — Landing 249 ms · Login 186 ms. Bundle awal 222,1 KB gzip / anggaran 300 KB |
+| Q-06 | LCP / CLS | < 2.5s / < 0.1 | ✅ **LULUS*** — Landing LCP 828 ms · CLS 0,0055 · Login LCP 264 ms · CLS 0,001 |
+| Q-07 | Assertion golden-set AI lulus | ≥ 90% | 🔑 ⬜ — 40 kasus siap; harness mencetak persentasenya |
+| Q-08 | Kontrol positif AI dijawab | ≥ 95% | 🔑 ⬜ — 10 kasus siap; dilaporkan terpisah sebagai penjaga over-refusal |
+| Q-09 | Test flaky | 0 (3× berturut) | ✅ **LULUS** — Vitest 3× berturut 827/827; E2E 3× berturut 36/36 |
+| Q-10 | Firefox + viewport mobile lulus | Alur P0 | ✅ **LULUS** — chromium + firefox + Pixel 5 hijau |
+| Q-11 | Kerentanan npm *high* | 0 atau mitigasi tertulis | ✅ **LULUS** — 3 high, seluruhnya dimitigasi tertulis di `security/MITIGASI-DEPENDENSI.md` |
+| Q-12 | Component test komponen kritis | ≥ 6 | ✅ **LULUS** — 6 komponen, 40 test |
+
+> ### \* Batas klaim Q-05 & Q-06
+>
+> Diukur terhadap `vite preview` di **localhost**: tanpa latensi jaringan, tanpa
+> TLS handshake, tanpa jarak ke CDN, di mesin pengembang yang jauh lebih kencang
+> daripada HP pengguna UMKM. Angka ini **batas bawah** — produksi pasti lebih
+> lambat. Gunanya menangkap REGRESI, bukan memvalidasi pengalaman nyata.
+> Pengukuran sebenarnya tetap butuh Lighthouse/RUM di produksi dengan throttling.
+>
+> **Pengukuran WAJIB dijalankan sendirian** (`npm run test:perf`). Saat ikut
+> suite paralel dengan 3 engine berebut CPU, LCP Landing terbaca **3.388 ms**;
+> sendirian dengan satu worker, **620–828 ms**. Selisih 5x itu murni beban mesin.
+> Karena itu spec performa punya project Playwright sendiri dan dikeluarkan dari
+> project lain — angka performa yang diukur di bawah kontensi tidak berarti apa-apa.
+>
+> Catatan terukur: stylesheet Google Fonts yang render-blocking menyumbang
+> ~490 ms ke LCP Landing (828 ms dengan font vs 128 ms tanpa). Masih jauh di
+> bawah ambang, tapi itu ongkos terbesar di jalur muat pertama.
+
+\* `invoice.js` naik dari **0% → 99,34% baris / 77,77% cabang**. Cabang yang
+tersisa ada di `esc()` — pemetaan karakter escape yang tidak seluruh cabangnya
+terpicu; bukan aturan uang.
+
+**Coverage `src/lib/` (78,91%) kini satu-satunya gerbang kualitas yang tersisa
+dan bisa dikerjakan tanpa menunggu apa pun.** Yang sudah selesai sejak v1.0:
+
+| Modul | Sebelum | Sesudah | Kenapa diprioritaskan |
+|---|---|---|---|
+| `invoice.js` | 0% | 99,34% | Modul uang; HTML dirangkai string sehingga `esc()` satu-satunya penahan XSS (S-8) |
+| `voiceExecutor.js` | 38,51% (0% fungsi) | 100% | Satu-satunya berkas jalur suara yang MENULIS ke database |
+| `applock.js` | 0% | 100% | PIN App Lock (S-5); mengunci janji "PIN tidak pernah disimpan sebagai teks biasa" |
+| `legalRender.js` | 0% | 100% | Disebut eksplisit di §1.7 S-8; keluarannya dipakai lewat `dangerouslySetInnerHTML` |
+| `monitoring.js` | 0% | 100% | Dipanggil ErrorBoundary; throttle & dedupe |
+| `provinces.js` | 0% | 100% | `id` dikirim apa adanya ke PIHPS; salah id = harga provinsi lain |
+| `imageCompress.js` | 0% | ~100% | Tidak boleh menggagalkan unggahan struk |
+| `format.js` | 73,33% | ~100% | Dipakai di hampir setiap layar angka |
+
+**Sisa jarak 6,1 pp ke 85% praktis ditentukan satu berkas: `api.js`** (54,52%
+dari ~1.500 baris, sekitar 680 baris belum tersentuh). Modul lain yang tersisa
+(`useLiveVoice.js` 19,84%, `analytics.js` 50,8%, `csvImport.js` 72,82%)
+digabung pun belum menutup jaraknya.
 
 ### 5.3 Prasyarat yang harus dikerjakan sebelum gerbang bisa dinilai
 
-Enam item ini **belum ada di repo**. Tanpa item ini, beberapa gerbang di atas tidak bisa diukur sama sekali.
+Status per **5 Agustus 2026**.
 
-| # | Pekerjaan | Memblokir gerbang | Estimasi |
+| # | Pekerjaan | Memblokir gerbang | Status |
 |---|---|---|---|
-| P-1 | Pasang `@vitest/coverage-v8` | Q-02, Q-03 | < 1 jam |
-| P-2 | Pasang `@testing-library/react` + jsdom + `environment: 'jsdom'` | Q-12 | 1 hari |
-| P-3 | Pasang `@axe-core/playwright` + integrasi E2E | Q-04 | 1 hari |
-| P-4 | Tambah project Playwright `firefox` + `Mobile Chrome` | Q-10 | < 1 jam |
-| P-5 | Tulis `deno test` untuk `_shared/ai/guards/` | G-09 | 1 hari |
-| P-6 | Perluas golden-set eval 7 → 40 kasus | G-08, Q-07 | 2 hari |
-| P-7 | Buat `.github/workflows/test.yml` (gate: Vitest → Newman → Playwright) | Konsistensi semua | 0,5 hari |
-| P-8 | Perbarui `QA.md` (klaim 22/22 usang; tambah Suite AI/HR/Gudang/Voice/RBAC) | G-01 | 1 hari |
-| P-9 | **Migrasikan `ai-catat` & `ai-hpp-draft` ke `getGeminiClient()` + `checkQuota()`/`commitQuota()`** (temuan T-1) | G-18 | 0,5 hari |
+| P-1 | Pasang `@vitest/coverage-v8` | Q-02, Q-03 | ✅ **Selesai** — coverage di-scope ke `src/lib/**` |
+| P-2 | Pasang `@testing-library/react` + jsdom + `environment: 'jsdom'` | Q-12 | ✅ **Selesai** — 6 komponen, 40 test |
+| P-3 | Pasang `@axe-core/playwright` + integrasi E2E | Q-04 | ✅ **Selesai** — publik + ter-login, animasi dibekukan sebelum axe |
+| P-4 | Tambah project Playwright `firefox` + `Mobile Chrome` | Q-10 | ✅ **Selesai** |
+| P-5 | Tulis `deno test` untuk guard AI | G-09 | ✅ **Selesai** — 148 test |
+| P-6 | Perluas golden-set eval 7 → 40 kasus | G-08, Q-07 | ✅ **Selesai** — 40 kasus, 3 endpoint, distribusi 10/10/10/5/5. Menjalankannya butuh `EVAL_EMAIL`/`EVAL_PASSWORD` |
+| P-7 | Buat `.github/workflows/test.yml` | Konsistensi semua | ✅ **Selesai** — 5 gerbang |
+| P-8 | Perbarui `QA.md` (klaim 22/22 usang; tambah Suite AI/HR/Gudang/Voice/RBAC) | G-01 | ✅ **Selesai** — v2.0: §10 dikoreksi + 5 suite baru (I, J, L, M, N) = 78 kasus baru, total 142 |
+| P-9 | Migrasikan `ai-catat` & `ai-hpp-draft` (temuan T-1) | G-18 | ✅ **Selesai** — tapi G-18 belum lulus: 3 fungsi lain ternyata juga melanggar |
+| P-10 | Naikkan coverage `src/lib/` | Q-02, Q-03 | 🔸 **Sebagian** — Q-03 **LULUS**; Q-02 71,45% → 78,91%. Sisanya bertumpu pada `api.js` |
+| **P-11** | **Putuskan `ai-admin`, `makro-harian`, `voice-live-token`** | G-18 | ⬜ **Baru** |
+| **P-12** | **Isi PIC keamanan & kontak di `SECURITY.md`** | G-16 | ⬜ **Baru** |
+| P-13 | Load/performance test | Q-05, Q-06 | 🔸 **Sebagian** — frontend **selesai** (Q-05 & Q-06 lulus). Load test backend ditulis (`load/rest-transaksi.js`) tapi butuh proyek Supabase uji |
+
+### Catatan flaky yang sudah ditangani
+
+Dua sumber merah-acak ditemukan dan diperbaiki di akar, bukan ditutup dengan retry:
+
+| Gejala | Akar masalah | Perbaikan |
+|---|---|---|
+| `auth.otp.test.js` & `TransactionModal.test.jsx` sesekali timeout | Batas Vitest 5 detik terlalu ketat untuk component test jsdom saat suite paralel; satu test mengetik 220 karakter satu per satu (5,2 dtk) | `testTimeout: 15_000` + karakter ditempel sekali (5254 ms → 389 ms) |
+| Spec axe sesekali merah di Firefox | Batas Playwright 30 detik; analisis axe di Firefox terukur 21–26 detik saat mesin sibuk | `timeout: 60_000` |
+| Jumlah elemen pelanggaran axe berubah tiap run | axe memotret elemen di tengah animasi fade-in Landing | `bekukanAnimasi()` sebelum axe berjalan |
+
+### Perintah verifikasi
+
+```bash
+npm test                                                       # 827 test
+BLOCK_NET=1 npx vitest run                                     # bukti isolasi jaringan
+npx vitest run --coverage                                      # coverage src/lib/
+cd supabase/functions && deno test --allow-import --allow-read _shared/ai/
+npm run test:e2e                                               # 3 engine
+npm audit --omit=dev                                           # 0 critical
+npm run build                                                  # lalu grep dist/ untuk rahasia
+npm run cek:bundle                                             # anggaran bundle muat pertama
+npm run test:perf                                              # Core Web Vitals (WAJIB sendirian)
+npm run eval:ai:list                                           # anggaran kuota golden-set
+```
+
+Load test backend (butuh proyek Supabase **uji**, bukan produksi):
+
+```bash
+LOAD_TEST_CONFIRM=1 SUPABASE_URL=... SUPABASE_ANON_KEY=... SUPABASE_JWT=... k6 run --vus 20 --duration 60s load/rest-transaksi.js
+```
 
 ### 5.4 Form keputusan
 

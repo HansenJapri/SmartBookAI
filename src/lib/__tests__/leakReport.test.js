@@ -106,6 +106,20 @@ describe('berkas PDF', () => {
     expect(doc.internal.getNumberOfPages()).toBe(1)
   })
 
+  // Penjaga upgrade jspdf/jspdf-autotable: menghitung halaman saja tidak
+  // membuktikan berkasnya benar-benar bisa ditulis. `output()` adalah jalur
+  // yang dipakai invoicePdfBlob(), dan itulah yang paling mungkin pecah saat
+  // versi mayor berganti.
+  it('menghasilkan berkas PDF yang sah (header %PDF- dan penanda akhir)', async () => {
+    const doc = await buat(contoh())
+    const isi = doc.output('arraybuffer')
+    expect(isi.byteLength).toBeGreaterThan(1000)
+
+    const teks = new TextDecoder('latin1').decode(new Uint8Array(isi))
+    expect(teks.startsWith('%PDF-')).toBe(true)
+    expect(teks.trimEnd().endsWith('%%EOF')).toBe(true)
+  })
+
   it('tetap satu halaman saat channel jauh lebih banyak dari yang muat', async () => {
     const r = contoh()
     const banyak = Array.from({ length: 40 }, (_, i) => ({

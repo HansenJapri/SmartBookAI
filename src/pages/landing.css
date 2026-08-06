@@ -165,8 +165,12 @@
 .lp-typing span:nth-child(3) { animation-delay: 0.3s; }
 @keyframes lp-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
 
-.lp-mock-input { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--lp-surface-alt); border-top: 1px solid var(--lp-outline-variant); color: var(--lp-outline); }
-.lp-mock-textbox { flex: 1; background: var(--lp-surface-container); border-radius: 999px; padding: 10px 14px; font-size: 13px; color: var(--lp-outline); }
+/* Teks di baris input memakai --lp-on-surface-variant (#444656), BUKAN
+   --lp-outline (#757688). --lp-outline hanya mencapai rasio 3.83:1 di atas
+   --lp-surface-container — di bawah ambang WCAG 2.1 AA 4.5:1 untuk teks
+   berukuran normal (13px). Dikunci oleh e2e/a11y.spec.js. */
+.lp-mock-input { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--lp-surface-alt); border-top: 1px solid var(--lp-outline-variant); color: var(--lp-on-surface-variant); }
+.lp-mock-textbox { flex: 1; background: var(--lp-surface-container); border-radius: 999px; padding: 10px 14px; font-size: 13px; color: var(--lp-on-surface-variant); }
 .lp-mock-send { width: 36px; height: 36px; border-radius: 50%; background: var(--lp-primary); color: #fff; border: none; display: grid; place-items: center; cursor: pointer; transition: transform 0.15s ease; }
 .lp-mock-send:hover { transform: scale(1.08); }
 

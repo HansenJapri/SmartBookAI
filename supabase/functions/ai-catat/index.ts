@@ -11,16 +11,20 @@
 //   - Dilarang menciptakan transaksi/nominal yang tidak disebut pengguna.
 //   - Validasi deterministik pasca-AI: nominal, tanggal, kategori.
 //
-// Deploy: nama function "ai-catat" (secret GEMINI_API_KEY project-wide).
+// Kuota: lewat penghitung WORKSPACE bersama (checkQuota/commitQuota), bukan
+// lagi RPC `bump_ai_usage` per-user. Lihat catatan rute 'catat' di config.ts.
+//
+// Deploy: nama function "ai-catat".
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
+import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-const MODEL = 'gemini-2.5-flash'
 
 const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
 function corsHeaders(origin: string | null) {
@@ -46,8 +50,6 @@ serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
   try {
-    if (!GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY belum diatur di server.' }, 501)
-
     const authHeader = req.headers.get('Authorization') || ''
     if (!authHeader.startsWith('Bearer ')) return json({ error: 'Harus masuk (login).' }, 401)
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -56,9 +58,12 @@ serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData?.user) return json({ error: 'Sesi tidak valid.' }, 401)
 
-    // Kuota harian (kontrol biaya).
-    const { data: allowed } = await supabase.rpc('bump_ai_usage', { p_kind: 'catat', p_limit: 40 })
-    if (allowed === false) return json({ error: 'Batas pencatatan via asisten hari ini tercapai. Coba lagi besok, atau catat manual di menu Transaksi.' }, 429)
+    // Kuota harian PER WORKSPACE, dicek SEBELUM memanggil Gemini — kalau habis,
+    // Gemini tidak disentuh sama sekali. Penghitung baru naik di commitQuota()
+    // setelah panggilan benar-benar sukses.
+    const ai = getGeminiClient('catat')
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
 
     const { message } = await req.json()
     if (!message || typeof message !== 'string') return json({ error: 'Pesan kosong.' }, 400)
@@ -106,23 +111,18 @@ ATURAN KERAS:
 - "payment_status" = "belum" hanya bila pengguna bilang belum dibayar/utang/bon.
 - category WAJIB persis salah satu dari daftar. Bila ragu pakai "${inFallback}" (pemasukan) atau "${outFallback}" (pengeluaran).`
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-          generationConfig: { temperature: 0.1, responseMimeType: 'application/json', maxOutputTokens: 1024 },
-        }),
-      },
-    )
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: errText.slice(0, 300) }, 502)
+    let text: string
+    try {
+      const res = await ai.generate({
+        prompt: PROMPT, temperature: 0.1, json: true, maxOutputTokens: 1024,
+      })
+      text = res.text || '{}'
+    } catch (e) {
+      // Gagal memanggil Gemini: kuota TIDAK di-commit, jadi pengguna tidak
+      // kehilangan jatah untuk sesuatu yang tidak pernah mereka terima.
+      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: String(e).slice(0, 300) }, 502)
     }
-    const data = await geminiRes.json()
-    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '{}'
+
     let parsed: any = {}
     try { parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? '{}') } catch { parsed = {} }
 
@@ -146,6 +146,9 @@ ATURAN KERAS:
         flag_large: amount > 50_000_000,
       })
     }
+
+    // Kuota naik hanya setelah panggilan AI benar-benar sukses.
+    await commitQuota(supabase, ai.quotaFeature)
 
     return json({ transactions: out, note: String(parsed.note || '').slice(0, 300) })
   } catch (e) {

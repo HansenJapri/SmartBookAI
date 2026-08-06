@@ -19,6 +19,21 @@ const PASSWORD = process.env.E2E_PASSWORD
 test.describe('Jalur ter-login (read-only)', () => {
   test.skip(!EMAIL || !PASSWORD, 'Set E2E_EMAIL & E2E_PASSWORD untuk menjalankan test ter-login.')
 
+  // Dipindah dari smoke.spec.js: <ThemeToggle> hanya dirender di AppLayout,
+  // jadi tombolnya memang tidak pernah ada di halaman publik.
+  test('tombol tema membalik data-theme & menyimpan preferensi', async ({ page }) => {
+    await page.goto('/app')
+    await expect(page.locator('main#main-content')).toBeVisible()
+
+    const sebelum = await page.evaluate(() => document.documentElement.dataset.theme || 'light')
+    await page.getByRole('button', { name: /Ganti ke mode (terang|gelap)/i }).first().click()
+
+    const sesudah = await page.evaluate(() => document.documentElement.dataset.theme)
+    expect(sesudah).not.toBe(sebelum)
+    // Preferensi tersimpan agar bertahan saat reload.
+    expect(await page.evaluate(() => localStorage.getItem('bp-theme'))).toBe(sesudah)
+  })
+
   test('sesi tersimpan valid dan kerangka aplikasi termuat', async ({ page }) => {
     await page.goto('/app')
     // Landmark konten utama harus ada (hasil perbaikan aksesibilitas).

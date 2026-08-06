@@ -245,8 +245,8 @@
     "semantic_hash": ""
   },
   "src/components/AppLayout.jsx": {
-    "mtime": 1785408584.855551,
-    "ast_hash": "d3219ee7dd2c0ac3432d1fd287a59052",
+    "mtime": 1785848411.151584,
+    "ast_hash": "749dcdbceb0bc14c9e166bf81f458a58",
     "semantic_hash": ""
   },
   "src/components/AppLock.jsx": {
@@ -260,18 +260,13 @@
     "semantic_hash": ""
   },
   "src/components/Chatbot.jsx": {
-    "mtime": 1785765464.529681,
-    "ast_hash": "4b69c137261c9d1dc596f304093ce94f",
+    "mtime": 1785766192.09986,
+    "ast_hash": "832fbe2967daec4f08912af20717cf24",
     "semantic_hash": ""
   },
   "src/components/CrudList.jsx": {
     "mtime": 1785314897.4409435,
     "ast_hash": "53fba65b108ed2fdbb191537e0126d0d",
-    "semantic_hash": ""
-  },
-  "src/components/DisclaimerGate.jsx": {
-    "mtime": 1780419269.5199935,
-    "ast_hash": "3dd617efb79b33f2eeeba12de7412360",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.jsx": {
@@ -460,8 +455,8 @@
     "semantic_hash": ""
   },
   "src/lib/api.js": {
-    "mtime": 1785737029.0549996,
-    "ast_hash": "5d266edb47b82a8ba317e4fe12b40709",
+    "mtime": 1785848456.0960608,
+    "ast_hash": "a9da54847e95d2c5de53f26ced400755",
     "semantic_hash": ""
   },
   "src/lib/applock.js": {
@@ -525,8 +520,8 @@
     "semantic_hash": ""
   },
   "src/lib/legal.js": {
-    "mtime": 1785666350.6205027,
-    "ast_hash": "07e9e7e13265aa53bc78682793dc83c4",
+    "mtime": 1785848448.550907,
+    "ast_hash": "fed866d7948cbd11b6b5b0a4ed718a72",
     "semantic_hash": ""
   },
   "src/lib/legalRender.js": {
@@ -650,8 +645,8 @@
     "semantic_hash": ""
   },
   "src/pages/Kpi.jsx": {
-    "mtime": 1785316108.994172,
-    "ast_hash": "6916ee6252455fa00019d42f66e3f198",
+    "mtime": 1785839035.0264046,
+    "ast_hash": "934061739ae89e274e2b81badeb0621e",
     "semantic_hash": ""
   },
   "src/pages/Landing.jsx": {
@@ -715,8 +710,8 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.jsx": {
-    "mtime": 1785671206.080635,
-    "ast_hash": "67f8bbce6e4830ef01a5823c88d0576a",
+    "mtime": 1785848437.6229653,
+    "ast_hash": "3795aaeb06ca46847380cb098a48aca1",
     "semantic_hash": ""
   },
   "src/pages/Setup.jsx": {
@@ -1480,13 +1475,28 @@
     "semantic_hash": ""
   },
   "ARSITEKTUR-AI-CATAT-UNIVERSAL.md": {
-    "mtime": 1785739755.268939,
-    "ast_hash": "0dae7b3403dea0bb978693260cf4f7eb",
+    "mtime": 1785766021.7290263,
+    "ast_hash": "638ca78390a9d5a27e769bcb8bd800bf",
     "semantic_hash": ""
   },
   "supabase/migration_customers_p2.sql": {
     "mtime": 1785739339.6380055,
     "ast_hash": "e1a66f8c2605ff4cad277ed435c42e6f",
+    "semantic_hash": ""
+  },
+  "PANDUAN-UJI-MANUAL-SMARTBOOKAI.md": {
+    "mtime": 1785830736.072305,
+    "ast_hash": "5e3b3f7b1ca0eb98d613f6e8506997f1",
+    "semantic_hash": ""
+  },
+  "RENCANA-LAUNCH-BERTAHAP.md": {
+    "mtime": 1785771944.3373308,
+    "ast_hash": "493cef6b15c9f5fc9ed3e616455aea18",
+    "semantic_hash": ""
+  },
+  "STRATEGI-QA-SMARTBOOKAI.md": {
+    "mtime": 1785827021.3813236,
+    "ast_hash": "e814e371ad2373be72e58290f31eda01",
     "semantic_hash": ""
   }
 }

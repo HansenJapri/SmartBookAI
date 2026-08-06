@@ -9,25 +9,34 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:perf": "playwright test --project=performance --workers=1",
+    "cek:bundle": "node scripts/cek-bundle.mjs",
     "eval:ai": "node eval/chatbot-eval.mjs",
+    "eval:ai:list": "node eval/chatbot-eval.mjs --list",
     "seed:uji": "node scripts/seed-uji.mjs --seed",
     "seed:uji:bersih": "node scripts/seed-uji.mjs --bersih"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
-    "jspdf": "^2.5.2",
-    "jspdf-autotable": "^3.8.4",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.17.0",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2",
+    "react-router-dom": "^7.18.2",
     "recharts": "^2.12.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
     "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^2.1.8",
+    "jsdom": "^30.0.1",
     "vite": "^5.4.8",
     "vitest": "^2.1.8"
   }

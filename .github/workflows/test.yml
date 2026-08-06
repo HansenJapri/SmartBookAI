@@ -1,0 +1,154 @@
+name: Test
+
+# Gerbang otomatis untuk G-03, G-09, G-11, G-13 (§5.1 STRATEGI-QA-SMARTBOOKAI.md).
+# Urutan job disusun dari yang paling murah ke paling mahal: kalau unit test
+# merah, tidak ada gunanya membangun produksi dan menyalakan browser.
+#
+# ATURAN MUTLAK (§3.4): NOL panggilan API AI berbayar di CI.
+# `npm run eval:ai` memanggil Gemini live dan memakan kuota harian — sengaja
+# TIDAK ada di sini. Jalankan manual saat prompt atau nama model berubah.
+
+on:
+  push:
+    branches: [main, revisi-fitur]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # E2E_EMAIL / E2E_PASSWORD sengaja tidak diisi: suite ter-login melewati diri
+  # sendiri dengan aman (lihat e2e/auth.setup.js). CI menguji permukaan publik
+  # dan guard rute — tanpa akun nyata, tanpa mutasi data.
+  CI: 'true'
+
+jobs:
+  # ---- Gerbang 1: unit + integration (G-03) ----
+  unit:
+    name: Unit & integration (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Vitest + coverage
+        run: npx vitest run --coverage
+      - name: Unggah laporan coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+  # ---- Gerbang 2: kerentanan dependensi (G-11) ----
+  audit:
+    name: npm audit (produksi)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      # Ambang G-11 adalah 0 critical. `high` dilaporkan tapi tidak memblokir —
+      # §1.7 mengizinkannya dengan mitigasi tertulis (Q-11).
+      - name: Blokir kerentanan critical
+        run: npm audit --production --audit-level=critical
+      - name: Laporkan high (tidak memblokir)
+        if: always()
+        run: npm audit --production --audit-level=high || echo "::warning::Ada kerentanan high — butuh mitigasi tertulis (Q-11)."
+
+  # ---- Gerbang 3: guard Edge Function di sumbernya (G-09) ----
+  guards:
+    name: Guard AI (deno test)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      # Menguji 18/18 BLOCKED_TABLES dan 13/13 BLOCKED_PATTERNS satu per satu,
+      # plus kontrak kuota (checkQuota/commitQuota). Tanpa jaringan ke Gemini.
+      # Dijalankan DARI supabase/functions/ agar deno.json di sana yang dipakai;
+      # dari root repo, Deno ikut membaca package.json frontend dan type-check
+      # gagal mencari npm:@types/node.
+      - name: deno test guards + rate limiter
+        working-directory: supabase/functions
+        run: deno test --quiet --allow-import _shared/ai/
+
+  # ---- Gerbang 4: build produksi + audit rahasia (G-13, G-07) ----
+  build:
+    name: Build produksi & audit rahasia bundle
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # G-07: nol toleransi. Kunci service_role atau GEMINI_* di bundle frontend
+      # berarti siapa pun bisa mengunduhnya dari browser.
+      - name: Pastikan tidak ada rahasia di dist/
+        run: |
+          if grep -rniE "service_role|GEMINI_KEY|GEMINI_API_KEY|sk-[a-zA-Z0-9]{16}" dist/; then
+            echo "::error::Rahasia terdeteksi di bundle produksi — rilis DIBATALKAN (G-07)."
+            exit 1
+          fi
+          echo "Bersih: tidak ada rahasia di dist/."
+      # Q-05: anggaran bundle muat pertama. Sekaligus menjaga recharts/xlsx/
+      # jspdf tetap lazy — satu import statis yang tak sengaja ditambahkan
+      # menghapus manfaat code-splitting tanpa ada yang menyadarinya.
+      - name: Anggaran ukuran bundle
+        run: node scripts/cek-bundle.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ---- Gerbang 5: E2E (G-04, sebagian) ----
+  e2e:
+    name: E2E Playwright (stub, tanpa akun)
+    runs-on: ubuntu-latest
+    needs: [unit, build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Pasang browser Playwright
+        run: npx playwright install --with-deps chromium firefox
+      # Hanya project tanpa sesi. Suite ter-login (authenticated/mutation) butuh
+      # E2E_EMAIL/E2E_PASSWORD dan melakukan mutasi data — dijalankan terpisah
+      # di luar CI publik agar tetap deterministik.
+      - name: Playwright (chromium, firefox, Mobile Chrome)
+        run: npx playwright test --project=chromium --project=firefox --project="Mobile Chrome"
+      # Performa diukur TERPISAH dengan satu worker. Runner CI dipakai bersama
+      # dan bebannya tidak bisa diprediksi, jadi angkanya diperlakukan sebagai
+      # indikator tren — bukan gerbang. `continue-on-error` disengaja: merah di
+      # sini berarti "periksa", bukan "rilis batal".
+      - name: Core Web Vitals (indikatif, tidak memblokir)
+        continue-on-error: true
+        run: npx playwright test --project=performance --workers=1
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

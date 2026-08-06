@@ -968,7 +968,12 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .agree a { color: var(--indigo); font-weight: 600; }
 
 .auth-terms { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 14px; line-height: 1.5; }
-.auth-terms a { color: var(--indigo); }
+/* Tautan ini duduk DI DALAM paragraf. Warnanya saja hanya berbeda 1.51:1 dari
+   teks sekitarnya — di bawah ambang 3:1 WCAG 1.4.1 (Use of Color), sehingga
+   pembaca yang tidak membedakan warna tidak tahu ada tautan di sini.
+   Garis bawah memberi penanda kedua yang tidak bergantung warna.
+   Dikunci oleh e2e/a11y.spec.js. */
+.auth-terms a { color: var(--indigo); text-decoration: underline; }
 
 .side-terms { display: block; margin-top: 10px; font-size: 11px; color: var(--muted); text-align: center; }
 .side-terms:hover { color: var(--indigo); text-decoration: underline; }

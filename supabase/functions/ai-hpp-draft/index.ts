@@ -5,16 +5,20 @@
 // AI mengusulkan, PENGGUNA WAJIB mengoreksi & menyimpan sendiri.
 // Fungsi ini TIDAK menulis ke database.
 //
+// Kuota: lewat penghitung WORKSPACE bersama (checkQuota/commitQuota), bukan
+// lagi RPC `bump_ai_usage` per-user. Lihat catatan rute 'hpp_draft' di config.ts.
+//
 // Deploy: nama function "ai-hpp-draft".
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
+import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-const MODEL = 'gemini-2.5-flash'
 
 // Kunci komoditas — WAJIB sinkron dengan daftar di makro-harian & src/lib/hpp.js
 const COMMODITY_KEYS = [
@@ -43,8 +47,6 @@ serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
   try {
-    if (!GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY belum diatur di server.' }, 501)
-
     const authHeader = req.headers.get('Authorization') || ''
     if (!authHeader.startsWith('Bearer ')) return json({ error: 'Harus masuk (login).' }, 401)
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -53,8 +55,10 @@ serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData?.user) return json({ error: 'Sesi tidak valid.' }, 401)
 
-    const { data: allowed } = await supabase.rpc('bump_ai_usage', { p_kind: 'hpp', p_limit: 10 })
-    if (allowed === false) return json({ error: 'Batas pembuatan draf HPP hari ini tercapai. Coba lagi besok, atau isi komposisi manual.' }, 429)
+    // Kuota harian PER WORKSPACE, dicek SEBELUM memanggil Gemini.
+    const ai = getGeminiClient('hpp_draft')
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
 
     const { productName, businessType, unit, sellPrice } = await req.json()
     if (!productName || typeof productName !== 'string') return json({ error: 'Nama produk kosong.' }, 400)
@@ -91,23 +95,17 @@ ATURAN:
 - import_exposure: terigu/gandum tinggi (hampir seluruh gandum Indonesia impor), kedelai tinggi, bawang putih tinggi, susu bubuk & kakao olahan tinggi, gula sedang, sisanya nilai wajar.
 - Ini DRAF kasar yang akan dikoreksi pengguna — konservatif lebih baik daripada presisi palsu.`
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-          generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 1536 },
-        }),
-      },
-    )
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: errText.slice(0, 300) }, 502)
+    let text: string
+    try {
+      const res = await ai.generate({
+        prompt: PROMPT, temperature: 0.2, json: true, maxOutputTokens: 1536,
+      })
+      text = res.text || '{}'
+    } catch (e) {
+      // Gagal memanggil Gemini: kuota TIDAK di-commit.
+      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: String(e).slice(0, 300) }, 502)
     }
-    const data = await geminiRes.json()
-    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '{}'
+
     let parsed: any = {}
     try { parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? '{}') } catch { parsed = {} }
 
@@ -120,6 +118,9 @@ ATURAN:
       commodity_key: COMMODITY_KEYS.includes(c.commodity_key) ? c.commodity_key : null,
       import_exposure: ['tinggi', 'sedang', 'rendah'].includes(c.import_exposure) ? c.import_exposure : 'rendah',
     })).filter((c: any) => c.name && c.qty > 0)
+
+    // Kuota naik hanya setelah panggilan AI benar-benar sukses.
+    await commitQuota(supabase, ai.quotaFeature)
 
     return json({ components: comps, note: String(parsed.note || '').slice(0, 300) })
   } catch (e) {

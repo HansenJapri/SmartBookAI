@@ -16,6 +16,8 @@ export type QuotaFeature =
   | 'chat'
   | 'crud'
   | 'ocr'
+  | 'catat'
+  | 'hpp_draft'
   | 'voice'
 
 export interface QuotaStatus {
@@ -52,6 +54,8 @@ const FEATURE_LABEL_ID: Record<QuotaFeature, string> = {
   chat: 'Chat Tanya AI',
   crud: 'Pencatatan via AI',
   ocr: 'Baca struk dengan AI',
+  catat: 'Catat dengan kalimat biasa',
+  hpp_draft: 'Draf HPP dengan AI',
   voice: 'Fitur suara (voice)',
 }
 
