@@ -260,22 +260,28 @@ function coerceField(f: FieldSpec, raw: unknown, issues: ValidationIssue[]): unk
 export async function resolveReferences(
   supabase: { from: (t: string) => any },
   draft: ValidatedDraft,
+  /**
+   * Pemilik workspace yang sedang aktif. Query DIIKAT ke sini, tidak cukup
+   * bersandar pada RLS: staf yang aktif di dua usaha lolos RLS untuk KEDUANYA,
+   * sehingga tanpa filter ini produk milik usaha yang sedang tidak dipilih bisa
+   * dianggap sah. `loadContext` sudah mengikat dengan cara yang sama.
+   */
+  ownerId?: string,
 ): Promise<ValidationIssue[]> {
   const spec = getEntitySpec(draft.entity)
   if (!spec) return [{ field: 'entity', message: 'Entitas tidak dikenal.' }]
 
   const problems: ValidationIssue[] = []
+  const scoped = (q: any) => (ownerId ? q.eq('user_id', ownerId) : q)
 
   for (const f of spec.fields) {
     if (f.type !== 'ref' || !f.refTable) continue
     const id = draft.values[f.name]
     if (!id) continue
 
-    const { data, error } = await supabase
-      .from(f.refTable)
-      .select('id')
-      .eq('id', id)
-      .maybeSingle()
+    const { data, error } = await scoped(
+      supabase.from(f.refTable).select('id').eq('id', id),
+    ).maybeSingle()
 
     if (error || !data) {
       problems.push({ field: f.name, message: `${f.label} yang disebut tidak ditemukan di data Anda.` })
@@ -285,11 +291,9 @@ export async function resolveReferences(
 
   // Target update/delete juga harus ada.
   if (draft.operation !== 'create' && draft.targetId) {
-    const { data, error } = await supabase
-      .from(spec.table)
-      .select('id')
-      .eq('id', draft.targetId)
-      .maybeSingle()
+    const { data, error } = await scoped(
+      supabase.from(spec.table).select('id').eq('id', draft.targetId),
+    ).maybeSingle()
     if (error || !data) {
       problems.push({ field: 'targetId', message: `${spec.label} yang ingin diubah/dihapus tidak ditemukan.` })
     }

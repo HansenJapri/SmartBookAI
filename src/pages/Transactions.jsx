@@ -10,8 +10,10 @@ import InvoiceModal from '../components/InvoiceModal'
 import { useCatalog } from '../context/CatalogContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 
 export default function Transactions() {
+  const { showAlert } = useAlert()
   const { channelLabel } = useCatalog()
   const { user } = useAuth()
   const { t } = useLang()
@@ -73,7 +75,9 @@ export default function Transactions() {
     try {
       const url = await getReceiptUrl(path)
       if (url) window.open(url, '_blank')
-    } catch (e) { alert(T.openReceiptErr + e.message) }
+    } catch (e) {
+      showAlert({ type: 'error', title: T.openReceiptTitle, message: T.openReceiptErr + e.message })
+    }
   }
 
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>

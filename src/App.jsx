@@ -14,6 +14,7 @@ import AppLayout from './components/AppLayout'
 import MfaChallenge from './components/MfaChallenge'
 
 // Halaman aplikasi dimuat sesuai kebutuhan (code-splitting → load awal lebih cepat)
+const Demo = lazy(() => import('./pages/Demo'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Transactions = lazy(() => import('./pages/Transactions'))
 const Struk = lazy(() => import('./pages/Struk'))
@@ -104,6 +105,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/setup" element={<Setup />} />
+        {/* Publik: tidak dibungkus Protected/GuestOnly. Pengunjung yang sudah
+            login pun boleh melihatnya tanpa dipantulkan ke /app. */}
+        <Route path="/demo" element={<Demo />} />
         <Route path="/ketentuan" element={<Terms />} />
         <Route path="/privasi" element={<Privacy />} />
         <Route path="/masuk" element={<GuestOnly><Login /></GuestOnly>} />

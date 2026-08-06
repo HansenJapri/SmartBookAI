@@ -73,6 +73,27 @@ export function isOwnerView(userId, selectedWorkspace) {
   return !selectedWorkspace || selectedWorkspace === userId
 }
 
+// Peran yang boleh mengelola data pengguna. Sengaja daftar satu elemen dan
+// bukan boolean telanjang: kalau nanti ada peran perantara (mis. 'manajer'),
+// aturannya ditambahkan di SATU tempat ini, bukan disebar ke tiap tombol.
+export const USER_CRUD_ROLES = ['owner']
+
+// Boleh melakukan CRUD data pengguna (undang, ubah modul, cabut, hapus)?
+//
+// Hanya pemilik workspace yang sedang dibuka. Perhatikan bahwa "owner" di sini
+// adalah properti WORKSPACE, bukan properti akun: setiap pengguna adalah owner
+// di usahanya sendiri dan staf di usaha orang lain. Jadi pertanyaannya selalu
+// "owner dari usaha yang sedang dibuka?", bukan "punya peran owner?".
+//
+// Ditulis fail-closed: apa pun selain isOwner === true ditolak, termasuk
+// undefined saat konteks workspace belum selesai dimuat.
+export function canManageUsers({ isOwner, membership } = {}) {
+  if (isOwner !== true) return false
+  // Owner sejati tidak punya baris keanggotaan di workspace yang dibuka.
+  // Kalau keduanya ada, keadaannya rancu — tolak daripada menebak.
+  return !membership
+}
+
 // Boleh mengakses modul tertentu? Owner (membership null) selalu boleh.
 export function canModule(membership, mod) {
   if (!membership) return true
@@ -120,6 +141,19 @@ export function firstAllowedPath({ isOwner, membership }) {
     if (path !== '/app' && canModule(membership, mod)) return path
   }
   return null
+}
+
+// Nama yang ditampilkan di tabel Pengguna & Akses.
+//
+// Tabel menampilkan NAMA, bukan email. Tapi undangan bersifat berbasis email
+// dan `name` baru ada sejak migrasi ini, jadi baris lama tidak punya nama.
+// Untuk itu bagian lokal email dipakai sebagai cadangan — masih mengenali orang
+// tanpa memampangkan alamat lengkapnya di layar yang bisa terlihat orang lain.
+export function staffDisplayName(staff) {
+  const name = String(staff?.name || '').trim()
+  if (name) return name
+  const local = String(staff?.email || '').split('@')[0].trim()
+  return local || '—'
 }
 
 // Label status keanggotaan -> badge UI.

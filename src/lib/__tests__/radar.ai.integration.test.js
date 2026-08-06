@@ -74,8 +74,40 @@ describe('askAI (facade -> BukuPencatatan)', () => {
     await ai.askAI('pesan', [{ role: 'user', text: 'sebelumnya' }])
     const [name, opts] = invoke.mock.calls[0]
     expect(name).toBe('BukuPencatatan')
-    expect(opts.body.message).toBe('pesan')
+    expect(opts.body.message).toContain('pesan')
     expect(opts.body.history).toEqual([{ role: 'user', text: 'sebelumnya' }])
     expect(['mobile', 'desktop']).toContain(opts.body.device)
+  })
+
+  // Bahasa jawaban mengikuti tombol ID/EN di header aplikasi.
+  //
+  // Arahannya diselipkan ke PESAN, bukan hanya dikirim sebagai field `lang`,
+  // karena Edge Function yang ter-deploy sekarang belum membaca field itu —
+  // `const { message, history, device } = await req.json()`. Arahan di dalam
+  // pesan bekerja pada versi lama maupun versi baru.
+  it('menyisipkan arahan bahasa ke pesan sesuai pilihan pengguna', async () => {
+    invoke.mockResolvedValueOnce({ data: { reply: 'ok' }, error: null })
+    await ai.askAI('berapa laba?', [], 'en')
+    const [, opts] = invoke.mock.calls[0]
+    expect(opts.body.message).toMatch(/^Reply in English\./)
+    expect(opts.body.message).toContain('berapa laba?')
+    expect(opts.body.lang).toBe('en')
+  })
+
+  it('default ke Bahasa Indonesia bila bahasa tidak disebut', async () => {
+    invoke.mockResolvedValueOnce({ data: { reply: 'ok' }, error: null })
+    await ai.askAI('berapa laba?')
+    const [, opts] = invoke.mock.calls[0]
+    expect(opts.body.message).toMatch(/^Jawab dalam Bahasa Indonesia\./)
+    expect(opts.body.lang).toBe('id')
+  })
+
+  it('catatAI meminta note berbahasa Inggris saat lang = en', async () => {
+    invoke.mockResolvedValueOnce({ data: { transactions: [] }, error: null })
+    await ai.catatAI('laku 3 donat 15rb', 'en')
+    const [name, opts] = invoke.mock.calls[0]
+    expect(name).toBe('ai-catat')
+    expect(opts.body.message).toContain('in English')
+    expect(opts.body.message).toContain('laku 3 donat 15rb')
   })
 })

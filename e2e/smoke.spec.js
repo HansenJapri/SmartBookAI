@@ -36,15 +36,22 @@ test.describe('Guard keamanan rute (isolasi akses)', () => {
 })
 
 test.describe('Tema terang/gelap', () => {
-  test('tombol tema membalik data-theme & menyimpan preferensi', async ({ page }) => {
-    // Tombol tema ada di nav Landing (di /masuk tidak ada).
-    await page.goto('/')
-    const before = await page.evaluate(() => document.documentElement.dataset.theme || 'light')
-    await page.getByRole('button', { name: /Ganti ke mode (terang|gelap)/i }).first().click()
-    const after = await page.evaluate(() => document.documentElement.dataset.theme)
-    expect(after).not.toBe(before)
-    // Preferensi tersimpan agar bertahan saat reload.
-    const stored = await page.evaluate(() => localStorage.getItem('bp-theme'))
-    expect(stored).toBe(after)
-  })
+  // CATATAN: test "tombol tema membalik data-theme" DIPINDAH ke
+  // authenticated.spec.js. <ThemeToggle> hanya dirender di AppLayout (dalam
+  // /app), tidak pernah di Landing — test lama mencarinya di sini dan menunggu
+  // sampai timeout 30 detik. Komentarnya ("tombol tema ada di nav Landing")
+  // sudah usang sejak tombol itu dipindahkan ke dalam aplikasi.
+
+  // Halaman publik SENGAJA selalu terang: Landing memaksanya lewat efek di
+  // Landing.jsx, Login/Daftar/Ketentuan/Privasi lewat useForceLightTheme.
+  // Ini yang dikunci di sini supaya perubahan tak sengaja langsung ketahuan.
+  for (const path of ['/', '/masuk', '/daftar']) {
+    test(`${path} selalu tampil mode terang walau preferensi tersimpan gelap`, async ({ page }) => {
+      await page.goto(path)
+      await page.evaluate(() => localStorage.setItem('bp-theme', 'dark'))
+      await page.reload()
+      await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+        .toBe('light')
+    })
+  }
 })

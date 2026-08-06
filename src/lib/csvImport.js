@@ -136,33 +136,52 @@ export function rowsToTransactions(rows, headers, channel, userRules = []) {
       category,
       raw: Object.values(row).join(' | ').slice(0, 500),
       _dateUncertain: !dinfo.certain,
+      _dateReason: dinfo.reason,
+      _dateRaw: rawDate == null ? '' : String(rawDate),
     })
   }
   return out
 }
 
-// Mengembalikan { iso, certain }. certain=false berarti tanggal tidak terbaca
-// dan dipakai tanggal hari ini sebagai cadangan, agar baris bisa DITANDAI ke
-// pengguna (bukan diam-diam salah periode).
+// Rentang tahun yang masuk akal untuk pembukuan usaha. Di luar ini hampir pasti
+// salah baca kolom (mis. nomor invoice terbaca sebagai tanggal), bukan data asli.
+const TAHUN_MIN = 2000
+const tahunMasukAkal = (th) => th >= TAHUN_MIN && th <= new Date().getFullYear() + 1
+
+// Alasan kegagalan dipakai layar pratinjau untuk menjelaskan ke pengguna
+// KENAPA sebuah baris ditandai, bukan sekadar bahwa ia ditandai.
+const gagalBaca = (reason) => ({ iso: new Date().toISOString(), certain: false, reason })
+
+// Mengembalikan { iso, certain, reason }. certain=false berarti tanggal tidak
+// terbaca dan dipakai tanggal hari ini sebagai cadangan, agar baris bisa
+// DITANDAI ke pengguna (bukan diam-diam salah periode).
 export function parseDateInfo(val) {
-  if (val == null || val === '') return { iso: new Date().toISOString(), certain: false }
+  if (val == null || val === '') return gagalBaca('kosong')
   // Angka serial Excel (mis. 45809) → tanggal
   if (typeof val === 'number' && val > 30000 && val < 60000) {
     const ms = (val - 25569) * 86400 * 1000
     const d = new Date(ms)
-    if (!isNaN(d)) return { iso: d.toISOString(), certain: true }
+    if (!isNaN(d) && tahunMasukAkal(d.getFullYear())) return { iso: d.toISOString(), certain: true, reason: null }
   }
   const s = String(val).trim()
   const m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/)
   if (m) {
     let [, d, mo, y] = m
     if (y.length === 2) y = '20' + y
-    const date = new Date(Number(y), Number(mo) - 1, Number(d))
-    if (!isNaN(date)) return { iso: date.toISOString(), certain: true }
+    const hari = Number(d), bulan = Number(mo), tahun = Number(y)
+    const date = new Date(tahun, bulan - 1, hari)
+    // JavaScript MENGGULUNG tanggal tak masuk akal alih-alih menolaknya:
+    // new Date(2026, 12, 32) menghasilkan 1 Feb 2027 dan isNaN-nya false.
+    // Tanpa pemeriksaan balik ini, "32/13/2026" tersimpan sebagai tanggal yang
+    // salah tahun DAN ditandai yakin — persis kegagalan diam yang paling mahal,
+    // karena laporan bulanannya ikut salah tanpa ada yang tahu.
+    const utuh = date.getDate() === hari && date.getMonth() === bulan - 1 && date.getFullYear() === tahun
+    if (!isNaN(date) && utuh && tahunMasukAkal(tahun)) return { iso: date.toISOString(), certain: true, reason: null }
+    return gagalBaca('mustahil')
   }
   const native = new Date(s)
-  if (!isNaN(native)) return { iso: native.toISOString(), certain: true }
-  return { iso: new Date().toISOString(), certain: false }
+  if (!isNaN(native) && tahunMasukAkal(native.getFullYear())) return { iso: native.toISOString(), certain: true, reason: null }
+  return gagalBaca('tidak dikenali')
 }
 
 export function parseDate(val) {

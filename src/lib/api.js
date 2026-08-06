@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { MODULES } from './rbac'
+import { normalizePhone } from './aging'
 
 // RPC pengerasan undangan (migration_rbac_invite_hardening.sql) mungkin belum
 // terpasang di database saat build klien ini dirilis. Semua pemanggilnya punya
@@ -114,8 +115,10 @@ function wsSelect(owner, table, columns = '*', opts) {
   return supabase.from(table).select(columns, opts).eq('user_id', owner)
 }
 // UPDATE terikat workspace aktif — `id` saja tidak cukup.
-function wsUpdate(owner, table, patch) {
-  return supabase.from(table).update(patch).eq('user_id', owner)
+// `opts` diteruskan ke PostgREST, mis. { count: 'exact' } bila pemanggil perlu
+// tahu berapa baris yang benar-benar terkena (0 = target di luar workspace).
+function wsUpdate(owner, table, patch, opts) {
+  return supabase.from(table).update(patch, opts).eq('user_id', owner)
 }
 // DELETE terikat workspace aktif.
 function wsDelete(owner, table) {
@@ -344,12 +347,11 @@ export async function updateProfile(patch) {
 }
 
 // ---------- PERSETUJUAN (CONSENT) ----------
-// Mencatat persetujuan Syarat & Ketentuan + Kebijakan Privasi melalui RPC,
-// agar stempel waktu diambil dari server (tidak bisa dipalsukan dari perangkat).
-export async function acceptTerms(version) {
-  const { error } = await supabase.rpc('accept_terms', { p_version: version })
-  if (error) throw error
-}
+// Tidak ada fungsi pencatatan persetujuan dari dalam aplikasi. Persetujuan
+// S&K + Kebijakan Privasi diminta SEKALI saat pembuatan akun (halaman Daftar)
+// dan disalin trigger handle_new_user ke kolom persetujuan pada profil.
+// RPC accept_terms() di database sengaja dibiarkan ada untuk keperluan
+// perbaikan data manual, tetapi tidak lagi dipanggil oleh klien.
 
 // ---------- HAK SUBJEK DATA (UU PDP): EKSPOR & HAPUS DATA ----------
 // Mengumpulkan seluruh data milik pengguna untuk diunduh (portabilitas data).
@@ -473,6 +475,69 @@ export async function updateSupplier(id, patch) {
 export async function deleteSupplier(id) {
   const { error } = await wsDelete(await wsOwner(), 'suppliers').eq('id', id)
   if (error) throw error
+}
+
+// ---------- PELANGGAN (CRM) ----------
+// Nomor telepon SELALU disimpan ternormalisasi (62xxx) supaya pencarian dan
+// unique index (user_id, phone) bekerja. Menyimpan apa adanya membuat
+// "0812...", "+62812...", dan "812..." jadi tiga pelanggan berbeda.
+export async function fetchCustomers() {
+  const { data, error } = await wsSelect(await wsOwner(), 'customers').order('name')
+  if (error) throw error
+  return data || []
+}
+export async function addCustomer(c) {
+  const row = { ...c, user_id: await wsOwner() }
+  row.phone = normalizePhone(c?.phone) || null
+  const { data, error } = await supabase.from('customers').insert(row).select().single()
+  if (error) throw error
+  return data
+}
+export async function updateCustomer(id, patch) {
+  const row = { ...patch }
+  if ('phone' in row) row.phone = normalizePhone(row.phone) || null
+  const { data, error } = await wsUpdate(await wsOwner(), 'customers', row).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+export async function deleteCustomer(id) {
+  const { error } = await wsDelete(await wsOwner(), 'customers').eq('id', id)
+  if (error) throw error
+}
+
+/**
+ * Cari-atau-buat pelanggan. Dipakai asisten AI dan (nanti) alur penjualan.
+ *
+ * Urutan pencocokan sengaja bertingkat dan BERHENTI meminta kepastian saat ragu:
+ *   1. Ada telepon -> cocokkan nomor ternormalisasi (kunci paling dapat dipercaya).
+ *   2. Tanpa telepon, nama cocok TEPAT SATU -> pakai baris itu.
+ *   3. Tanpa telepon, nama cocok >1 -> kembalikan daftar kandidat, JANGAN menebak.
+ *      Menebak "Budi" yang mana akan menempelkan penjualan ke riwayat orang yang
+ *      salah — kesalahan yang baru ketahuan berbulan-bulan kemudian.
+ *   4. Tidak ada yang cocok -> buat baru.
+ *
+ * @returns {Promise<{customer: object|null, created: boolean, candidates?: object[]}>}
+ */
+export async function resolveCustomer({ name, phone } = {}) {
+  const nama = String(name || '').trim()
+  const telp = normalizePhone(phone)
+  if (!nama && !telp) return { customer: null, created: false }
+
+  const owner = await wsOwner()
+
+  if (telp) {
+    const { data, error } = await wsSelect(owner, 'customers').eq('phone', telp).limit(1)
+    if (error) throw error
+    if (data?.length) return { customer: data[0], created: false }
+    return { customer: await addCustomer({ name: nama || telp, phone: telp }), created: true }
+  }
+
+  const { data, error } = await wsSelect(owner, 'customers').ilike('name', nama)
+  if (error) throw error
+  if (data?.length === 1) return { customer: data[0], created: false }
+  if (data?.length > 1) return { customer: null, created: false, candidates: data }
+
+  return { customer: await addCustomer({ name: nama }), created: true }
 }
 
 // ---------- PRODUK / STOK ----------
@@ -682,13 +747,33 @@ export async function postOpname(opname) {
 }
 
 // ---------- RBAC: PENGGUNA & HAK AKSES (fase 3) ----------
+
+// Penjaga tunggal untuk seluruh CRUD data pengguna: hanya boleh dijalankan
+// oleh pemilik workspace YANG SEDANG DIBUKA.
+//
+// Tanpa ini, fungsi-fungsi di bawah memakai auth.uid() sebagai owner_id dan
+// mengabaikan workspace aktif sepenuhnya. Akibatnya staf yang sedang membuka
+// usaha orang lain lalu memanggil addStaff()/deleteStaff() — lewat konsol,
+// tombol yang bocor, atau bug routing — tidak ditolak: perintahnya BERHASIL
+// tapi mendarat di workspace-nya sendiri. RLS `owner_id = auth.uid()` tidak
+// menangkapnya karena orang itu memang pemilik usahanya sendiri. Diam-diam
+// menulis ke workspace yang salah lebih buruk daripada gagal terang-terangan.
+async function assertOwnerView() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Harus masuk (login).')
+  const selected = getSelectedWorkspace()
+  if (selected && selected !== user.id) {
+    throw new Error('Hanya pemilik usaha yang boleh mengelola pengguna. Kembali ke usaha Anda sendiri untuk mengubah data ini.')
+  }
+  return user
+}
+
 // Daftar staf DI WORKSPACE SENDIRI. Filter owner_id wajib eksplisit di sini:
 // mengandalkan RLS saja pernah membuat baris undangan milik workspace orang
 // lain (yang terbaca karena email penerima cocok) muncul di tabel pengelolaan
 // staf si penerima, lengkap dengan tombol Cabut/Ubah/Hapus.
 export async function fetchStaff() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const user = await assertOwnerView()
   const { data, error } = await supabase
     .from('staff_members').select('*')
     .eq('owner_id', user.id)
@@ -719,9 +804,20 @@ function sanitizeModules(modules) {
   return clean
 }
 
-export async function addStaff(email, modules, role = 'staf') {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Harus masuk (login).')
+// Nama pengguna ditulis owner, jadi diperlakukan sebagai teks bebas: rapikan
+// spasi dan batasi panjang supaya tabel tidak rusak. Nama kosong sah — tabel
+// jatuh kembali ke bagian lokal email (lihat staffDisplayName di rbac.js).
+export const STAFF_NAME_MAX = 60
+function sanitizeStaffName(name) {
+  const clean = String(name ?? '').replace(/\s+/g, ' ').trim()
+  if (clean.length > STAFF_NAME_MAX) {
+    throw new Error(`Nama pengguna maksimal ${STAFF_NAME_MAX} karakter.`)
+  }
+  return clean
+}
+
+export async function addStaff(email, modules, role = 'staf', name = '') {
+  const user = await assertOwnerView()
   const clean = email.trim().toLowerCase()
   // Mengundang diri sendiri menghasilkan baris rancu (owner sekaligus staf);
   // database juga menolaknya, ini sekadar pesan yang lebih jelas.
@@ -733,7 +829,10 @@ export async function addStaff(email, modules, role = 'staf') {
     .insert({
       owner_id: user.id,
       email: clean,
+      name: sanitizeStaffName(name),
       modules: sanitizeModules(modules),
+      // Peran dibatasi ke daftar putih di klien DAN oleh CHECK di database —
+      // 'owner' tidak boleh bisa ditulis lewat jalur ini dengan cara apa pun.
       role: STAFF_ROLES.includes(role) ? role : 'staf',
     })
     .select().single()
@@ -748,10 +847,10 @@ export async function addStaff(email, modules, role = 'staf') {
 // `sm_owner_all` di database. Patch di-whitelist supaya tombol yang bocor atau
 // pemanggil yang salah tidak bisa menulis owner_id / member_id / email.
 export async function updateStaff(id, patch) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Harus masuk (login).')
+  const user = await assertOwnerView()
   const safe = {}
   if (patch.modules !== undefined) safe.modules = sanitizeModules(patch.modules)
+  if (patch.name !== undefined) safe.name = sanitizeStaffName(patch.name)
   if (patch.status !== undefined) {
     if (!STAFF_STATUSES.includes(patch.status)) throw new Error('Status tidak dikenal.')
     safe.status = patch.status
@@ -767,8 +866,7 @@ export async function updateStaff(id, patch) {
 }
 
 export async function deleteStaff(id) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Harus masuk (login).')
+  const user = await assertOwnerView()
   const { error } = await supabase
     .from('staff_members').delete().eq('id', id).eq('owner_id', user.id)
   if (error) throw error
@@ -1186,6 +1284,26 @@ export async function fetchTodayTotals() {
 }
 
 // ---------- TARGET PENJUALAN (untuk prediksi 3 skenario) ----------
+// ---------- BASELINE "MARGIN YANG KAMU KIRA" (task C2) ----------
+// Tebakan pengguna direkam SEKALI, sebelum mereka melihat angka aslinya di
+// Reveal. Sesudah itu jawabannya sudah terkontaminasi dan selisihnya — yang
+// justru menjadi nilai produk — tidak bisa direkonstruksi lagi.
+export async function fetchBaseline() {
+  const { data, error } = await wsSelect(await wsOwner(), 'user_baseline').limit(1)
+  if (error) throw error
+  return (data && data[0]) || null
+}
+
+// Upsert, bukan insert: pengguna bisa menekan simpan dua kali, dan indeks unik
+// pada user_id yang menjaga agar tetap satu baris per pengguna.
+export async function saveBaseline(jawaban) {
+  const owner = await wsOwner()
+  const { error } = await supabase
+    .from('user_baseline')
+    .upsert({ user_id: owner, ...jawaban }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
 export async function fetchActiveTarget() {
   const { data, error } = await wsSelect(await wsOwner(), 'sales_targets')
     .eq('is_active', true)
@@ -1195,23 +1313,66 @@ export async function fetchActiveTarget() {
   return (data && data[0]) || null
 }
 
+// Transaksi DALAM rentang target, diambil langsung dari server.
+//
+// Dashboard memuat transaksi lewat `fetchTransactions()` yang dibatasi
+// TX_FETCH_LIMIT baris TERBARU. Untuk usaha ramai, target yang rentangnya
+// lebih tua dari plafon itu kehilangan sebagian transaksinya — progres
+// tampil terlalu kecil tanpa error apa pun. Rentangnya difilter di server
+// supaya capaian tidak bergantung pada apa yang kebetulan termuat di layar.
+export async function fetchTargetTransactions(target) {
+  if (!target) return []
+  const startStr = target.start_date || new Date().toISOString().slice(0, 10)
+  let q = wsSelect(await wsOwner(), 'transactions', 'direction, amount, occurred_at')
+    .gte('occurred_at', new Date(startStr + 'T00:00:00').toISOString())
+  if (target.deadline) {
+    q = q.lte('occurred_at', new Date(target.deadline + 'T23:59:59').toISOString())
+  }
+  const { data, error } = await q.limit(TX_FETCH_LIMIT)
+  if (error) throw error
+  return data || []
+}
+
+// Angka target dari form selalu berupa string. `Number('')` = 0 dan
+// `Number('abc')` = NaN — dua-duanya lolos kalau hanya dicek `!= null`, lalu
+// gagal jauh di dalam PostgREST dengan pesan SQL mentah. Normalisasi di sini:
+// kembalikan null untuk "tidak diisi", dan lempar untuk nilai yang tidak masuk akal.
+function normTargetAmount(v, label) {
+  if (v == null || v === '') return null
+  const n = Number(v)
+  if (!Number.isFinite(n)) throw new Error(`${label} harus berupa angka.`)
+  if (n <= 0) return null
+  // Kolom numeric(14,2) → maksimum 12 digit sebelum koma.
+  if (n >= 1e12) throw new Error(`${label} terlalu besar (maksimum 999.999.999.999).`)
+  return Math.round(n * 100) / 100
+}
+
 // Target penjualan: nama, rentang (start_date..deadline), dan target omset
 // (revenue_target) dan/atau laba bersih (profit_target). `amount` tetap diisi
-// (= revenue_target ?? profit_target) demi kcompat kode/insight lama.
+// (= revenue_target ?? profit_target) demi kcompat kode/insight lama; kolom itu
+// masih memikul CHECK (amount > 0) dari migrasi awal, jadi tidak boleh 0/null.
 export async function addTarget({ name, start_date, deadline, revenue_target = null, profit_target = null }) {
-  const rev = revenue_target != null && revenue_target !== '' ? Number(revenue_target) : null
-  const prof = profit_target != null && profit_target !== '' ? Number(profit_target) : null
+  const rev = normTargetAmount(revenue_target, 'Target omset')
+  const prof = normTargetAmount(profit_target, 'Target profit')
+  if (rev == null && prof == null) throw new Error('Isi minimal salah satu: target omset atau target profit.')
+
+  const owner = await wsOwner()
   // Hanya satu target aktif: nonaktifkan yang lama dulu. Terikat workspace —
   // tanpa filter ini, staf yang aktif di usaha lain ikut mematikan target usaha itu.
-  await wsUpdate(await wsOwner(), 'sales_targets', { is_active: false }).eq('is_active', true)
+  // Error di langkah ini WAJIB dilempar: kalau ditelan, insert di bawah tetap
+  // jalan dan workspace berakhir dengan dua target aktif — `fetchActiveTarget`
+  // lalu memilih salah satunya secara sewenang-wenang.
+  const { error: deacErr } = await wsUpdate(owner, 'sales_targets', { is_active: false }).eq('is_active', true)
+  if (deacErr) throw deacErr
+
   const { data, error } = await supabase
     .from('sales_targets')
     .insert({
       name: (name || '').trim() || 'Target penjualan',
       revenue_target: rev, profit_target: prof,
-      amount: rev ?? prof ?? 0,
+      amount: rev ?? prof,
       start_date, deadline: deadline || null,
-      user_id: await wsOwner(),
+      user_id: owner,
     })
     .select().single()
   if (error) throw error
@@ -1220,8 +1381,12 @@ export async function addTarget({ name, start_date, deadline, revenue_target = n
 }
 
 export async function deactivateTarget(id) {
-  const { error } = await wsUpdate(await wsOwner(), 'sales_targets', { is_active: false }).eq('id', id)
+  const { error, count } = await wsUpdate(await wsOwner(), 'sales_targets', { is_active: false }, { count: 'exact' })
+    .eq('id', id)
   if (error) throw error
+  // 0 baris terkena = id itu bukan milik workspace aktif (atau sudah hilang).
+  // Tanpa cek ini pemanggil menganggap target sudah mati padahal masih aktif.
+  if (count === 0) throw new Error('Target tidak ditemukan di usaha yang sedang dibuka.')
 }
 
 // ---------- BAHAN / KOMPONEN BIAYA (untuk HPP) ----------

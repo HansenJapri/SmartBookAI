@@ -3,9 +3,18 @@ import { fetchTransactions, fetchProfile, fetchTxCount, track } from '../lib/api
 import { rupiah, fmtDate, monthKey } from '../lib/format'
 import { summarize, monthlyBreakdown, expenseByCategory, taxSummaryForYear, TAX } from '../lib/analytics'
 import Accordion from '../components/Accordion'
-import { Landmark, Receipt, FileText } from 'lucide-react'
+import Modal from '../components/Modal'
+import { Landmark, Receipt, FileText, AlertTriangle } from 'lucide-react'
 import { EDU } from '../lib/eduContent'
 import { useLang } from '../context/LangContext'
+import {
+  DISCLAIMER_KUR, DISCLAIMER_PAJAK, PDF_FOOTER_H,
+  disclaimerAoa, refFile, stampPdfBadge, stampPdfDisclaimer,
+} from '../lib/reportDisclaimer'
+
+// Persetujuan penafian cukup sekali per sesi peramban: menahan setiap unduhan
+// akan berubah jadi kebiasaan klik tanpa baca, yang justru melemahkan tujuannya.
+const REF_ACK_KEY = 'sb_ref_ack'
 
 export default function Reports() {
   const { t } = useLang()
@@ -16,6 +25,8 @@ export default function Reports() {
   const [profile, setProfile] = useState(null)
   const [period, setPeriod] = useState('all')
   const [txTotal, setTxTotal] = useState(0)
+  // Unduhan yang tertahan menunggu pengakuan penafian: { jalankan, teks }.
+  const [pendingUnduh, setPendingUnduh] = useState(null)
 
   useEffect(() => {
     fetchTransactions().then(setTx).catch(() => setTx([]))
@@ -70,6 +81,7 @@ export default function Reports() {
     doc.text('SmartBook AI', 14, 12)
     doc.setFontSize(10); doc.setFont(undefined, 'normal')
     doc.text(title, 14, 19)
+    stampPdfBadge(doc)
     doc.setTextColor(30, 30, 30)
     doc.setFontSize(11); doc.setFont(undefined, 'bold')
     doc.text(bizName, 14, 36)
@@ -105,8 +117,15 @@ export default function Reports() {
         { content: rupiah(sum.profit), styles: { fontStyle: 'bold', fillColor: [238, 242, 255] } },
       ],
     ]
+    // Catatan format dipindah ke bawah header: kaki halaman kini sepenuhnya
+    // dipakai penafian REFERENSI, dan mengulang "verifikasi dulu" di dua tempat
+    // justru mengencerkan pesannya.
+    doc.setFontSize(8); doc.setTextColor(110, 110, 110)
+    doc.text('Disusun mengacu format Laporan Laba Rugi SAK EMKM. Alat bantu, bukan laporan teraudit.', 14, 52)
+    doc.setTextColor(30, 30, 30)
     autoTable(doc, {
-      startY: 54,
+      startY: 57,
+      margin: { bottom: PDF_FOOTER_H + 4 },
       head: [['Uraian', 'Jumlah (Rp)']],
       body,
       theme: 'plain',
@@ -117,16 +136,15 @@ export default function Reports() {
     if (monthly.length) {
       autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 10,
+        margin: { bottom: PDF_FOOTER_H + 4 },
         head: [['Arus Kas per Bulan', 'Pemasukan', 'Pengeluaran', 'Laba Bersih']],
         body: monthly.map((m) => [monthLabel(m.month), rupiah(m.income), rupiah(m.expense), rupiah(m.profit)]),
         theme: 'grid', headStyles: { fillColor: [100, 116, 139] }, styles: { fontSize: 9 },
         columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
       })
     }
-    doc.setFontSize(8); doc.setTextColor(120, 120, 120)
-    doc.text('Disusun mengacu format Laporan Laba Rugi SAK EMKM. Alat bantu, bukan laporan teraudit.', 14, doc.internal.pageSize.height - 13)
-    doc.text('Verifikasi dengan akuntan atau pihak bank sebelum diajukan.', 14, doc.internal.pageSize.height - 8.5)
-    doc.save(`Laporan-LabaRugi-${bizName}-${period}.pdf`)
+    stampPdfDisclaimer(doc, DISCLAIMER_KUR)
+    doc.save(refFile(`Laporan-LabaRugi-${bizName}-${period}.pdf`))
     track('report_generated', { type: 'labarugi_pdf', period })
   }
 
@@ -137,6 +155,7 @@ export default function Reports() {
     const wb = XLSX.utils.book_new()
 
     const ringkasan = [
+      ...disclaimerAoa(DISCLAIMER_KUR),
       ['LAPORAN LABA RUGI'],
       ['Usaha', bizName],
       ['Periode', periodLabel],
@@ -169,7 +188,7 @@ export default function Reports() {
     ws3['!cols'] = [{ wch: 30 }, { wch: 18 }]
     XLSX.utils.book_append_sheet(wb, ws3, 'Pengeluaran per Kategori')
 
-    XLSX.writeFile(wb, `Laporan-LabaRugi-${bizName}-${period}.xlsx`)
+    XLSX.writeFile(wb, refFile(`Laporan-LabaRugi-${bizName}-${period}.xlsx`))
     track('report_generated', { type: 'labarugi_excel', period })
   }
 
@@ -180,6 +199,7 @@ export default function Reports() {
     const wpLabel = taxpayerType === 'pribadi' ? 'Orang Pribadi' : 'Badan'
     autoTable(doc, {
       startY: 54,
+      margin: { bottom: PDF_FOOTER_H + 4 },
       head: [['Komponen Pajak', 'Nilai']],
       body: [
         ['Jenis Wajib Pajak', wpLabel],
@@ -196,14 +216,16 @@ export default function Reports() {
     })
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 8,
+      margin: { bottom: PDF_FOOTER_H + 4 },
       head: [['Bulan', 'Peredaran Bruto', 'Bebas Pajak', 'Dasar Kena Pajak', 'PPh 0,5%']],
       body: taxInfo.rows.map((r) => [monthLabel(r.month), rupiah(r.income), rupiah(r.exemptApplied), rupiah(r.taxable), rupiah(r.pph)]),
       theme: 'grid', headStyles: { fillColor: [22, 163, 74] }, styles: { fontSize: 8.5 },
       columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
     })
-    doc.setFontSize(8); doc.setTextColor(130, 130, 130)
-    doc.text('Dasar hukum: PP 55/2022 dan UU 7/2021 (HPP). Estimasi alat bantu, verifikasi dengan DJP atau konsultan pajak.', 14, doc.internal.pageSize.height - 10)
-    doc.save(`Rekap-Pajak-${bizName}-${taxYear}.pdf`)
+    // Dasar hukum dan perintah verifikasi sudah termuat di DISCLAIMER_PAJAK,
+    // yang kini tercetak di setiap halaman — tidak perlu diulang di sini.
+    stampPdfDisclaimer(doc, DISCLAIMER_PAJAK)
+    doc.save(refFile(`Rekap-Pajak-${bizName}-${taxYear}.pdf`))
     track('report_generated', { type: 'pajak', year: taxYear })
   }
 
@@ -213,6 +235,7 @@ export default function Reports() {
     const wb = XLSX.utils.book_new()
     const wpLabel = taxpayerType === 'pribadi' ? 'Orang Pribadi' : 'Badan'
     const info = [
+      ...disclaimerAoa(DISCLAIMER_PAJAK),
       ['REKAP PPh FINAL UMKM 0,5% (PP 55/2022)'],
       ['Usaha', bizName],
       ['Jenis Wajib Pajak', wpLabel],
@@ -232,8 +255,24 @@ export default function Reports() {
     ]
     const ws2 = XLSX.utils.aoa_to_sheet(rowsAoa); ws2['!cols'] = [{ wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }]
     XLSX.utils.book_append_sheet(wb, ws2, 'Rincian Bulanan')
-    XLSX.writeFile(wb, `Rekap-Pajak-${bizName}-${taxYear}.xlsx`)
+    XLSX.writeFile(wb, refFile(`Rekap-Pajak-${bizName}-${taxYear}.xlsx`))
     track('report_generated', { type: 'pajak_excel', year: taxYear })
+  }
+
+  // Tidak ada tombol unduh yang memanggil generator secara langsung — semuanya
+  // lewat gerbang ini, supaya tidak ada jalur keluaran yang lolos tanpa penafian.
+  const mintaUnduh = (jalankan, teks) => () => {
+    let sudah = false
+    try { sudah = sessionStorage.getItem(REF_ACK_KEY) === '1' } catch { /* mode privat */ }
+    if (sudah) { jalankan(); return }
+    setPendingUnduh({ jalankan, teks })
+  }
+
+  const setujuUnduh = () => {
+    try { sessionStorage.setItem(REF_ACK_KEY, '1') } catch { /* mode privat */ }
+    const tertahan = pendingUnduh
+    setPendingUnduh(null)
+    tertahan?.jalankan()
   }
 
   return (
@@ -279,25 +318,27 @@ export default function Reports() {
 
       <div className="rep-grid mt">
         <div className="rep-card">
-          <div className="rh"><div className="ri"><Landmark size={22} /></div><div><h4>{r.cardPnlTitle}</h4><p>{r.cardPnlDesc}</p></div></div>
+          <div className="rh"><div className="ri"><Landmark size={22} /></div><div><h4>{r.cardPnlTitle} <span className="badge badge-amber">{r.refBadge}</span></h4><p>{r.cardPnlDesc}</p></div></div>
           <div className="rep-line"><span>{r.lTotalIncome}</span><b>{rupiah(sum.income)}</b></div>
           <div className="rep-line"><span>{r.lTotalExpense}</span><b>{rupiah(sum.expense)}</b></div>
           <div className="rep-line"><span>{r.lNetProfit}</span><b>{rupiah(sum.profit)}</b></div>
+          <div className="ref-note" role="note"><AlertTriangle size={15} aria-hidden="true" /><p>{DISCLAIMER_KUR}</p></div>
           <div className="flex gap" style={{ marginTop: 16 }}>
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={generateLabaRugi}>{r.downloadPdf}</button>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={generateExcel}>{r.downloadExcel}</button>
+            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={mintaUnduh(generateLabaRugi, DISCLAIMER_KUR)}>{r.downloadPdf}</button>
+            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={mintaUnduh(generateExcel, DISCLAIMER_KUR)}>{r.downloadExcel}</button>
           </div>
         </div>
 
         <div className="rep-card">
-          <div className="rh"><div className="ri"><Receipt size={22} /></div><div><h4>{r.cardTaxTitle}</h4><p>{r.cardTaxDesc}</p></div></div>
+          <div className="rh"><div className="ri"><Receipt size={22} /></div><div><h4>{r.cardTaxTitle} <span className="badge badge-amber">{r.refBadge}</span></h4><p>{r.cardTaxDesc}</p></div></div>
           <div className="rep-line"><span>{r.lGrossTurnover.replace('{year}', yearLabel)}</span><b>{rupiah(taxInfo.annualTurnover)}</b></div>
           <div className="rep-line"><span>{r.lExemptOP}</span><b>{rupiah(taxInfo.exemption)}</b></div>
           <div className="rep-line"><span>{r.lTaxable}</span><b>{rupiah(taxInfo.taxable)}</b></div>
           <div className="rep-line"><span>{r.lPphEst}</span><b>{rupiah(taxInfo.pphTotal)}</b></div>
+          <div className="ref-note" role="note"><AlertTriangle size={15} aria-hidden="true" /><p>{DISCLAIMER_PAJAK}</p></div>
           <div className="flex gap" style={{ marginTop: 16 }}>
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={generateSPT}>{r.downloadPdf}</button>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={generateTaxExcel}>{r.downloadExcel}</button>
+            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={mintaUnduh(generateSPT, DISCLAIMER_PAJAK)}>{r.downloadPdf}</button>
+            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={mintaUnduh(generateTaxExcel, DISCLAIMER_PAJAK)}>{r.downloadExcel}</button>
           </div>
         </div>
       </div>
@@ -375,6 +416,22 @@ export default function Reports() {
         <div className="card-sub">{r.eduSub}</div>
         <Accordion items={EDU} />
       </div>
+
+      {pendingUnduh && (
+        <Modal onClose={() => setPendingUnduh(null)} labelledBy="refAckTitle">
+          <div className="modal-head">
+            <h3 id="refAckTitle">{r.refModalTitle}</h3>
+            <span className="badge badge-amber">{r.refBadge}</span>
+          </div>
+          <div className="modal-body">
+            <p className="ref-modal-text">{pendingUnduh.teks}</p>
+            <div className="modal-foot">
+              <button className="btn btn-ghost" onClick={() => setPendingUnduh(null)}>{r.refModalCancel}</button>
+              <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={setujuUnduh}>{r.refModalOk}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </>
   )
 }

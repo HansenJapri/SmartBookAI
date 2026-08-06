@@ -647,6 +647,14 @@ select.input { cursor: pointer; text-align: center; text-align-last: center; }
 .kpi-ic { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
 
 .two-col { display: grid; grid-template-columns: 1.55fr 1fr; gap: 18px; }
+/* Halaman KPI: kartu kanan (Jenjang Bonus & Potongan) punya DUA kolom rupiah,
+   jadi justru dia yang butuh ruang lebih — kebalikan dari proporsi default.
+   WAJIB dibungkus min-width: tanpa itu spesifisitasnya (0,2,0) mengalahkan
+   media query penumpuk di bawah (0,1,0), sehingga di HP halaman ini tetap
+   dua kolom sempit — persis kebalikan dari yang diminta. */
+@media (min-width: 901px) {
+  .two-col.two-col-kpi { grid-template-columns: 1fr 1.15fr; }
+}
 @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .grid-kpi { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
@@ -682,6 +690,86 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .modal-head h3 { font-size: 19px; font-weight: 800; }
 .modal-body { padding: 18px 24px 24px; }
 .modal-foot { display: flex; gap: 10px; margin-top: 8px; }
+
+/* Dialog alert/konfirmasi kustom (pengganti window.alert & window.confirm). */
+.modal-alert { max-width: 420px; }
+.alert-dlg-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.alert-dlg-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; flex: none; }
+.alert-dlg-head h3 { font-size: 18px; font-weight: 800; line-height: 1.25; }
+.alert-dlg-msg { font-size: 14.5px; color: var(--muted); line-height: 1.55; margin: 0 0 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.modal-alert .modal-foot { margin-top: 0; }
+.modal-alert .modal-foot .btn { min-width: 96px; justify-content: center; }
+@media (max-width: 420px) {
+  .modal-alert .modal-foot { flex-direction: column-reverse; }
+  .modal-alert .modal-foot .btn { width: 100%; }
+}
+
+/* ---------- ASISTEN SUARA 2 ARAH ---------- */
+/* Panel mengisi sisa tinggi .chat-panel. `min-height:0` WAJIB: tanpa itu anak
+   flex menolak menyusut dan daftar pesan mendorong panel melewati batas
+   jendela, persis seperti tampilan rusak sebelumnya. */
+.voice-panel { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; flex: 1; min-height: 0; overflow: hidden; }
+
+.voice-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; }
+.voice-status { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.voice-status-text { font-size: 13px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); flex: none; }
+.voice-dot.on { background: var(--green); }
+.voice-dot.pulse { animation: voice-pulse 1.4s ease-in-out infinite; }
+@keyframes voice-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.8); } }
+
+.voice-head .btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; }
+.voice-alert { margin: 0; flex: none; }
+
+/* Latar sama dengan .chat-body supaya gelembung pesan (yang berlatar --card)
+   tetap terbaca; tanpa ini gelembung asisten menyatu dengan panel. */
+.voice-log { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: var(--bg); border-radius: 12px; padding: 12px; }
+.voice-empty { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.voice-empty p { margin: 0 0 6px; }
+.voice-empty ul { margin: 0; padding-left: 18px; }
+.voice-empty li { margin-bottom: 3px; }
+/* Transkrip sementara ditampilkan redup: pengguna harus bisa membedakan
+   "sudah didengar final" dari "masih menebak". */
+.voice-interim { opacity: .55; font-style: italic; }
+.voice-working { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Kartu konfirmasi menempel di bawah dan TIDAK ikut tergulung bersama log,
+   supaya pengguna tidak pernah kehilangan gerbang persetujuannya. */
+.voice-confirm { flex: none; border: 1px solid var(--line-accent); border-radius: 12px; background: var(--indigo-50); padding: 11px 13px; display: flex; flex-direction: column; gap: 9px; }
+.voice-confirm-body { display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; }
+.voice-draft { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.voice-draft-desc { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.voice-in { font-weight: 800; color: var(--green); }
+.voice-out { font-weight: 800; color: var(--red); }
+.voice-confirm-actions { display: flex; gap: 8px; }
+.voice-confirm-actions .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+
+/* Perintah yang menghapus data diberi bingkai merah. Warnanya bukan gaya —
+   ia memberi jeda berpikir setengah detik sebelum jari menekan "Ya". */
+.voice-confirm-danger { border-color: var(--red); background: var(--red-50, rgba(220, 38, 38, .07)); }
+
+/* Bilah "mikrofon dijeda". Muncul TEPAT selama asisten bicara, karena diamnya
+   mikrofon tanpa penjelasan terbaca sebagai aplikasi yang menggantung. */
+.voice-muted-bar {
+  flex: none; display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: var(--muted);
+  background: var(--bg); border: 1px dashed var(--line-strong);
+  border-radius: 10px; padding: 7px 10px; line-height: 1.4;
+}
+.voice-muted-bar svg { flex: none; }
+
+.voice-listening-hint { display: flex; justify-content: center; padding: 4px 0; color: var(--muted); opacity: .6; }
+
+.voice-note { display: flex; align-items: flex-start; gap: 6px; margin: 0; flex: none; line-height: 1.45; }
+.voice-note svg { flex: none; margin-top: 2px; }
+
+.spin { animation: voice-spin 1s linear infinite; }
+.spin-slow { animation: voice-spin 2.6s linear infinite; }
+@keyframes voice-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spin, .spin-slow, .voice-dot.pulse { animation: none; }
+}
+
 .seg { display: flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 11px; }
 .seg button { flex: 1; padding: 9px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
 .seg button.on-in { background: var(--green); color: #fff; }
@@ -848,7 +936,7 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 /* ---------- CHATBOT ASISTEN AI ---------- */
 .chat-fab { position: fixed; right: 22px; bottom: 22px; z-index: 900; width: 56px; height: 56px; border-radius: 50%; background: var(--indigo); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(28,54,238,.4); }
 .chat-fab:hover { filter: brightness(1.06); }
-.chat-panel { position: fixed; right: 22px; bottom: 22px; z-index: 901; width: 380px; max-width: calc(100vw - 28px); height: 560px; max-height: calc(100vh - 44px); background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,.28); display: flex; flex-direction: column; overflow: hidden; }
+.chat-panel { position: fixed; right: 22px; bottom: 22px; z-index: 901; width: 440px; max-width: calc(100vw - 28px); height: 660px; max-height: calc(100vh - 44px); background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,.28); display: flex; flex-direction: column; overflow: hidden; }
 .chat-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .chat-sub { font-size: 12px; color: var(--muted); }
 .chat-consent { padding: 18px; overflow: auto; font-size: 13.5px; line-height: 1.6; }
@@ -858,13 +946,13 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .chat-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .chat-chips button { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; color: var(--ink); }
 .chat-chips button:hover { border-color: var(--indigo); color: var(--indigo); }
-.chat-msg { max-width: 84%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.chat-msg { max-width: 86%; padding: 11px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 .chat-msg.user { align-self: flex-end; background: var(--indigo); color: #fff; border-bottom-right-radius: 4px; }
 .chat-msg.assistant { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
 .chat-typing { color: var(--muted); font-style: italic; }
 .chat-err { padding: 8px 14px; font-size: 12.5px; color: #dc2626; background: #fee2e2; }
 .chat-input { display: flex; align-items: flex-end; gap: 6px; padding: 10px; border-top: 1px solid var(--line); }
-.chat-input textarea { flex: 1; resize: none; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; font-size: 14px; font-family: inherit; max-height: 110px; }
+.chat-input textarea { flex: 1; resize: none; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14.5px; font-family: inherit; max-height: 140px; }
 .chat-input textarea:focus { outline: none; border-color: var(--indigo); }
 .chat-send { width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--indigo); color: #fff; display: flex; align-items: center; justify-content: center; }
 .chat-send:disabled { opacity: .5; }
@@ -880,7 +968,12 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .agree a { color: var(--indigo); font-weight: 600; }
 
 .auth-terms { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 14px; line-height: 1.5; }
-.auth-terms a { color: var(--indigo); }
+/* Tautan ini duduk DI DALAM paragraf. Warnanya saja hanya berbeda 1.51:1 dari
+   teks sekitarnya — di bawah ambang 3:1 WCAG 1.4.1 (Use of Color), sehingga
+   pembaca yang tidak membedakan warna tidak tahu ada tautan di sini.
+   Garis bawah memberi penanda kedua yang tidak bergantung warna.
+   Dikunci oleh e2e/a11y.spec.js. */
+.auth-terms a { color: var(--indigo); text-decoration: underline; }
 
 .side-terms { display: block; margin-top: 10px; font-size: 11px; color: var(--muted); text-align: center; }
 .side-terms:hover { color: var(--indigo); text-decoration: underline; }
@@ -896,16 +989,92 @@ table.tbl tr:hover td { background: var(--bg-soft); }
    navigasi bawah mobile, lembar aksi, Radar Harga, Simulasi HPP.
    ============================================================ */
 .ai-note { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: var(--warn-ink); background: var(--amber-50); border: 1px solid #fde68a; border-radius: 8px; padding: 6px 9px; margin-top: 8px; }
+
+/* Diagnostik impor marketplace (task C3). */
+.diag { border: 1px solid var(--line); }
+.diag-rendah { border-color: #fecaca; background: var(--red-50); }
+.diag-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
+.diag-head { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .03em; }
+@media (max-width: 640px) { .diag-cols { grid-template-columns: 1fr; } }
+
+/* Baseline "margin yang kamu kira" (task C2). */
+.baseline-ask { border: 1px solid var(--line-accent); background: var(--indigo-50); }
+.baseline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.chip-pick { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 13px; cursor: pointer; }
+.chip-pick.active { border-color: var(--indigo); color: var(--indigo-600); font-weight: 600; }
+.chip-pick input { margin: 0; }
+.baseline-compare { border: 1px solid var(--line-accent); background: var(--indigo-50); }
+@media (max-width: 560px) { .baseline-grid { grid-template-columns: 1fr; } }
+
+/* Bagian pemulihan tanggal meragukan saat impor (task B6). Dibingkai amber
+   agar terbaca sebagai blokade yang harus diselesaikan, bukan tabel biasa. */
+.date-fix { border: 1px solid #fde68a; background: var(--amber-50); }
+.date-fix .tbl { background: var(--card); border-radius: 10px; }
+
+/* Mode demo publik /demo (task B4). */
+.demo-page { min-height: 100vh; background: var(--bg); }
+.demo-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--line); }
+.demo-brand { font-weight: 800; font-size: 17px; color: var(--indigo-600); text-decoration: none; }
+.demo-banner { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 20px; background: var(--amber-50); border-bottom: 1px solid #fde68a; color: var(--warn-ink); }
+.demo-banner-copy { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 200px; }
+.demo-banner-cta { flex: none; }
+.demo-main { max-width: 1160px; margin: 0 auto; padding: 22px 20px 60px; }
+.demo-foot { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+@media (max-width: 640px) {
+  .demo-banner { gap: 10px; }
+  .demo-banner-cta { width: 100%; justify-content: center; }
+}
+
+/* Penafian REFERENSI laporan KUR & Pajak (task B2). Sengaja permanen: tidak
+   ada tombol tutup dan tidak disembunyikan di balik tooltip. pre-line menjaga
+   pemisah baris judul penafian dari badan teksnya. */
+.ref-note { display: flex; gap: 9px; align-items: flex-start; margin-top: 16px; padding: 11px 13px; border-radius: 10px; color: var(--warn-ink); background: var(--amber-50); border: 1px solid #fde68a; }
+.ref-note svg { flex: none; margin-top: 2px; }
+.ref-note p { margin: 0; font-size: 12.5px; line-height: 1.55; white-space: pre-line; }
+.ref-modal-text { margin: 0 0 18px; padding: 13px 15px; font-size: 13.5px; line-height: 1.6; color: var(--warn-ink); background: var(--amber-50); border: 1px solid #fde68a; border-radius: 10px; white-space: pre-line; }
 .ai-note svg { flex: none; margin-top: 1px; }
 .spin { animation: spin 1s linear infinite; }
 
 /* Chatbot: mode Tanya/Catat + kartu draf transaksi */
 .chat-mode { margin: 10px 12px 0; }
-.chat-msg.draft-wrap { width: 92%; max-width: 92%; }
-.draft-card { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 8px; margin: 6px 0; display: flex; flex-direction: column; gap: 6px; }
-.draft-card.saved { background: var(--bg); font-size: 13px; }
-.draft-row { display: flex; gap: 6px; }
-.draft-row .input { flex: 1; min-width: 0; font-size: 13px; padding: 7px 8px; }
+.chat-msg.draft-wrap { width: 96%; max-width: 96%; }
+.draft-card { background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 10px; margin: 8px 0; display: flex; flex-direction: column; gap: 7px; }
+.draft-card.saved { background: var(--bg); font-size: 13.5px; }
+.draft-row { display: flex; gap: 7px; }
+.draft-row .input { flex: 1; min-width: 0; font-size: 13.5px; padding: 8px 10px; }
+/* Kartu ringkasan aksi asisten: satu baris = satu field beserta labelnya. */
+.draft-field { display: flex; flex-direction: column; gap: 3px; }
+.draft-field label { font-size: 11.5px; color: var(--muted); }
+.draft-field .input { font-size: 13.5px; padding: 8px 10px; width: 100%; }
+
+/* ---------- Jenjang Bonus & Potongan KPI ----------
+   Kolom angka dulu dikunci maxWidth 90-140px lewat gaya inline, sehingga
+   nominal ratusan ribu terpotong dan sulit diperiksa. Lebarnya kini diatur
+   per-kolom di sini, dan tiap nominal ditemani nilai terformat (Rp 500.000)
+   supaya jumlah digitnya bisa dibaca sekilas tanpa menghitung satu per satu. */
+.tbl-tier { min-width: 540px; }
+.tbl-tier td { vertical-align: top; }
+.tbl-tier .col-score { width: 104px; }
+.tbl-tier .col-money { width: 152px; }
+.tbl-tier .col-label { min-width: 150px; }
+.tbl-tier .col-act { width: 44px; }
+.tbl-tier .num-hint { display: block; margin-top: 4px; font-size: 11.5px; line-height: 1.3; color: var(--muted); white-space: nowrap; }
+.tbl-tier .num-hint.is-bonus { color: var(--green); }
+.tbl-tier .num-hint.is-cut { color: var(--red); }
+
+/* Kepala kartu berisi judul+subjudul di kiri dan tombol aksi di kanan.
+   `space-between` saja TIDAK cukup: ia membagi sisa ruang, jadi begitu
+   subjudulnya cukup panjang untuk memenuhi barisnya, teks menempel ke tombol.
+   `gap` memberi jarak minimum yang tidak bisa dimakan teks, `flex:none`
+   menjaga tombol tidak ikut menyempit, dan `min-width:0` mengizinkan blok
+   teks membungkus alih-alih memaksa barisnya melebar. */
+.card-head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+.card-head-row > :first-child { min-width: 0; }
+.card-head-row > .btn { flex: none; white-space: nowrap; }
+@media (max-width: 520px) {
+  .card-head-row { flex-direction: column; gap: 10px; }
+  .card-head-row > .btn { align-self: flex-start; }
+}
 .draft-warn { font-size: 12px; color: var(--warn-ink); }
 
 /* Navigasi bawah (mobile-first) */

@@ -266,10 +266,10 @@ export default function Kpi() {
       )}
       <p className="muted-sm mt">{kp.hint}</p>
 
-      <div className="two-col" style={{ marginTop: 16 }}>
+      <div className="two-col two-col-kpi" style={{ marginTop: 16 }}>
         {/* ---------- KRITERIA ---------- */}
         <div className="card card-pad">
-          <div className="flex between" style={{ alignItems: 'center' }}>
+          <div className="card-head-row">
             <div>
               <h3 className="card-title">{kp.critTitle}</h3>
               <div className="card-sub">{kp.critWeightPre} <b style={{ color: totalWeight === 100 ? 'var(--green)' : 'var(--warn-ink)' }}>{totalWeight}%</b>{totalWeight !== 100 && ` ${kp.critWeightNormalized}`}</div>
@@ -306,7 +306,7 @@ export default function Kpi() {
 
         {/* ---------- JENJANG BONUS/POTONGAN ---------- */}
         <div className="card card-pad">
-          <div className="flex between" style={{ alignItems: 'center' }}>
+          <div className="card-head-row">
             <div>
               <h3 className="card-title">{kp.tierTitle}</h3>
               <div className="card-sub">{kp.tierSub}</div>
@@ -319,31 +319,39 @@ export default function Kpi() {
             <p className="muted-sm" style={{ marginTop: 10 }}>{kp.tierEmpty}</p>
           ) : (
             <div className="table-wrap" style={{ marginTop: 8 }}>
-              <table className="tbl">
-                <thead><tr><th>{kp.thMinScore}</th><th>{kp.thBonus}</th><th>{kp.thDeduction}</th><th>{kp.thLabel}</th><th></th></tr></thead>
+              <table className="tbl tbl-tier">
+                <thead><tr><th className="col-score">{kp.thMinScore}</th><th className="col-money">{kp.thBonus}</th><th className="col-money">{kp.thDeduction}</th><th className="col-label">{kp.thLabel}</th><th className="col-act"></th></tr></thead>
                 <tbody>
                   {rules.map((r) => (
                     <tr key={r.id}>
-                      <td style={{ maxWidth: 90 }}>
+                      <td className="col-score">
                         <input className="input" type="number" min="0" max="100" defaultValue={Number(r.min_score)}
                           aria-label={kp.minScoreAria}
                           onBlur={(e) => patchRule(r, 'min_score', e.target.value)} />
+                        {/* Ambang ditulis ulang sebagai pertidaksamaan: "90" saja
+                            tidak memberi tahu bahwa nilainya berlaku ke ATAS. */}
+                        <span className="num-hint">≥ {Number(r.min_score)} poin</span>
                       </td>
-                      <td style={{ maxWidth: 130 }}>
+                      <td className="col-money">
                         <input className="input" type="number" min="0" step="any" defaultValue={Number(r.bonus) || ''}
                           aria-label={kp.bonusAria.replace('{v}', r.min_score)}
                           placeholder="0" onBlur={(e) => patchRule(r, 'bonus', e.target.value)} />
+                        {/* Nilai terformat di bawah kotak isian: input type=number
+                            tidak bisa menampilkan pemisah ribuan, dan "500000"
+                            tanpa titik mudah tertukar dengan "50000". */}
+                        {Number(r.bonus) > 0 && <span className="num-hint is-bonus">+{rupiah(Number(r.bonus))}</span>}
                       </td>
-                      <td style={{ maxWidth: 130 }}>
+                      <td className="col-money">
                         <input className="input" type="number" min="0" step="any" defaultValue={Number(r.deduction) || ''}
                           aria-label={kp.deductionAria.replace('{v}', r.min_score)}
                           placeholder="0" onBlur={(e) => patchRule(r, 'deduction', e.target.value)} />
+                        {Number(r.deduction) > 0 && <span className="num-hint is-cut">−{rupiah(Number(r.deduction))}</span>}
                       </td>
-                      <td style={{ maxWidth: 140 }}>
+                      <td className="col-label">
                         <input className="input" defaultValue={r.label || ''} placeholder={kp.labelPh}
                           onBlur={(e) => patchRule(r, 'label', e.target.value)} />
                       </td>
-                      <td><button className="icon-btn danger" aria-label={kp.del} onClick={() => removeRule(r)}><Trash2 size={14} /></button></td>
+                      <td className="col-act"><button className="icon-btn danger" aria-label={kp.del} onClick={() => removeRule(r)}><Trash2 size={14} /></button></td>
                     </tr>
                   ))}
                 </tbody>

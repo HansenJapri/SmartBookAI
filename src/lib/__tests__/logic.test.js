@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAmount } from '../csvImport'
+import { parseAmount, parseDateInfo, rowsToTransactions } from '../csvImport'
 import { categorize, guessDirection } from '../categorize'
 import { taxYearly, taxSummaryForYear, findDuplicateGroups, summarize } from '../analytics'
 
@@ -15,6 +15,105 @@ describe('parseAmount', () => {
   it('kosong atau null menjadi 0', () => {
     expect(parseAmount('')).toBe(0)
     expect(parseAmount(null)).toBe(0)
+  })
+})
+
+// Tanggal yang salah diam-diam lebih berbahaya daripada tanggal yang gagal
+// terbaca: transaksi masuk ke periode yang salah, laporan bulanan ikut salah,
+// dan tidak ada yang tahu. Tes ini mengunci mana yang boleh dipercaya.
+describe('parseDateInfo — tanggal yang gagal terbaca', () => {
+  const ymd = (r) => { const d = new Date(r.iso); return [d.getFullYear(), d.getMonth() + 1, d.getDate()] }
+
+  it('format lazim Indonesia terbaca dan ditandai yakin', () => {
+    expect(parseDateInfo('15/07/2026').certain).toBe(true)
+    expect(ymd(parseDateInfo('15/07/2026'))).toEqual([2026, 7, 15])
+    expect(ymd(parseDateInfo('15-07-2026'))).toEqual([2026, 7, 15])
+    expect(ymd(parseDateInfo('15.07.2026'))).toEqual([2026, 7, 15])
+    expect(ymd(parseDateInfo('15/07/26'))).toEqual([2026, 7, 15])
+  })
+
+  it('ISO dan serial Excel tetap terbaca', () => {
+    expect(ymd(parseDateInfo('2026-07-15'))).toEqual([2026, 7, 15])
+    expect(parseDateInfo(45809).certain).toBe(true)
+  })
+
+  it('kosong ditandai, bukan diam-diam dipakai', () => {
+    for (const v of ['', null, undefined]) {
+      const r = parseDateInfo(v)
+      expect(r.certain).toBe(false)
+      expect(r.reason).toBe('kosong')
+    }
+  })
+
+  it('teks yang bukan tanggal ditandai', () => {
+    const r = parseDateInfo('bukan tanggal')
+    expect(r.certain).toBe(false)
+    expect(r.reason).toBe('tidak dikenali')
+  })
+
+  // JavaScript MENGGULUNG tanggal tak masuk akal alih-alih menolaknya:
+  // new Date(2026, 12, 32) menghasilkan 1 Feb 2027 dengan isNaN false. Tanpa
+  // pemeriksaan komponen, baris-baris ini lolos sebagai "yakin" dengan tahun
+  // yang salah — kegagalan diam paling mahal di seluruh alur impor.
+  it('tanggal mustahil ditolak, bukan digulung ke tanggal lain', () => {
+    for (const v of ['32/13/2026', '31/02/2026', '00/00/2026', '99/99/2026']) {
+      const r = parseDateInfo(v)
+      expect(r.certain).toBe(false)
+      expect(r.reason).toBe('mustahil')
+    }
+  })
+
+  it('31 Februari tidak boleh menjadi 2 Maret', () => {
+    expect(ymd(parseDateInfo('31/02/2026'))).not.toEqual([2026, 3, 2])
+    expect(parseDateInfo('31/02/2026').certain).toBe(false)
+  })
+
+  it('tahun di luar nalar pembukuan ditandai', () => {
+    expect(parseDateInfo('15/07/1899').certain).toBe(false)
+    expect(parseDateInfo('15/07/2199').certain).toBe(false)
+  })
+
+  it('baris yang ditandai tetap punya tanggal agar bisa ditampilkan', () => {
+    const r = parseDateInfo('ngawur')
+    expect(Number.isNaN(new Date(r.iso).getTime())).toBe(false)
+  })
+
+  it('parseDateInfo dan parseDate sepakat soal nilai iso', () => {
+    expect(parseDateInfo('15/07/2026').iso).toBe(parseDateInfo('15/07/2026').iso)
+  })
+})
+
+// Kontrak yang dipakai layar pratinjau impor untuk mengelompokkan baris
+// bermasalah. Layar itu butuh sesi login sehingga tidak bisa diuji di peramban;
+// yang bisa dikunci adalah bentuk data yang diandalkannya.
+describe('rowsToTransactions — penandaan baris bertanggal meragukan', () => {
+  const headers = ['Tanggal', 'Keterangan', 'Jumlah']
+  const baris = (tgl) => [{ Tanggal: tgl, Keterangan: 'Penjualan toko', Jumlah: '150000' }]
+
+  it('tanggal terbaca tidak ditandai', () => {
+    const [t] = rowsToTransactions(baris('15/07/2026'), headers, 'manual')
+    expect(t._dateUncertain).toBe(false)
+    expect(t._dateReason).toBeNull()
+  })
+
+  it('tanggal mustahil ditandai lengkap dengan alasan dan nilai aslinya', () => {
+    const [t] = rowsToTransactions(baris('31/02/2026'), headers, 'manual')
+    expect(t._dateUncertain).toBe(true)
+    expect(t._dateReason).toBe('mustahil')
+    expect(t._dateRaw).toBe('31/02/2026')
+  })
+
+  it('kolom tanggal kosong ditandai dan nilai aslinya kosong', () => {
+    const [t] = rowsToTransactions(baris(''), headers, 'manual')
+    expect(t._dateUncertain).toBe(true)
+    expect(t._dateReason).toBe('kosong')
+    expect(t._dateRaw).toBe('')
+  })
+
+  it('baris bertanda tetap membawa occurred_at yang valid agar bisa dirender', () => {
+    const [t] = rowsToTransactions(baris('ngawur'), headers, 'manual')
+    expect(t._dateUncertain).toBe(true)
+    expect(Number.isNaN(new Date(t.occurred_at).getTime())).toBe(false)
   })
 })
 

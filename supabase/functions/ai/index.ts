@@ -21,6 +21,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
 import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+import { resolveScope, restrictionNote, scopedSelect } from '../_shared/ai/workspace-scope.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
@@ -203,17 +204,33 @@ serve(async (req) => {
     const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
     if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
 
-    const { message, history, device } = await req.json()
+    const { message, history, device, owner } = await req.json()
     if (!message || typeof message !== 'string') return json({ error: 'Pesan kosong.' }, 400)
     if (message.length > 2000) return json({ error: 'Pesan terlalu panjang.' }, 400)
     const dev = device === 'mobile' ? 'mobile' : 'desktop'
 
+    // Workspace + modul yang sah untuk pemanggil. `owner` dari klien
+    // diverifikasi di database (resolve_owner), bukan dipercaya apa adanya.
+    let scope
+    try {
+      scope = await resolveScope(supabase, owner)
+    } catch (e) {
+      return json({ error: String((e as Error)?.message || 'Akses workspace tidak sah.') }, 403)
+    }
+
     // ---- Susun RINGKASAN TERAGREGASI (tanpa data pribadi mentah) ----
-    const { data: txs } = await supabase
-      .from('transactions')
-      .select('direction, amount, category, payment_status, occurred_at')
-      .order('occurred_at', { ascending: false })
-      .limit(2000)
+    //
+    // Dua batas dipasang sekaligus:
+    //   1. .eq('user_id', scope.owner) — tanpa ini, staf yang aktif di usaha
+    //      lain mendapat GABUNGAN barisnya sendiri + baris usaha itu, sehingga
+    //      angka yang diucapkan asisten menjumlahkan dua usaha.
+    //   2. scope.can(modul) — angka dari modul yang tidak dia punya tidak
+    //      pernah ikut dibaca, apalagi dikirim ke model.
+    const { data: txs } = scope.can('transaksi')
+      ? await scopedSelect(supabase, scope, 'transactions', 'direction, amount, category, payment_status, occurred_at')
+        .order('occurred_at', { ascending: false })
+        .limit(2000)
+      : { data: [] }
 
     let income = 0, expense = 0
     const catExpense: Record<string, number> = {}
@@ -239,21 +256,34 @@ serve(async (req) => {
     const topCats = Object.entries(catExpense).sort((a, b) => b[1] - a[1]).slice(0, 5)
     const wow = wk2Income > 0 ? Math.round(((wk1Income - wk2Income) / wk2Income) * 100) : null
 
-    const { data: products } = await supabase.from('products').select('name, stock, min_stock, unit')
+    const { data: products } = scope.can('produk')
+      ? await scopedSelect(supabase, scope, 'products', 'name, stock, min_stock, unit')
+      : { data: [] }
     const lowStock = (products || []).filter((p) => Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock))
 
-    const summary = [
-      `Total pemasukan (semua waktu): ${rupiah(income)}`,
-      `Total pengeluaran (semua waktu): ${rupiah(expense)}`,
-      `Laba bersih (semua waktu): ${rupiah(income - expense)}`,
-      `Pemasukan bulan ini: ${rupiah(monthIncome)}; Pengeluaran bulan ini: ${rupiah(monthExpense)}`,
-      `Pemasukan 7 hari terakhir: ${rupiah(wk1Income)}; 7 hari sebelumnya: ${rupiah(wk2Income)}${wow === null ? '' : `; perubahan minggu-ke-minggu: ${wow}%`}`,
-      `Jumlah transaksi tercatat: ${(txs || []).length}`,
-      `Penjualan belum lunas: ${unpaidCount} (total ${rupiah(unpaidTotal)})`,
-      topCats.length ? `Pengeluaran terbesar per kategori: ${topCats.map(([k, v]) => `${k} ${rupiah(v)}`).join('; ')}` : 'Belum ada data pengeluaran per kategori.',
-      `Jumlah produk: ${(products || []).length}; Produk stok menipis: ${lowStock.length}${lowStock.length ? ' (' + lowStock.slice(0, 8).map((p) => p.name).join(', ') + ')' : ''}`,
-      `Perangkat: ${dev}`,
-    ].join('\n')
+    // Baris ringkasan disusun PER MODUL. Modul yang tidak dipunyai pengguna
+    // tidak menyumbang baris apa pun — bukan baris bernilai nol, yang akan
+    // dibaca model sebagai "usaha ini belum punya transaksi".
+    const lines: string[] = []
+    if (scope.can('transaksi')) {
+      lines.push(
+        `Total pemasukan (semua waktu): ${rupiah(income)}`,
+        `Total pengeluaran (semua waktu): ${rupiah(expense)}`,
+        `Laba bersih (semua waktu): ${rupiah(income - expense)}`,
+        `Pemasukan bulan ini: ${rupiah(monthIncome)}; Pengeluaran bulan ini: ${rupiah(monthExpense)}`,
+        `Pemasukan 7 hari terakhir: ${rupiah(wk1Income)}; 7 hari sebelumnya: ${rupiah(wk2Income)}${wow === null ? '' : `; perubahan minggu-ke-minggu: ${wow}%`}`,
+        `Jumlah transaksi tercatat: ${(txs || []).length}`,
+        `Penjualan belum lunas: ${unpaidCount} (total ${rupiah(unpaidTotal)})`,
+        topCats.length ? `Pengeluaran terbesar per kategori: ${topCats.map(([k, v]) => `${k} ${rupiah(v)}`).join('; ')}` : 'Belum ada data pengeluaran per kategori.',
+      )
+    }
+    if (scope.can('produk')) {
+      lines.push(`Jumlah produk: ${(products || []).length}; Produk stok menipis: ${lowStock.length}${lowStock.length ? ' (' + lowStock.slice(0, 8).map((p) => p.name).join(', ') + ')' : ''}`)
+    }
+    if (!lines.length) lines.push('(Tidak ada data yang boleh ditampilkan untuk hak akses pengguna ini.)')
+    lines.push(`Perangkat: ${dev}`)
+    const summary = lines.join('\n')
+    const restriction = restrictionNote(scope)
 
     // ---- Riwayat singkat dalam sesi (tidak disimpan di server) ----
     const contents: any[] = []
@@ -269,7 +299,10 @@ serve(async (req) => {
     let reply = ''
     try {
       const r = await ai.generateChat(contents, {
-        systemInstruction: SYSTEM,
+        // Batas hak akses ditempel ke systemInstruction, bukan ke pesan
+        // pengguna: isi pesan pengguna adalah data yang boleh diabaikan model,
+        // sedangkan aturan ini tidak boleh bisa ditawar lewat kalimat mereka.
+        systemInstruction: restriction ? `${SYSTEM}\n\n${restriction}` : SYSTEM,
         temperature: 0.3,
         maxOutputTokens: 800,
       })

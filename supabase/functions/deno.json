@@ -1,0 +1,12 @@
+{
+  "//": "Konfigurasi Deno untuk Edge Function. Ada di sini (bukan root repo) supaya Deno berhenti di folder ini dan tidak ikut membaca package.json milik frontend — tanpa ini, type-check gagal mencari 'npm:@types/node' yang dirujuk tipe @supabase/supabase-js dari esm.sh, padahal node_modules repo memang bukan untuk Deno.",
+  "nodeModulesDir": "none",
+  "lock": false,
+  "tasks": {
+    "test": "deno test --allow-import _shared/ai/"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "dom"],
+    "strict": true
+  }
+}

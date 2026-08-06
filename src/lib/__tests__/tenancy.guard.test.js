@@ -26,7 +26,7 @@ const TENANT_TABLES = [
   'tasks', 'employees', 'attendance', 'attendance_rules',
   'kpi_criteria', 'kpi_scores', 'kpi_bonus_rules', 'payrolls',
   'reminders', 'units', 'product_categories', 'sales_targets',
-  'ingredients', 'product_boms', 'ai_insights',
+  'ingredients', 'product_boms', 'ai_insights', 'user_baseline',
 ]
 
 function walk(dir) {
@@ -102,6 +102,42 @@ describe('invarian isolasi workspace (klien)', () => {
         new RegExp(`function\\s+${nama}\\s*\\(\\s*owner`),
       )
     }
+  })
+
+  // Baseline menyimpan tebakan margin pemilik usaha — angka yang tidak boleh
+  // terbaca usaha lain. Isolasi nyatanya sudah diuji langsung di database
+  // (pengguna asing 0 baris, pemilik hanya barisnya sendiri); test di sini
+  // menjaga agar kontraknya tidak hilang dari berkas migrasi di kemudian hari.
+  describe('user_baseline (task C2)', () => {
+    const sql = readFileSync(join(process.cwd(), 'supabase', 'migration_baseline.sql'), 'utf8')
+
+    it('terdaftar sebagai tabel tenant sehingga ikut dijaga guard di atas', () => {
+      expect(TENANT_TABLES).toContain('user_baseline')
+    })
+
+    it('user_id wajib diisi dan ikut terhapus bersama akunnya', () => {
+      expect(sql).toMatch(/user_id\s+uuid\s+not null\s+references\s+auth\.users\(id\)\s+on delete cascade/)
+    })
+
+    it('RLS dinyalakan', () => {
+      expect(sql).toMatch(/alter table public\.user_baseline enable row level security/)
+    })
+
+    it('punya kebijakan pemilik yang mengikat auth.uid() di baca maupun tulis', () => {
+      expect(sql).toMatch(/create policy "own user_baseline"[\s\S]*?using \(auth\.uid\(\) = user_id\)[\s\S]*?with check \(auth\.uid\(\) = user_id\)/)
+    })
+
+    it('akses staf dibatasi modul analisis, bukan dibuka untuk semua', () => {
+      expect(sql).toMatch(/create policy "staff_analisis"[\s\S]*?has_access\(user_id, 'analisis'\)/)
+    })
+
+    it('satu baseline per pengguna — tebakan awal hanya bermakna sekali', () => {
+      expect(sql).toMatch(/create unique index[\s\S]*?on public\.user_baseline \(user_id\)/)
+    })
+
+    it('migrasi gagal sendiri bila RLS tidak menyala', () => {
+      expect(sql).toMatch(/raise exception 'RLS tidak aktif pada public\.user_baseline'/)
+    })
   })
 
   it('resolusi pemilik tidak memakai fallback diam-diam', () => {

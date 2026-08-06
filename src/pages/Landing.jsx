@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Mic, ScanLine, Brain, LineChart, AlertTriangle, Users,
-  Bot, PlayCircle, CheckCircle2, MoreVertical, Image as ImageIcon,
+  Bot, CheckCircle2, MoreVertical, Image as ImageIcon,
   Send, ChevronRight, ClipboardList, TrendingDown, PackageX,
   Globe, MessageCircle, Mail, MapPin,
 } from 'lucide-react'
@@ -80,9 +80,12 @@ export default function Landing() {
             <p className="lp-lead lp-rv">{L.hero.lead}</p>
             <div className="lp-hero-cta lp-rv">
               <Link to="/daftar" className="lp-btn lp-btn-primary lp-btn-lg">{L.hero.ctaPrimary}</Link>
-              <a href="#cara" className="lp-btn lp-btn-outline lp-btn-lg">
-                <PlayCircle size={18} aria-hidden="true" /> {L.hero.ctaSecondary}
-              </a>
+              {/* Diarahkan ke /demo (task B4): tujuannya kini laporan kebocoran
+                  berdata contoh, bukan jangkar #cara. Label dan ikon ikut diganti
+                  karena tidak pernah ada video di balik tautan ini. */}
+              <Link to="/demo" className="lp-btn lp-btn-outline lp-btn-lg">
+                <TrendingDown size={18} aria-hidden="true" /> {L.hero.ctaSecondary}
+              </Link>
             </div>
           </div>
 

@@ -12,7 +12,6 @@ import { CatalogProvider } from '../context/CatalogContext'
 import { fetchProfile } from '../lib/api'
 import { filterNav, canModule } from '../lib/rbac'
 import { useWorkspace } from '../context/WorkspaceContext'
-import DisclaimerGate from './DisclaimerGate'
 import Chatbot from './Chatbot'
 import AppLock from './AppLock'
 import LangToggle from './LangToggle'
@@ -118,7 +117,10 @@ export default function AppLayout() {
   return (
     <div className="app-shell">
       <a href="#main-content" className="skip-link">Lewati ke konten utama</a>
-      <DisclaimerGate />
+      {/* Persetujuan S&K + Kebijakan Privasi diminta SEKALI saja, yaitu saat
+          pembuatan akun (checkbox wajib di halaman Daftar; nilainya disalin
+          trigger handle_new_user ke kolom persetujuan pada profil). Tidak ada
+          lagi dialog persetujuan di dalam aplikasi. */}
       <AppLock />
       <Chatbot />
       <div className={`side-backdrop ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
