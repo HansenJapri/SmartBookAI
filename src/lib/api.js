@@ -162,9 +162,10 @@ export async function fetchMonthlySummary() {
 
 export async function addTransaction(tx) {
   const { data: { user } } = await supabase.auth.getUser()
+  const row = await tautkanPihakTransaksi(tx)
   const { data, error } = await supabase
     .from('transactions')
-    .insert({ ...tx, user_id: await wsOwner() })
+    .insert({ ...row, user_id: await wsOwner() })
     .select()
     .single()
   if (error) throw error
@@ -547,6 +548,55 @@ export async function resolveCustomer({ name, phone } = {}) {
   return { customer: await addCustomer({ name: nama }), created: true }
 }
 
+/**
+ * Cari-atau-buat pemasok berdasarkan nama (P11).
+ *
+ * Lebih sederhana dari resolveCustomer: pemasok tidak punya kunci sekuat nomor
+ * telepon pelanggan, dan daftarnya jauh lebih pendek, jadi pencocokan nama
+ * persis (tanpa memperhatikan huruf besar-kecil) sudah memadai. Nama ganda
+ * dibiarkan memakai baris pertama — untuk pemasok, salah pilih antara dua baris
+ * bernama sama tidak merusak riwayat sebesar salah pilih pelanggan.
+ */
+export async function resolveSupplier({ name } = {}) {
+  const nama = String(name || '').trim()
+  if (!nama) return null
+  const owner = await wsOwner()
+  const { data, error } = await wsSelect(owner, 'suppliers').ilike('name', nama).limit(1)
+  if (error) throw error
+  if (data?.length) return data[0]
+  return await addSupplier({ name: nama })
+}
+
+/**
+ * Menautkan nama pihak pada transaksi ke tabel relasi (P11).
+ *
+ * Dipanggil dari jalur simpan transaksi supaya nama yang diketik di kolom
+ * "Pelanggan"/"Pemasok" tidak berhenti jadi teks bebas: pelanggan piutang
+ * otomatis punya baris di tabel pelanggan, pemasok utang punya baris di tabel
+ * pemasok, dan keduanya bisa ditelusuri lintas transaksi.
+ *
+ * Kegagalan penautan SENGAJA tidak membatalkan pencatatan transaksi. Relasi itu
+ * pelengkap; menolak menyimpan penjualan hanya karena baris pelanggan gagal
+ * dibuat akan membuat pengguna kehilangan catatan uang yang sudah masuk.
+ */
+export async function tautkanPihakTransaksi(tx) {
+  const out = { ...tx }
+  if (!out.customer_id && out.customer_name) {
+    try {
+      const { customer } = await resolveCustomer({ name: out.customer_name, phone: out.customer_contact })
+      if (customer) out.customer_id = customer.id
+    } catch { /* relasi opsional */ }
+  }
+  if (!out.supplier_id && out.supplier_name) {
+    try {
+      const s = await resolveSupplier({ name: out.supplier_name })
+      if (s) out.supplier_id = s.id
+    } catch { /* relasi opsional */ }
+  }
+  delete out.supplier_name
+  return out
+}
+
 // ---------- PRODUK / STOK ----------
 export async function fetchProducts() {
   const { data, error } = await wsSelect(await wsOwner(), 'products').order('name')
@@ -613,7 +663,7 @@ export async function deleteProductImage(urlOrPath) {
 // yang dia catat di usahanya SENDIRI justru tersimpan ke usaha itu.
 export async function addTransactionWithStock(tx, lines = []) {
   const args = {
-    p_tx: tx,
+    p_tx: await tautkanPihakTransaksi(tx),
     p_lines: (lines || []).map((l) => ({ productId: l.productId, qty: l.qty })),
     p_owner: await wsOwner(),
   }
@@ -1444,6 +1494,14 @@ export async function saveBom(productId, rows) {
       commodity_key: r.commodity_key || null,
       import_exposure: r.import_exposure || 'rendah',
       price_source: r.price_source || 'manual',
+      // Harga belanja per KEMASAN + isinya. Disimpan supaya harga per satuan
+      // bisa dihitung ulang (dan diperiksa) alih-alih hanya menyimpan hasilnya.
+      pack_size: Number(r.pack_size) || 0,
+      pack_price: Number(r.pack_price) || 0,
+      // Bahan yang tertaut ke produk stok -> stoknya ikut berkurang saat
+      // produk jadi terjual. Bahan tanpa tautan (tenaga kerja, listrik, sewa)
+      // tetap membentuk HPP tapi tidak punya stok.
+      source_product_id: r.source_product_id || null,
     }
     if (ing) {
       const { data, error } = await wsUpdate(await wsOwner(), 'ingredients', { ...fields, updated_at: new Date().toISOString() })
@@ -1460,6 +1518,11 @@ export async function saveBom(productId, rows) {
     bomRows.push({
       user_id: await wsOwner(), product_id: productId, ingredient_id: ing.id,
       qty_per_unit: qty, is_ai_estimated: Boolean(r.is_ai_estimated),
+      cost_basis: r.cost_basis === 'per_periode' ? 'per_periode' : 'per_unit',
+      period_amount: Number(r.period_amount) || 0,
+      period_output: Number(r.period_output) || 0,
+      // Hanya baris yang benar-benar tertaut ke stok yang boleh memotong stok.
+      deduct_stock: Boolean(r.deduct_stock) && Boolean(r.source_product_id),
     })
   }
   const { error: delErr } = await wsDelete(await wsOwner(), 'product_boms').eq('product_id', productId)
@@ -1468,8 +1531,23 @@ export async function saveBom(productId, rows) {
     const { error } = await supabase.from('product_boms').insert(bomRows)
     if (error) throw error
   }
+  // Penanda "produk ini punya komposisi" hidup di products.has_bom supaya
+  // pemotongan stok di server bisa memutuskannya tanpa membaca tabel BOM dulu.
+  await updateProduct(productId, { has_bom: bomRows.length > 0 })
   track('bom_saved', { rows: bomRows.length })
   return bomRows.length
+}
+
+// Estimasi berapa unit produk yang masih bisa dibuat dari sisa stok bahan,
+// beserta batas per bahan supaya antarmuka bisa menunjuk bahan penghambatnya.
+// Mengembalikan { yield: number|null, parts: [...] }.
+export async function fetchProductYield(productId) {
+  const { data, error } = await supabase.rpc('product_yield', {
+    p_product_id: productId,
+    p_owner: await wsOwner(),
+  })
+  if (error) throw error
+  return data || { yield: null, parts: [] }
 }
 
 // ---------- DATA MAKRO BERSAMA (cache dari Edge Function makro-harian) ----------

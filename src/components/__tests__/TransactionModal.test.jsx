@@ -8,7 +8,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const fetchProducts = vi.fn(async () => [])
-vi.mock('../../lib/api', () => ({ fetchProducts: (...a) => fetchProducts(...a) }))
+const fetchSuppliers = vi.fn(async () => [])
+vi.mock('../../lib/api', () => ({
+  fetchProducts: (...a) => fetchProducts(...a),
+  fetchSuppliers: (...a) => fetchSuppliers(...a),
+}))
 
 let katalog
 vi.mock('../../context/CatalogContext', () => ({ useCatalog: () => katalog }))
@@ -18,6 +22,7 @@ beforeEach(() => {
     return this.isConnected ? [{ width: 10, height: 10 }] : []
   }
   fetchProducts.mockResolvedValue([])
+  fetchSuppliers.mockResolvedValue([])
   katalog = {
     channels: [{ value: 'manual', label: 'Manual', icon: '' }],
     catNames: (dir) => (dir === 'in'
@@ -118,13 +123,46 @@ describe('<TransactionModal> penyimpanan', () => {
     await user.type(screen.getByLabelText('Deskripsi'), 'Beli tepung')
     await isiNominal(user, '120000')
     await user.selectOptions(screen.getByLabelText('Kategori'), 'Belanja Stok')
+    // Kategori belanja stok -> pemasok wajib (P11).
+    await user.type(screen.getByLabelText('Nama pemasok baru'), 'Toko Grosir Jaya')
     await user.click(screen.getByRole('button', { name: 'Simpan' }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
     expect(onSave.mock.calls[0][0]).toMatchObject({
       direction: 'out',
       category: 'Belanja Stok',
+      supplier_name: 'Toko Grosir Jaya',
     })
+  })
+
+  it('menolak pengeluaran belanja stok tanpa pemasok — pembelian tanpa lawan transaksi tidak bisa ditelusuri', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn(async () => {})
+    render(<TransactionModal onClose={() => {}} onSave={onSave} />)
+
+    await user.click(screen.getByRole('button', { name: /Pengeluaran/ }))
+    await user.type(screen.getByLabelText('Deskripsi'), 'Beli tepung')
+    await isiNominal(user, '120000')
+    await user.selectOptions(screen.getByLabelText('Kategori'), 'Belanja Stok')
+    await user.click(screen.getByRole('button', { name: 'Simpan' }))
+
+    expect(await screen.findByText(/Pilih pemasok/i)).toBeInTheDocument()
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('tidak mewajibkan pemasok untuk pengeluaran non-stok', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn(async () => {})
+    render(<TransactionModal onClose={() => {}} onSave={onSave} />)
+
+    await user.click(screen.getByRole('button', { name: /Pengeluaran/ }))
+    await user.type(screen.getByLabelText('Deskripsi'), 'Bayar listrik')
+    await isiNominal(user, '250000')
+    await user.selectOptions(screen.getByLabelText('Kategori'), 'Pengeluaran Lain')
+    await user.click(screen.getByRole('button', { name: 'Simpan' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    expect(onSave.mock.calls[0][0]).toMatchObject({ direction: 'out', supplier_id: null })
   })
 
   it('menandai piutang dan menyimpan jatuh tempo saat status "Belum Lunas"', async () => {

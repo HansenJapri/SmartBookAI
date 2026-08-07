@@ -3,7 +3,7 @@ import { Plus, Minus, Trash2, PackagePlus } from 'lucide-react'
 import Modal from './Modal'
 import { categorize } from '../lib/categorize'
 import { toDateInput, rupiah } from '../lib/format'
-import { fetchProducts } from '../lib/api'
+import { fetchProducts, fetchSuppliers } from '../lib/api'
 import { useCatalog } from '../context/CatalogContext'
 import { BATAS_DATE, BATAS_DATETIME, bersihkanTanggal } from '../lib/dateInput'
 
@@ -48,9 +48,17 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
   const [lines, setLines] = useState([])
   const showProductLines = !editing
 
+  // Pemasok (P11). Wajib diisi saat pengeluaran menambah stok produk: tanpa
+  // pemasok, riwayat pembelian tidak bisa ditelusuri ("beli dari siapa?"),
+  // dan utang usaha tidak punya lawan transaksi.
+  const [suppliers, setSuppliers] = useState([])
+  const [supplierId, setSupplierId] = useState(initial?.supplier_id || '')
+  const [newSupplier, setNewSupplier] = useState('')
+
   const cats = catNames(direction)
 
   useEffect(() => { if (!editing) fetchProducts().then(setProducts).catch(() => {}) }, [editing])
+  useEffect(() => { fetchSuppliers().then(setSuppliers).catch(() => {}) }, [])
 
   // Harga acuan produk sesuai arah: jual pakai harga jual, beli pakai harga modal.
   const defaultPrice = (p) => {
@@ -85,6 +93,12 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
 
   const linkedLines = lines.filter((l) => l.productId && Number(l.qty) > 0)
   const linesTotal = linkedLines.reduce((s, l) => s + (Number(l.total) || 0), 0)
+
+  // Pemasok wajib saat pengeluaran ini menambah stok (P11). Dua penanda:
+  // ada baris produk yang dibeli, atau kategorinya memang kategori pembelian
+  // stok — pengguna sering mencatat kulakan tanpa memilih baris produk.
+  const kategoriStok = /stok|pembelian|bahan baku|kulakan|supplier|pemasok/i.test(category || '')
+  const wajibPemasok = direction === 'out' && (linkedLines.length > 0 || kategoriStok)
 
   // Total produk otomatis menjadi Nominal transaksi (tetap bisa diubah manual di bawah).
   useEffect(() => {
@@ -143,6 +157,11 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
     if (!desc) return setErr('Deskripsi wajib diisi (atau pilih produk).')
     if (!amt || amt <= 0) return setErr('Nominal harus lebih dari 0.')
     if (!category) return setErr('Pilih kategori dulu.')
+    // Pembelian stok tanpa pemasok tidak bisa ditelusuri lagi kemudian
+    // ("stok ini dibeli dari siapa, harganya berapa waktu itu?").
+    if (wajibPemasok && !supplierId && !newSupplier.trim()) {
+      return setErr('Pilih pemasok, atau isi nama pemasok baru.')
+    }
     setBusy(true)
     try {
       // Simpan product_id & qty bila tepat satu baris produk (untuk analitik granular).
@@ -162,6 +181,10 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
           customer_contact: customerContact.trim() || null,
           product_id: single ? single.productId : null,
           qty: single ? Number(single.qty) : null,
+          // Pemasok terpilih, atau nama baru yang akan dibuatkan barisnya oleh
+          // tautkanPihakTransaksi() di api.js.
+          supplier_id: supplierId || null,
+          supplier_name: !supplierId ? (newSupplier.trim() || null) : null,
         },
         { lines: linkedLines, direction, isNew: !editing },
       )
@@ -321,10 +344,44 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
                 onChange={(e) => setDueDate(bersihkanTanggal(e.target.value))} />
             </div>
           )}
+          {/* Pemasok (P11). Ditampilkan untuk semua pengeluaran, WAJIB saat
+              pengeluaran itu menambah stok — pembelian stok tanpa pemasok tidak
+              bisa ditelusuri lagi berbulan-bulan kemudian. */}
+          {direction === 'out' && (
+            <div className="field">
+              <label htmlFor="tx-supplier">
+                Pemasok {wajibPemasok
+                  ? <span style={{ color: 'var(--red)' }}>*</span>
+                  : <span className="muted-sm">(opsional)</span>}
+              </label>
+              <select id="tx-supplier" className="input" value={supplierId}
+                onChange={(e) => { setSupplierId(e.target.value); if (e.target.value) setNewSupplier('') }}>
+                <option value="">{suppliers.length ? '— pilih pemasok —' : '— belum ada pemasok —'}</option>
+                {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              {!supplierId && (
+                <input className="input" style={{ marginTop: 6 }} value={newSupplier}
+                  onChange={(e) => setNewSupplier(e.target.value)}
+                  aria-label="Nama pemasok baru"
+                  placeholder="atau ketik nama pemasok baru, cth: Toko Grosir Jaya" />
+              )}
+              {wajibPemasok && (
+                <p className="muted-sm" style={{ margin: '4px 0 0' }}>
+                  Wajib diisi karena pengeluaran ini menambah stok. Pemasok baru otomatis tersimpan ke Daftar Pemasok.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="field">
-            <label htmlFor="tx-customer-name">{direction === 'in' ? 'Nama pelanggan' : 'Nama pemasok/pihak'} <span className="muted-sm">(opsional{direction === 'in' ? ', untuk invoice' : ''})</span></label>
+            <label htmlFor="tx-customer-name">{direction === 'in' ? 'Nama pelanggan' : 'Nama pihak lain'} <span className="muted-sm">(opsional{direction === 'in' ? ', untuk invoice' : ''})</span></label>
             <input id="tx-customer-name" className="input" value={customerName}
               onChange={(e) => setCustomerName(e.target.value)} placeholder={direction === 'in' ? 'cth: Bu Sari' : 'cth: Toko Grosir Jaya'} />
+            {direction === 'in' && paymentStatus === 'belum' && customerName.trim() && (
+              <p className="muted-sm" style={{ margin: '4px 0 0' }}>
+                Nama ini otomatis ditautkan ke Daftar Pelanggan agar piutangnya bisa ditelusuri.
+              </p>
+            )}
           </div>
           <div className="field">
             <label htmlFor="tx-customer-contact">{direction === 'in' ? 'Kontak pelanggan / WhatsApp' : 'Kontak pemasok / WhatsApp'} <span className="muted-sm">(opsional)</span></label>

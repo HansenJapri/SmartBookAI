@@ -3,22 +3,32 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   Package, Plus, Search, Grid3x3, List, ChevronRight, Pencil, Trash2,
   AlertTriangle, TrendingUp, ShoppingCart, Sparkles, RefreshCw,
-  Boxes, Layers, Gauge, Coffee, Wheat, ShoppingBasket, ImagePlus, ImageOff,
+  Boxes, Layers, Gauge, Coffee, Wheat, ShoppingBasket, ImagePlus, ImageOff, Info,
 } from 'lucide-react'
 import {
   fetchProducts, addProduct, updateProduct, deleteProduct,
   fetchUnits, addUnit, updateUnit, deleteUnit,
   fetchProductCategories, addProductCategory, updateProductCategory, deleteProductCategory,
-  fetchSuppliers, ensureInventorySeed,
+  fetchSuppliers, ensureInventorySeed, fetchProductYield,
   uploadProductImage, deleteProductImage,
 } from '../lib/api'
 import { stokInsightAI } from '../lib/ai'
 import { rupiah, rupiahShort } from '../lib/format'
+import Modal from '../components/Modal'
 import { ConfirmModal, KelolaModal } from '../components/StokDialogs'
 import { useLang } from '../context/LangContext'
 import './stok.css'
 
-const emptyForm = { name: '', category: '', unit: 'pcs', stock: '', min_stock: '', price: '', cost_price: '', supplier_id: '', image_url: '' }
+const emptyForm = {
+  name: '', category: '', unit: 'pcs', stock: '', min_stock: '', price: '', cost_price: '',
+  supplier_id: '', image_url: '',
+  // Pemisahan inventaris (P10): 'jual' = barang yang dijual ke pembeli,
+  // 'bahan' = bahan baku yang dipakai membuat barang jual.
+  kind: 'jual',
+  // Konversi kemasan (P8): isi per satuan stok, mis. 1 bungkus = 800 gram.
+  pack_size: '', content_unit: '',
+  description: '',
+}
 
 // Ikon placeholder berdasarkan kategori — fallback saat foto belum ada.
 const CAT_ICONS = { Sembako: ShoppingBasket, 'Makanan Instan': Wheat, Minuman: Coffee }
@@ -56,6 +66,11 @@ export default function Stok() {
   const [uploading, setUploading] = useState(false)
   const [delTarget, setDelTarget] = useState(null) // { id, name, image_url }
   const [busyDel, setBusyDel] = useState(false)
+  // Dua daftar terpisah supaya bahan baku tidak tercampur dengan barang jual —
+  // percampuran itu yang bikin nilai stok & margin terbaca keliru.
+  const [kindTab, setKindTab] = useState('jual')
+  const [detail, setDetail] = useState(null)      // produk yang dibuka popup detailnya
+  const [detailYield, setDetailYield] = useState(null)
 
   // AI insight state.
   const [ai, setAi] = useState({ loading: true, content: '', err: '' })
@@ -127,6 +142,10 @@ export default function Stok() {
       cost_price: Number(form.cost_price) || 0,
       supplier_id: form.supplier_id || null,
       image_url: form.image_url || null,
+      kind: form.kind === 'bahan' ? 'bahan' : 'jual',
+      pack_size: Number(form.pack_size) || 0,
+      content_unit: form.content_unit?.trim() || null,
+      description: form.description?.trim() || null,
     }
     try {
       let oldImage = null
@@ -151,6 +170,10 @@ export default function Stok() {
       stock: String(p.stock ?? ''), min_stock: String(p.min_stock ?? ''),
       price: String(p.price ?? ''), cost_price: String(p.cost_price ?? ''),
       supplier_id: p.supplier_id || '', image_url: p.image_url || '',
+      kind: p.kind || 'jual',
+      pack_size: p.pack_size ? String(p.pack_size) : '',
+      content_unit: p.content_unit || '',
+      description: p.description || '',
     })
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -159,6 +182,15 @@ export default function Stok() {
     // Kalau foto sudah diupload tapi form dibatalkan pada produk BARU, foto perlu dibersihkan.
     if (!editId && form.image_url) { try { await deleteProductImage(form.image_url) } catch { /* abaikan */ } }
     setEditId(null); setForm(emptyForm); setShowForm(false)
+  }
+
+  // Popup detail produk (P9). Estimasi yield hanya ditarik untuk produk yang
+  // memang punya komposisi — untuk barang kulakan jawabannya selalu kosong dan
+  // permintaannya sia-sia.
+  const bukaDetail = (p) => {
+    setDetail(p)
+    setDetailYield(null)
+    if (p.has_bom) fetchProductYield(p.id).then(setDetailYield).catch(() => setDetailYield(null))
   }
 
   // Delete confirm flow.
@@ -176,7 +208,14 @@ export default function Stok() {
 
   if (!products) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
+  // Data lama tidak punya kolom kind — dianggap 'jual' supaya tidak ada produk
+  // yang hilang dari layar setelah pembaruan ini.
+  const jenisDari = (p) => (p.kind === 'bahan' ? 'bahan' : 'jual')
+  const jumlahJual = products.filter((p) => jenisDari(p) === 'jual').length
+  const jumlahBahan = products.filter((p) => jenisDari(p) === 'bahan').length
+
   const filtered = products.filter((p) => {
+    if (jenisDari(p) !== kindTab) return false
     if (catFilter && p.category !== catFilter) return false
     if (!q) return true
     return `${p.name} ${p.category || ''}`.toLowerCase().includes(q.toLowerCase())
@@ -262,6 +301,11 @@ export default function Stok() {
           </div>
 
           <div className="s2-form-grid">
+            <div className="s2-field"><label htmlFor="stok-kind">{sk.fKind}</label>
+              <select id="stok-kind" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
+                <option value="jual">{sk.tabJual}</option>
+                <option value="bahan">{sk.tabBahan}</option>
+              </select></div>
             <div className="s2-field"><label htmlFor="stok-name">{sk.fName}</label>
               <input id="stok-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={sk.namePh} /></div>
             <div className="s2-field"><label htmlFor="stok-cat">{sk.fCat}</label>
@@ -282,11 +326,25 @@ export default function Stok() {
               <input id="stok-stock" type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="0" /></div>
             <div className="s2-field"><label htmlFor="stok-min">{sk.fMin}</label>
               <input id="stok-min" type="number" min="0" value={form.min_stock} onChange={(e) => setForm({ ...form, min_stock: e.target.value })} placeholder="0" /></div>
+            {/* Konversi kemasan (P8). Diisi bila satu satuan stok berisi banyak
+                takaran — "1 bungkus = 800 gram". Tanpa ini, resep 100 gram akan
+                mengurangi stok 100 BUNGKUS, bukan 100 gram. */}
+            <div className="s2-field"><label htmlFor="stok-packsize">{sk.fPackSize.replace('{unit}', form.unit || 'pcs')}</label>
+              <input id="stok-packsize" type="number" min="0" step="any" value={form.pack_size}
+                onChange={(e) => setForm({ ...form, pack_size: e.target.value })} placeholder="0" /></div>
+            <div className="s2-field"><label htmlFor="stok-contentunit">{sk.fContentUnit}</label>
+              <input id="stok-contentunit" value={form.content_unit}
+                onChange={(e) => setForm({ ...form, content_unit: e.target.value })} placeholder={sk.contentUnitPh} /></div>
             <div className="s2-field"><label htmlFor="stok-supplier">{sk.fSupplier}</label>
               <select id="stok-supplier" value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}>
                 <option value="">{sk.noSupplier}</option>
                 {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select></div>
+            <div className="s2-field" style={{ gridColumn: '1 / -1' }}>
+              <label htmlFor="stok-desc">{sk.fDescription}</label>
+              <textarea id="stok-desc" rows={2} value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={sk.descriptionPh} />
+            </div>
           </div>
           <div className="s2-form-actions">
             <button type="submit" className="s2-btn-primary" disabled={uploading}>{editId ? sk.saveChanges : sk.addProduct}</button>
@@ -381,8 +439,19 @@ export default function Stok() {
 
       {/* Daftar Inventaris */}
       <div>
+        {/* Dua daftar terpisah (P10). Bahan baku dan barang jual punya arti
+            ekonomi berbeda — mencampurnya membuat "total nilai stok" dan
+            margin per produk terbaca keliru, dan pengguna sering salah pilih
+            produk saat mencatat penjualan. */}
+        <div className="seg s2-rv" role="group" aria-label={sk.tabAria} style={{ maxWidth: 460, marginBottom: 12 }}>
+          <button type="button" aria-pressed={kindTab === 'jual'} className={kindTab === 'jual' ? 'on-in' : ''}
+            onClick={() => setKindTab('jual')}>{sk.tabJual} ({jumlahJual})</button>
+          <button type="button" aria-pressed={kindTab === 'bahan'} className={kindTab === 'bahan' ? 'on-in' : ''}
+            onClick={() => setKindTab('bahan')}>{sk.tabBahan} ({jumlahBahan})</button>
+        </div>
+
         <div className="s2-section-head s2-rv">
-          <h3>{sk.inventoryList}</h3>
+          <h3>{kindTab === 'bahan' ? sk.tabBahan : sk.inventoryList}</h3>
           <div className="s2-toolbar">
             <label className="s2-search">
               <Search size={16} aria-hidden="true" />
@@ -425,6 +494,7 @@ export default function Stok() {
                         <h4 className="s2-card-name" title={p.name}>{p.name}</h4>
                       </div>
                       <div className="s2-card-actions">
+                        <button className="s2-card-btn" type="button" onClick={() => bukaDetail(p)} aria-label={sk.detailAria.replace('{name}', p.name)} title={sk.detailProduct}><Info size={16} /></button>
                         <button className="s2-card-btn" type="button" onClick={() => startEdit(p)} aria-label={sk.editAria.replace('{name}', p.name)} title={sk.editProduct}><Pencil size={16} /></button>
                         <button className="s2-card-btn s2-card-btn-danger" type="button" onClick={() => askDelete(p)} aria-label={sk.delAria.replace('{name}', p.name)} title={sk.delProduct}><Trash2 size={16} /></button>
                       </div>
@@ -473,6 +543,7 @@ export default function Stok() {
                         <td className={`s2-log-stock ${lv.variant === 'danger' ? 's2-log-stock-danger' : ''}`}>{Number(p.stock)} {p.unit || 'pcs'}</td>
                         <td>
                           <div className="s2-log-actions">
+                            <button className="s2-icon-btn" title={sk.detailProduct} aria-label={sk.detailAria.replace('{name}', p.name)} onClick={() => bukaDetail(p)}><Info size={18} /></button>
                             <button className="s2-icon-btn" title={sk.edit} onClick={() => startEdit(p)}><Pencil size={18} /></button>
                             <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
                           </div>
@@ -540,6 +611,92 @@ export default function Stok() {
           </table>
         </div>
       </div>
+
+      {/* Modal detail produk (P9) */}
+      {detail && (
+        <Modal onClose={() => setDetail(null)} labelledBy="stokDetailTitle" className="modal-lg">
+          <div className="modal-head">
+            <h3 id="stokDetailTitle">{detail.name}</h3>
+            <button type="button" className="icon-btn" onClick={() => setDetail(null)} aria-label={sk.close}>✕</button>
+          </div>
+          <div className="modal-body">
+            <div className="flex gap" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div style={{ width: 132, height: 132, borderRadius: 12, overflow: 'hidden', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {detail.image_url
+                  ? <img src={detail.image_url} alt={detail.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <ImageOff size={40} aria-hidden="true" />}
+              </div>
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <div className="flex gap" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                  <span className="badge badge-indigo">{jenisDari(detail) === 'bahan' ? sk.tabBahan : sk.tabJual}</span>
+                  {detail.category && <span className="pill pill-cat">{detail.category}</span>}
+                  {detail.has_bom && <span className="badge badge-green">{sk.badgeHasBom}</span>}
+                </div>
+                {detail.description && <p style={{ margin: '0 0 10px', whiteSpace: 'pre-wrap' }}>{detail.description}</p>}
+                <div className="pnl">
+                  <div className="pnl-row"><span>{sk.dStock}</span><b>{Number(detail.stock)} {detail.unit || 'pcs'}</b></div>
+                  <div className="pnl-row"><span>{sk.dMinStock}</span><b>{Number(detail.min_stock) || 0} {detail.unit || 'pcs'}</b></div>
+                  {Number(detail.pack_size) > 0 && (
+                    <>
+                      <div className="pnl-row">
+                        <span>{sk.dPack}</span>
+                        <b>1 {detail.unit} = {Number(detail.pack_size)} {detail.content_unit || ''}</b>
+                      </div>
+                      {/* Angka ini yang menjelaskan kenapa jumlah kemasan belum
+                          berkurang meski bahan sudah dipakai berkali-kali. */}
+                      <div className="pnl-row">
+                        <span>{sk.dOpened}</span>
+                        <b>{Number(detail.opened_used) || 0} {detail.content_unit || ''}</b>
+                      </div>
+                      <div className="pnl-row">
+                        <span>{sk.dTotalContent}</span>
+                        <b>{Math.max(0, Number(detail.stock) * Number(detail.pack_size) - (Number(detail.opened_used) || 0)).toLocaleString('id-ID')} {detail.content_unit || ''}</b>
+                      </div>
+                    </>
+                  )}
+                  <div className="pnl-row"><span>{sk.dSellPrice}</span><b>{rupiah(detail.price)}</b></div>
+                  <div className="pnl-row"><span>{sk.dCostPrice}</span><b>{rupiah(detail.cost_price)}</b></div>
+                  <div className="pnl-row pnl-strong">
+                    <span>{sk.dMargin}</span>
+                    <b>{Number(detail.price) > 0
+                      ? `${rupiah(Number(detail.price) - Number(detail.cost_price))} (${Math.round(((Number(detail.price) - Number(detail.cost_price)) / Number(detail.price)) * 100)}%)`
+                      : '-'}</b>
+                  </div>
+                  <div className="pnl-row">
+                    <span>{sk.dSupplier}</span>
+                    <b>{suppliers.find((s) => s.id === detail.supplier_id)?.name || sk.dNoSupplier}</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {detail.has_bom && (
+              <div className="alert alert-info" style={{ marginTop: 14 }}>
+                {detailYield?.parts?.length ? (
+                  <>
+                    <b>{sk.dYield.replace('{n}', detailYield.yield ?? 0).replace('{unit}', detail.unit || 'pcs')}</b>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                      {detailYield.parts.slice().sort((a, b) => a.can_make - b.can_make).map((x, i) => (
+                        <li key={i} className="muted-sm">
+                          {x.product}: {Number(x.available).toLocaleString('id-ID')} {x.unit} · {x.per_unit} {x.unit}/{detail.unit || 'pcs'}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : <span className="muted-sm">{sk.dYieldNone}</span>}
+              </div>
+            )}
+
+            <div className="modal-foot">
+              <button type="button" className="btn btn-ghost" onClick={() => setDetail(null)}>{sk.close}</button>
+              <Link to="/app/hpp" className="btn btn-ghost">{sk.dToHpp}</Link>
+              <button type="button" className="btn btn-primary" onClick={() => { const p = detail; setDetail(null); startEdit(p) }}>
+                {sk.editProduct}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Modal konfirmasi hapus */}
       <ConfirmModal
