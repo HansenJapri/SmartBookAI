@@ -173,13 +173,58 @@ export async function addTransaction(tx) {
   return data
 }
 
+// Kolom transactions yang boleh diisi dari jalur impor/OCR.
+//
+// Kenapa whitelist, bukan sekadar meneruskan objeknya: baris hasil impor datang
+// dari beberapa parser berbeda (CSV umum, laporan marketplace 5 platform, OCR
+// struk) dan tiap parser menempelkan field kerjanya sendiri — penanda baris,
+// alasan tanggal meragukan, sisa kolom mentah. Satu kunci yang tidak punya
+// kolom padanan membuat PostgREST menolak SELURUH batch dengan pesan Postgres
+// mentah ("column ... does not exist"), sehingga impor 300 baris gagal total
+// tanpa penjelasan yang bisa dipahami pemilik usaha. Menyaring di satu tempat
+// membuat penambahan field kerja di parser mana pun tidak bisa lagi merusak
+// penyimpanan.
+const KOLOM_TRANSAKSI = [
+  'occurred_at', 'description', 'amount', 'direction', 'category', 'channel',
+  'source_ref', 'raw', 'receipt_url', 'payment_status', 'due_date',
+  'customer_name', 'customer_contact', 'customer_id', 'supplier_id',
+  'product_id', 'qty', 'import_confidence', 'is_duplicate', 'dismissed_dup',
+]
+
+export function bersihkanBarisTransaksi(row) {
+  const out = {}
+  for (const k of KOLOM_TRANSAKSI) {
+    if (row[k] !== undefined) out[k] = row[k]
+  }
+  return out
+}
+
+// Disimpan bertahap, bukan satu insert raksasa: satu berkas marketplace bisa
+// berisi ribuan baris, dan payload sebesar itu rawan ditolak di tengah jalan.
+const UKURAN_BATCH_IMPOR = 200
+
 export async function addTransactionsBulk(list) {
   const ownerId = await wsOwner()
-  const payload = list.map((t) => ({ ...t, user_id: ownerId }))
-  const { data, error } = await supabase.from('transactions').insert(payload).select()
-  if (error) throw error
-  track('import_completed', { count: payload.length })
-  return data || []
+  const payload = (list || []).map((t) => ({ ...bersihkanBarisTransaksi(t), user_id: ownerId }))
+  if (!payload.length) return []
+
+  const tersimpan = []
+  for (let i = 0; i < payload.length; i += UKURAN_BATCH_IMPOR) {
+    const batch = payload.slice(i, i + UKURAN_BATCH_IMPOR)
+    const { data, error } = await supabase.from('transactions').insert(batch).select()
+    if (error) {
+      // Sebutkan berapa yang SUDAH masuk. Tanpa angka ini pengguna tidak tahu
+      // apakah aman mengulang impor, lalu sering menggandakan datanya sendiri.
+      const e = new Error(
+        `${error.message} (${tersimpan.length} dari ${payload.length} baris sudah tersimpan sebelum kegagalan ini)`,
+      )
+      e.tersimpan = tersimpan.length
+      throw e
+    }
+    tersimpan.push(...(data || []))
+  }
+  track('import_completed', { count: tersimpan.length })
+  return tersimpan
 }
 
 export async function updateTransaction(id, patch) {
