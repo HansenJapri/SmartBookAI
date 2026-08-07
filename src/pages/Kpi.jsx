@@ -70,15 +70,33 @@ export default function Kpi() {
   const savedOf = (empId, critId) =>
     savedScores.find((s) => s.employee_id === empId && s.criteria_id === critId)
 
-  // Skor efektif satu sel: manual edit di layar > tersimpan > hitung otomatis.
+  // Skor efektif satu sel.
+  //
+  // Urutan untuk kriteria OTOMATIS (kehadiran & tugas) sengaja menaruh hasil
+  // hitung DI ATAS nilai tersimpan: manual di layar > hitung otomatis > tersimpan.
+  //
+  // Versi sebelumnya mendahulukan nilai tersimpan, dan itu memutus hubungan yang
+  // justru jadi inti fiturnya: begitu skor satu periode disimpan, absensi yang
+  // dikoreksi sesudahnya (karyawan ternyata alpa, cuti ditambahkan susulan)
+  // tidak pernah lagi mengubah skor kehadiran. Angka KPI membeku di kondisi
+  // absensi saat tombol Simpan ditekan, padahal layarnya tetap berlabel
+  // "Otomatis: Kehadiran". Nilai tersimpan kini hanya jadi cadangan untuk
+  // periode lama yang catatan absensinya sudah tidak ada.
   const scoreOf = (emp, crit) => {
     const typed = manual[emp.id]?.[crit.id]
     if (typed !== undefined && typed !== '') return Math.max(0, Math.min(100, Number(typed) || 0))
     if (typed === '') return null
     const saved = savedOf(emp.id, crit.id)
+
+    if (crit.source === 'kehadiran') {
+      const hitung = attendanceScore(recapAttendance(attRows, emp.id))
+      return hitung !== null ? hitung : (saved ? Number(saved.score) : null)
+    }
+    if (crit.source === 'tugas') {
+      const hitung = taskScore(tasks, emp.id, period)
+      return hitung !== null ? hitung : (saved ? Number(saved.score) : null)
+    }
     if (saved) return Number(saved.score)
-    if (crit.source === 'kehadiran') return attendanceScore(recapAttendance(attRows, emp.id))
-    if (crit.source === 'tugas') return taskScore(tasks, emp.id, period)
     return null // manual belum diisi
   }
 

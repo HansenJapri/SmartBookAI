@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { User, Pencil, Trash2 } from 'lucide-react'
 import Modal from '../components/Modal'
 import { fetchEmployees, addEmployee, updateEmployee, deleteEmployee } from '../lib/api'
@@ -110,7 +111,14 @@ export default function Employees() {
             <tbody>
               {list.map((emp) => (
                 <tr key={emp.id}>
-                  <td><b>{emp.name}</b>{emp.phone && <div className="muted-sm">{emp.phone}</div>}</td>
+                  {/* Klik nama -> halaman profil bulanan karyawan (P15). */}
+                  <td>
+                    <Link to={`/app/karyawan/${emp.id}`} className="linklike" style={{ fontWeight: 700 }}
+                      title={ee.openProfile?.replace('{name}', emp.name)}>
+                      {emp.name}
+                    </Link>
+                    {emp.phone && <div className="muted-sm">{emp.phone}</div>}
+                  </td>
                   <td className="muted-sm">{emp.role || '-'}</td>
                   <td>{salaryTypeLabel(emp.salary_type)}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>

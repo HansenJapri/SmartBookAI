@@ -36,6 +36,7 @@ const Team = lazy(() => import('./pages/Team'))
 const Audit = lazy(() => import('./pages/Audit'))
 const Tasks = lazy(() => import('./pages/Tasks'))
 const Employees = lazy(() => import('./pages/Employees'))
+const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'))
 const Attendance = lazy(() => import('./pages/Attendance'))
 const Payroll = lazy(() => import('./pages/Payroll'))
 const Kpi = lazy(() => import('./pages/Kpi'))
@@ -126,6 +127,9 @@ export default function App() {
           <Route path="opname" element={<Guarded><Opname /></Guarded>} />
           <Route path="supplier" element={<Guarded><Supplier /></Guarded>} />
           <Route path="karyawan" element={<Guarded><Employees /></Guarded>} />
+          {/* Profil satu karyawan per periode (P15). Ikut modul 'hr' yang sama
+              dengan daftarnya, jadi penjagaan aksesnya otomatis identik. */}
+          <Route path="karyawan/:id" element={<Guarded><EmployeeProfile /></Guarded>} />
           <Route path="absensi" element={<Guarded><Attendance /></Guarded>} />
           <Route path="kpi" element={<Guarded><Kpi /></Guarded>} />
           <Route path="gaji" element={<Guarded><Payroll /></Guarded>} />

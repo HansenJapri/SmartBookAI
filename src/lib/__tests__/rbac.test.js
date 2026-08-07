@@ -165,3 +165,43 @@ describe('staffDisplayName', () => {
     expect(staffDisplayName(null)).toBe('—')
   })
 })
+
+describe('canPath pada sub-rute berparameter', () => {
+  // Sejak ada halaman detail /app/karyawan/<id>, lookup path yang persis
+  // meleset dan canPath() dulu jatuh ke "tidak ada aturan -> boleh". Artinya
+  // staf tanpa modul HR bisa membuka profil karyawan lengkap dengan nominal
+  // gajinya hanya dengan menebak URL-nya.
+  const stafProduk = { isOwner: false, membership: { modules: ['produk'] } }
+  const stafHr = { isOwner: false, membership: { modules: ['hr'] } }
+
+  it('menutup profil karyawan untuk staf tanpa modul HR', () => {
+    expect(canPath('/app/karyawan', stafProduk)).toBe(false)
+    expect(canPath('/app/karyawan/8f1c2b3d-0000-4a11-9c22-abcdef123456', stafProduk)).toBe(false)
+  })
+
+  it('membuka profil karyawan untuk staf ber-modul HR', () => {
+    expect(canPath('/app/karyawan', stafHr)).toBe(true)
+    expect(canPath('/app/karyawan/8f1c2b3d-0000-4a11-9c22-abcdef123456', stafHr)).toBe(true)
+  })
+
+  it('memakai aturan induk paling spesifik, bukan yang pertama cocok', () => {
+    expect(canPath('/app/stok/histori', stafProduk)).toBe(true)
+    expect(canPath('/app/stok/histori', stafHr)).toBe(false)
+  })
+
+  it('tidak menganggap /app sebagai induk seluruh rute', () => {
+    // Kalau '/app' ikut dijadikan induk, semua sub-rute akan menuntut modul
+    // 'dashboard' dan staf yang dashboard-nya dicabut kehilangan semua menu.
+    const tanpaDashboard = { isOwner: false, membership: { modules: ['hr'] } }
+    expect(canPath('/app', tanpaDashboard)).toBe(false)
+    expect(canPath('/app/absensi', tanpaDashboard)).toBe(true)
+  })
+
+  it('mengabaikan garis miring di akhir', () => {
+    expect(canPath('/app/karyawan/', stafProduk)).toBe(false)
+  })
+
+  it('owner tetap boleh ke mana pun', () => {
+    expect(canPath('/app/karyawan/abc', { isOwner: true, membership: null })).toBe(true)
+  })
+})

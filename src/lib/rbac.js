@@ -122,9 +122,30 @@ export function filterNav(nav, membership) {
 export function canPath(pathname, { isOwner, membership }) {
   if (isOwner) return true
   if (OWNER_ONLY_PATHS.includes(pathname)) return false
-  const need = PATH_MODULE[pathname]
+  const need = modulUntukPath(pathname)
   if (!need) return true
   return canModule(membership, need)
+}
+
+// Modul yang dibutuhkan sebuah path, termasuk sub-rutenya.
+//
+// Pencocokan awalan, bukan sekadar lookup persis. Sejak ada halaman detail
+// ber-parameter (mis. /app/karyawan/<id>), lookup persis akan meleset dan
+// canPath() jatuh ke "tidak ada aturan -> boleh" — sehingga staf tanpa modul HR
+// bisa membuka profil karyawan lengkap dengan nominal gajinya hanya dengan
+// menebak URL-nya. Aturan induk yang paling spesifik yang dipakai, supaya
+// '/app/stok/histori' tetap membaca aturannya sendiri dan bukan '/app/stok'.
+export function modulUntukPath(pathname) {
+  const p = String(pathname || '').replace(/\/+$/, '') || '/app'
+  if (PATH_MODULE[p]) return PATH_MODULE[p]
+  let cocok = null
+  for (const [rute, mod] of Object.entries(PATH_MODULE)) {
+    if (rute === '/app') continue    // induk semua rute; bukan penanda modul sub-rute
+    if (p === rute || p.startsWith(`${rute}/`)) {
+      if (!cocok || rute.length > cocok.rute.length) cocok = { rute, mod }
+    }
+  }
+  return cocok?.mod || null
 }
 
 // Halaman pertama yang BOLEH dibuka pengguna ini.
