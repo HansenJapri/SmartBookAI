@@ -38,8 +38,8 @@ jobs:
     name: Unit & integration (Vitest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -67,7 +67,7 @@ jobs:
           fi
       - name: Unggah laporan coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage
           path: coverage/
@@ -79,8 +79,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -99,10 +99,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit
     steps:
-      - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v1
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.x
+          deno-version: v2.x
       # Menguji 18/18 BLOCKED_TABLES dan 13/13 BLOCKED_PATTERNS satu per satu,
       # plus kontrak kuota (checkQuota/commitQuota). Tanpa jaringan ke Gemini.
       # Dijalankan DARI supabase/functions/ agar deno.json di sana yang dipakai;
@@ -123,8 +123,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -144,7 +144,7 @@ jobs:
       # menghapus manfaat code-splitting tanpa ada yang menyadarinya.
       - name: Anggaran ukuran bundle
         run: node scripts/cek-bundle.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dist
           path: dist/
@@ -156,8 +156,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit, build]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -176,7 +176,7 @@ jobs:
       - name: Core Web Vitals (indikatif, tidak memblokir)
         continue-on-error: true
         run: npx playwright test --project=performance --workers=1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: playwright-report
