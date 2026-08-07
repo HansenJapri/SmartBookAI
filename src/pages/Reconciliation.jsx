@@ -5,10 +5,12 @@ import { rupiah, fmtDateTime } from '../lib/format'
 import { CheckCircle2 } from 'lucide-react'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 
 export default function Reconciliation() {
   const { channelLabel } = useCatalog()
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const r = t.recon
   const [tx, setTx] = useState(null)
   const [tol, setTol] = useState(24)
@@ -23,7 +25,7 @@ export default function Reconciliation() {
   }, [tx, tol])
 
   const keepOne = async (group, keepId) => {
-    if (!confirm(`${r.mergeA} ${group.length} ${r.mergeB} ${group.length - 1} ${r.mergeC}`)) return
+    if (!await showConfirm({ message: `${r.mergeA} ${group.length} ${r.mergeB} ${group.length - 1} ${r.mergeC}`, type: 'error' })) return
     const toDelete = group.filter((g) => g.id !== keepId)
     await Promise.all(toDelete.map((g) => deleteTransaction(g.id)))
     setTx((prev) => prev.filter((t2) => !toDelete.some((dd) => dd.id === t2.id)))

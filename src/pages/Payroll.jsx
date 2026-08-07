@@ -12,18 +12,22 @@ import { attendanceAdjustments, recapAttendance, weightedTotal, applyBonusTier }
 import { rupiah, fmtDate } from '../lib/format'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
+import { BATAS_MONTH, bersihkanTanggal } from '../lib/dateInput'
 
 // Penggajian per periode: draf dihitung otomatis (bulanan = nominal tetap;
 // harian = tarif x hari hadir dari absensi), bonus/potongan bisa diubah,
 // lalu "Bayar" mencatat transaksi pengeluaran -> cashflow & Laba Rugi.
 export default function Payroll() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const pr = t.payroll
   const statusLabel = (key) => (key === 'paid' ? pr.statusPaid : pr.statusDraft)
   const { catNames } = useCatalog()
   const [employees, setEmployees] = useState(null)
   const [period, setPeriod] = useState(currentPeriod())
   const [rows, setRows] = useState(null)
+  const [edits, setEdits] = useState({})   // { [payrollId]: { bonus?, deduction? } } — belum tersimpan
   const [payTarget, setPayTarget] = useState(null)
   const [payCategory, setPayCategory] = useState('')
   const [busy, setBusy] = useState(false)
@@ -91,26 +95,75 @@ export default function Payroll() {
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
 
-  const patchRow = async (row, patch) => {
-    const base = { base_amount: row.base_amount, bonus: row.bonus, deduction: row.deduction, ...patch }
+  // ---- Gaji bersih real-time ----
+  //
+  // Sebelumnya setiap ketikan di kolom Bonus/Potongan langsung memanggil
+  // updatePayroll(), lalu nilai yang tampil diambil dari balasan server. Efeknya:
+  // mengetik "150000" memicu enam permintaan yang bisa saling mendahului,
+  // angka di layar melompat-lompat, dan Total baru menyusul setelah jaringan
+  // menjawab. Sekarang angka disimpan dulu di state lokal supaya Total ikut
+  // berubah pada ketikan yang sama; penyimpanan ke database menyusul saat
+  // fokus meninggalkan kolom.
+  const nilaiBaris = (row) => {
+    const e = edits[row.id] || {}
+    const bonus = e.bonus !== undefined ? e.bonus : row.bonus
+    const deduction = e.deduction !== undefined ? e.deduction : row.deduction
+    return {
+      bonus,
+      deduction,
+      total: payrollTotal({
+        base_amount: row.base_amount,
+        bonus: Number(bonus) || 0,
+        deduction: Number(deduction) || 0,
+      }),
+      belumTersimpan: e.bonus !== undefined || e.deduction !== undefined,
+    }
+  }
+
+  const ubahBaris = (row, patch) =>
+    setEdits((prev) => ({ ...prev, [row.id]: { ...(prev[row.id] || {}), ...patch } }))
+
+  const buangEdit = (id) => setEdits((prev) => {
+    if (!(id in prev)) return prev
+    const sisa = { ...prev }
+    delete sisa[id]
+    return sisa
+  })
+
+  // Mengembalikan baris terbaru (hasil simpan) agar pemanggil tidak memakai
+  // salinan lama — penting untuk tombol Bayar yang diklik langsung setelah edit.
+  const simpanBaris = async (row) => {
+    const e = edits[row.id]
+    if (!e) return row
+    const bonus = Number(e.bonus ?? row.bonus) || 0
+    const deduction = Number(e.deduction ?? row.deduction) || 0
+    if (bonus === Number(row.bonus) && deduction === Number(row.deduction)) { buangEdit(row.id); return row }
     try {
-      const upd = await updatePayroll(row.id, { ...patch, total: payrollTotal(base) })
+      const upd = await updatePayroll(row.id, {
+        bonus, deduction, total: payrollTotal({ base_amount: row.base_amount, bonus, deduction }),
+      })
       setRows((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
-    } catch (e2) { setErr(e2.message) }
+      buangEdit(row.id)
+      return upd
+    } catch (e2) { setErr(e2.message); return row }
   }
 
   const removeRow = async (row) => {
-    if (!confirm(pr.confirmDelDraft.replace('{name}', empOf(row.employee_id)?.name || ''))) return
+    if (!await showConfirm({ message: pr.confirmDelDraft.replace('{name}', empOf(row.employee_id)?.name || ''), type: 'error' })) return
     try {
       await deletePayroll(row.id)
       setRows((prev) => prev.filter((x) => x.id !== row.id))
+      buangEdit(row.id)
     } catch (e2) { setErr(e2.message) }
   }
 
-  const openPay = (row) => {
+  // Simpan dulu perubahan yang belum tersimpan, baru buka dialog bayar —
+  // supaya nominal yang dibayarkan selalu sama dengan yang terlihat di layar.
+  const openPay = async (row) => {
     setErr('')
+    const terkini = await simpanBaris(row)
     setPayCategory(expenseCats.includes('Gaji Karyawan') ? 'Gaji Karyawan' : (expenseCats[0] || ''))
-    setPayTarget(row)
+    setPayTarget(terkini)
   }
 
   const doPay = async () => {
@@ -127,7 +180,9 @@ export default function Payroll() {
     } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
   }
 
-  const totalPeriode = (rows || []).reduce((s, r) => s + (Number(r.total) || 0), 0)
+  // Total periode ikut memakai nilai yang sedang diketik, bukan hanya yang
+  // sudah tersimpan — angka di kaki tabel harus cocok dengan jumlah kolom Total.
+  const totalPeriode = (rows || []).reduce((s, r) => s + nilaiBaris(r).total, 0)
 
   if (!employees || !rows) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
@@ -143,8 +198,8 @@ export default function Payroll() {
 
       <div className="toolbar">
         <label className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{pr.period}</label>
-        <input className="input" type="month" style={{ maxWidth: 180 }} aria-label={pr.periodAria} value={period}
-          onChange={(e) => setPeriod(e.target.value)} />
+        <input className="input" type="month" {...BATAS_MONTH} style={{ maxWidth: 180 }} aria-label={pr.periodAria} value={period}
+          onChange={(e) => setPeriod(bersihkanTanggal(e.target.value))} />
         <div style={{ flex: 1 }} />
         <button className="btn btn-primary" onClick={generate} disabled={busy}>
           {busy ? pr.calculating : pr.genDraft}
@@ -170,6 +225,7 @@ export default function Payroll() {
                   const emp = empOf(row.employee_id)
                   const st = PAYROLL_STATUS[row.status] || PAYROLL_STATUS.draft
                   const draft = row.status === 'draft'
+                  const v = nilaiBaris(row)
                   return (
                     <tr key={row.id}>
                       <td>
@@ -177,21 +233,32 @@ export default function Payroll() {
                         {row.note && <div className="muted-sm">{row.note}</div>}
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{rupiah(row.base_amount)}</td>
-                      <td style={{ maxWidth: 120 }}>
+                      <td style={{ minWidth: 130 }}>
                         {draft ? (
-                          <input className="input" type="number" min="0" step="any" value={row.bonus}
-                            aria-label={pr.bonusAria.replace('{name}', empOf(row.employee_id)?.name || pr.defaultEmpName)}
-                            onChange={(e) => patchRow(row, { bonus: Number(e.target.value) || 0 })} />
+                          <input className="input" type="number" min="0" step="any" value={v.bonus}
+                            style={{ width: 118, textAlign: 'right' }}
+                            aria-label={pr.bonusAria.replace('{name}', emp?.name || pr.defaultEmpName)}
+                            onChange={(e) => ubahBaris(row, { bonus: e.target.value })}
+                            onBlur={() => simpanBaris(row)} />
                         ) : rupiah(row.bonus)}
                       </td>
-                      <td style={{ maxWidth: 120 }}>
+                      <td style={{ minWidth: 130 }}>
                         {draft ? (
-                          <input className="input" type="number" min="0" step="any" value={row.deduction}
-                            aria-label={pr.deductionAria.replace('{name}', empOf(row.employee_id)?.name || pr.defaultEmpName)}
-                            onChange={(e) => patchRow(row, { deduction: Number(e.target.value) || 0 })} />
+                          <input className="input" type="number" min="0" step="any" value={v.deduction}
+                            style={{ width: 118, textAlign: 'right' }}
+                            aria-label={pr.deductionAria.replace('{name}', emp?.name || pr.defaultEmpName)}
+                            onChange={(e) => ubahBaris(row, { deduction: e.target.value })}
+                            onBlur={() => simpanBaris(row)} />
                         ) : rupiah(row.deduction)}
                       </td>
-                      <td style={{ whiteSpace: 'nowrap' }}><b>{rupiah(row.total)}</b></td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <b>{rupiah(v.total)}</b>
+                        {draft && (
+                          <div className="muted-sm" style={{ fontSize: 11 }}>
+                            {rupiah(row.base_amount)} + {rupiah(Number(v.bonus) || 0)} − {rupiah(Number(v.deduction) || 0)}
+                          </div>
+                        )}
+                      </td>
                       <td>
                         <span className={`badge ${st.cls}`}>{statusLabel(row.status)}</span>
                         {row.paid_at && <div className="muted-sm">{fmtDate(row.paid_at)}</div>}

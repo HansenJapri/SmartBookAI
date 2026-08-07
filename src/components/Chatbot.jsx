@@ -8,6 +8,7 @@ import AIDisclaimer from './AIDisclaimer'
 import VoiceAssistant from './VoiceAssistant'
 import { liveVoiceSupported } from '../lib/liveAudio'
 import { useLang } from '../context/LangContext'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
 const CONSENT_KEY = 'bukupintar_ai_consent'
 
@@ -503,8 +504,8 @@ export default function Chatbot() {
                               {catNames(d.direction).map((c) => <option key={c} value={c}>{c}</option>)}
                               {!catNames(d.direction).includes(d.category) && <option value={d.category}>{d.category}</option>}
                             </select>
-                            <input className="input" type="date" value={d.occurred_at}
-                              onChange={(e) => patchDraft(i, j, { occurred_at: e.target.value })} />
+                            <input className="input" type="date" {...BATAS_DATE} value={d.occurred_at}
+                              onChange={(e) => patchDraft(i, j, { occurred_at: bersihkanTanggal(e.target.value) })} />
                           </div>
                           <div className="draft-row">
                             <input className="input" value={d.description}

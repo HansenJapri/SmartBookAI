@@ -6,6 +6,7 @@ import {
 } from '../lib/aging'
 import { rupiah, rupiahShort, fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 
 // Piutang & Utang: semua transaksi berstatus "belum lunas".
 //   Piutang = pemasukan yang uangnya belum diterima (tagihan ke pelanggan)
@@ -13,6 +14,7 @@ import { useLang } from '../context/LangContext'
 // Umur tagihan dihitung deterministik dari tanggal transaksi; jatuh tempo dari due_date.
 export default function Receivables() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const rc = t.receivables
   const [tx, setTx] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -37,7 +39,7 @@ export default function Receivables() {
 
   const markPaid = async (t) => {
     const who = t.customer_name ? rc.fromWho.replace('{name}', t.customer_name) : ''
-    if (!confirm(rc.confirmMarkPaid.replace('{amount}', rupiah(t.amount)).replace('{who}', who).replace('{desc}', t.description))) return
+    if (!await showConfirm({ message: rc.confirmMarkPaid.replace('{amount}', rupiah(t.amount)).replace('{who}', who).replace('{desc}', t.description) })) return
     setErr('')
     try {
       const upd = await updateTransaction(t.id, { payment_status: 'lunas' })

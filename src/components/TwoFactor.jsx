@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useAlert } from '../context/AlertContext'
 
 // Pengaturan 2FA (TOTP) berbasis Supabase Auth MFA: aktifkan (scan QR + verifikasi),
 // lihat status, dan nonaktifkan.
 export default function TwoFactor() {
   const { refreshAal } = useAuth()
+  const { showConfirm } = useAlert()
   const [status, setStatus] = useState('loading') // loading | none | enrolling | active
   const [factorId, setFactorId] = useState('')
   const [qr, setQr] = useState('')
@@ -52,7 +54,7 @@ export default function TwoFactor() {
   }
 
   const disable = async () => {
-    if (!confirm('Nonaktifkan verifikasi 2 langkah?')) return
+    if (!(await showConfirm({ message: 'Nonaktifkan verifikasi 2 langkah?', type: 'error' }))) return
     setBusy(true); setErr('')
     try { await supabase.auth.mfa.unenroll({ factorId }); setStatus('none'); if (refreshAal) await refreshAal() }
     catch (e) { setErr(e.message) } finally { setBusy(false) }

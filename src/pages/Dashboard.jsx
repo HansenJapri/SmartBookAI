@@ -19,6 +19,7 @@ import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
 import AIDisclaimer from '../components/AIDisclaimer'
 import Reminders from '../components/Reminders'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 import './dashboard.css'
 
 const PRESET_KEYS = ['today', 'week', 'month', 'quarter', 'semester', 'year', 'all', 'custom']
@@ -163,9 +164,9 @@ export default function Dashboard() {
           </select>
           {preset === 'custom' && (
             <>
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label={d.fromDateAria} />
+              <input type="date" {...BATAS_DATE} value={from} onChange={(e) => setFrom(bersihkanTanggal(e.target.value))} aria-label={d.fromDateAria} />
               <span style={{ fontSize: 12, color: 'var(--d2-on-surface-variant)' }}>{d.to}</span>
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label={d.toDateAria} />
+              <input type="date" {...BATAS_DATE} value={to} onChange={(e) => setTo(bersihkanTanggal(e.target.value))} aria-label={d.toDateAria} />
             </>
           )}
         </label>
@@ -621,11 +622,11 @@ function TargetCard({ tx }) {
           <div className="d2-tgt-row">
             <div>
               <label htmlFor="d2-target-start">{tg.lStart}</label>
-              <input id="d2-target-start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+              <input id="d2-target-start" type="date" {...BATAS_DATE} value={form.start_date} onChange={(e) => setForm({ ...form, start_date: bersihkanTanggal(e.target.value) })} />
             </div>
             <div>
               <label htmlFor="d2-target-end">{tg.lEnd}</label>
-              <input id="d2-target-end" type="date" value={form.end_date} min={form.start_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              <input id="d2-target-end" type="date" {...BATAS_DATE} value={form.end_date} min={form.start_date} onChange={(e) => setForm({ ...form, end_date: bersihkanTanggal(e.target.value) })} />
             </div>
           </div>
           <div className="d2-tgt-row">

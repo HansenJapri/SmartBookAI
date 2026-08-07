@@ -13,7 +13,7 @@ import { useLang } from '../context/LangContext'
 import { useAlert } from '../context/AlertContext'
 
 export default function Transactions() {
-  const { showAlert } = useAlert()
+  const { showAlert, showConfirm } = useAlert()
   const { channelLabel } = useCatalog()
   const { user } = useAuth()
   const { t } = useLang()
@@ -66,7 +66,7 @@ export default function Transactions() {
   }
 
   const remove = async (id) => {
-    if (!confirm(T.confirmDel)) return
+    if (!await showConfirm({ message: T.confirmDel, type: 'error' })) return
     await deleteTransaction(id)
     setTx((prev) => prev.filter((t2) => t2.id !== id))
   }

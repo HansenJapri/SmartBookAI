@@ -4,12 +4,15 @@ import Modal from './Modal'
 import { fetchReminders, addReminder, updateReminder, deleteReminder } from '../lib/api'
 import { fmtDateTime } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
+import { BATAS_DATETIME, bersihkanTanggal } from '../lib/dateInput'
 
 // Pengingat penting (mis. "ambil stok jam 3 sore"). Yang sudah jatuh waktu
 // tampil sebagai notifikasi di atas Dashboard TERUS-MENERUS sampai pengguna
 // menekan silang. Pengingat murni tampil di dalam aplikasi (dashboard).
 export default function Reminders() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const rm = t.reminders
   const [list, setList] = useState(null)
   const [form, setForm] = useState(null) // {title, note, remind_at(datetime-local)}
@@ -43,7 +46,7 @@ export default function Reminders() {
   }
 
   const remove = async (r) => {
-    if (!confirm(rm.confirmDelete.replace('{title}', r.title))) return
+    if (!await showConfirm({ message: rm.confirmDelete.replace('{title}', r.title), type: 'error' })) return
     try {
       await deleteReminder(r.id)
       setList((prev) => prev.filter((x) => x.id !== r.id))
@@ -132,8 +135,8 @@ export default function Reminders() {
               </div>
               <div className="field">
                 <label htmlFor="rem-remind-at">{rm.lDateTime}</label>
-                <input id="rem-remind-at" className="input" type="datetime-local" value={form.remind_at}
-                  onChange={(e) => setForm({ ...form, remind_at: e.target.value })} />
+                <input id="rem-remind-at" className="input" type="datetime-local" {...BATAS_DATETIME} value={form.remind_at}
+                  onChange={(e) => setForm({ ...form, remind_at: bersihkanTanggal(e.target.value) })} />
               </div>
               <p className="muted-sm" style={{ margin: 0 }}>
                 {rm.modalHint}

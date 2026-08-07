@@ -409,10 +409,17 @@ export async function track(type, meta = null) {
 
 // ---------- FORUM FEEDBACK ----------
 // Mengambil semua postingan (forum) - hanya berhasil untuk user yang login.
+// Feedback bersifat 1-on-1: hanya pengirim dan Admin SmartBook AI yang boleh
+// membacanya. Penyaring utamanya adalah RLS (policy "feedback select own");
+// filter .eq() di bawah ini adalah lapis kedua yang membuat maksudnya terbaca
+// dari kode dan menahan kesalahan bila suatu saat policy diubah keliru.
 export async function fetchFeedback({ limit = 200 } = {}) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
   const { data, error } = await supabase
     .from('feedback')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error) throw error

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Pencil, Trash2, Check, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 
 // Daftar CRUD yang rapi & interaktif: tambah di kolom atas, edit LANGSUNG di
 // tempat (inline) dengan ikon yang jelas, hapus dengan konfirmasi. Dipakai untuk
@@ -11,6 +12,7 @@ import { useLang } from '../context/LangContext'
 //   onAdd(name), onRename(id, name), onDelete(id)  -> async
 export default function CrudList({ title, hint, items = [], placeholder, onAdd, onRename, onDelete, dupMsg, card = true }) {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const c = t.dialogs.crud
   const dup = dupMsg || c.dup
   const [name, setName] = useState('')
@@ -33,7 +35,7 @@ export default function CrudList({ title, hint, items = [], placeholder, onAdd, 
     catch (e2) { flash(e2.code === '23505' ? dup : (e2.message || c.failSave)) }
   }
   const remove = async (it) => {
-    if (!confirm(c.confirmDel.replace('{name}', it.name))) return
+    if (!await showConfirm({ message: c.confirmDel.replace('{name}', it.name), type: 'error' })) return
     if (editId === it.id) cancelEdit()
     try { await onDelete(it.id) } catch (e2) { flash(e2.message || c.failDel) }
   }

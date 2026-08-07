@@ -26,7 +26,7 @@ function Stars({ value, onChange, label }) {
 export default function Feedback() {
   const { user } = useAuth()
   const { t } = useLang()
-  const { showAlert } = useAlert()
+  const { showAlert, showConfirm } = useAlert()
   const f = t.feedback
   const CATS = Object.keys(f.cats).map((v) => ({ v, label: f.cats[v] }))
   const [list, setList] = useState(null)
@@ -66,7 +66,7 @@ export default function Feedback() {
   }
 
   const remove = async (id) => {
-    if (!confirm(f.confirmDel)) return
+    if (!await showConfirm({ message: f.confirmDel, type: 'error' })) return
     try {
       await deleteFeedback(id); await load()
     } catch (e2) {

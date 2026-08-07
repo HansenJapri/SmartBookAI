@@ -8,6 +8,7 @@ import {
 import { ATTENDANCE_STATUS, currentPeriod, periodLabel, periodRange } from '../lib/hr'
 import { rupiah, fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { BATAS_DATE, BATAS_MONTH, bersihkanTanggal } from '../lib/dateInput'
 
 const toISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const todayISO = () => toISO(new Date())
@@ -195,27 +196,27 @@ export default function Attendance() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button className="icon-btn" onClick={() => shift(-1)} aria-label={an.prevAria}><ChevronLeft size={16} /></button>
             {mode === 'hari' && (
-              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label={an.dateAria} value={anchor}
-                max={today} onChange={(e) => e.target.value && setAnchor(e.target.value)} />
+              <input className="input" type="date" {...BATAS_DATE} style={{ maxWidth: 165 }} aria-label={an.dateAria} value={anchor}
+                max={today} onChange={(e) => bersihkanTanggal(e.target.value) && setAnchor(bersihkanTanggal(e.target.value))} />
             )}
             {mode === 'minggu' && (
-              <input className="input" type="date" style={{ maxWidth: 165 }} aria-label={an.weekDateAria} value={anchor}
-                max={today} onChange={(e) => e.target.value && setAnchor(e.target.value)} />
+              <input className="input" type="date" {...BATAS_DATE} style={{ maxWidth: 165 }} aria-label={an.weekDateAria} value={anchor}
+                max={today} onChange={(e) => bersihkanTanggal(e.target.value) && setAnchor(bersihkanTanggal(e.target.value))} />
             )}
             {mode === 'bulan' && (
-              <input className="input" type="month" style={{ maxWidth: 165 }} aria-label={an.monthAria} value={month}
-                onChange={(e) => e.target.value && setMonth(e.target.value)} />
+              <input className="input" type="month" {...BATAS_MONTH} style={{ maxWidth: 165 }} aria-label={an.monthAria} value={month}
+                onChange={(e) => bersihkanTanggal(e.target.value) && setMonth(bersihkanTanggal(e.target.value))} />
             )}
             <button className="icon-btn" onClick={() => shift(1)} aria-label={an.nextAria}><ChevronRight size={16} /></button>
           </div>
         )}
         {mode === 'rentang' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label={an.rangeFromAria} value={range.from}
-              max={today} onChange={(e) => e.target.value && setRange((r) => ({ ...r, from: e.target.value }))} />
+            <input className="input" type="date" {...BATAS_DATE} style={{ maxWidth: 160 }} aria-label={an.rangeFromAria} value={range.from}
+              max={today} onChange={(e) => bersihkanTanggal(e.target.value) && setRange((r) => ({ ...r, from: bersihkanTanggal(e.target.value) }))} />
             <span className="muted-sm">{an.rangeSep}</span>
-            <input className="input" type="date" style={{ maxWidth: 160 }} aria-label={an.rangeToAria} value={range.to}
-              max={today} onChange={(e) => e.target.value && setRange((r) => ({ ...r, to: e.target.value }))} />
+            <input className="input" type="date" {...BATAS_DATE} style={{ maxWidth: 160 }} aria-label={an.rangeToAria} value={range.to}
+              max={today} onChange={(e) => bersihkanTanggal(e.target.value) && setRange((r) => ({ ...r, to: bersihkanTanggal(e.target.value) }))} />
           </div>
         )}
         <div className="muted-sm" style={{ marginLeft: 'auto' }}><b>{periodTitle}</b></div>

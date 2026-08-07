@@ -5,6 +5,8 @@ import { fetchEmployees, addEmployee, updateEmployee, deleteEmployee } from '../
 import { SALARY_TYPES } from '../lib/hr'
 import { rupiah, fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
 const blankForm = () => ({
   id: null, name: '', role: '', phone: '', salary_type: 'bulanan',
@@ -15,6 +17,7 @@ const blankForm = () => ({
 // (nominal per hari HADIR — dihitung otomatis dari absensi saat penggajian).
 export default function Employees() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const ee = t.employees
   const salaryTypeLabel = (key) => (key === 'harian' ? t.hr.salaryHarian : t.hr.salaryBulanan)
   const [list, setList] = useState(null)
@@ -57,7 +60,7 @@ export default function Employees() {
 
   const toggleStatus = async (emp) => {
     const status = emp.status === 'aktif' ? 'nonaktif' : 'aktif'
-    if (status === 'nonaktif' && !confirm(ee.confirmDeactivate.replace('{name}', emp.name))) return
+    if (status === 'nonaktif' && !await showConfirm({ message: ee.confirmDeactivate.replace('{name}', emp.name) })) return
     try {
       const upd = await updateEmployee(emp.id, { status })
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
@@ -65,7 +68,7 @@ export default function Employees() {
   }
 
   const remove = async (emp) => {
-    if (!confirm(ee.confirmDelete.replace('{name}', emp.name))) return
+    if (!await showConfirm({ message: ee.confirmDelete.replace('{name}', emp.name), type: 'error' })) return
     try {
       await deleteEmployee(emp.id)
       setList((prev) => prev.filter((x) => x.id !== emp.id))
@@ -184,7 +187,7 @@ export default function Employees() {
                 </div>
                 <div className="field">
                   <label htmlFor="emp-join-date">{ee.lJoinDate} <span className="muted-sm">{ee.optional}</span></label>
-                  <input id="emp-join-date" className="input" type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
+                  <input id="emp-join-date" className="input" type="date" {...BATAS_DATE} value={form.join_date} onChange={(e) => setForm({ ...form, join_date: bersihkanTanggal(e.target.value) })} />
                 </div>
               </div>
               <div className="field">

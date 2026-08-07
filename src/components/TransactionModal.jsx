@@ -5,6 +5,7 @@ import { categorize } from '../lib/categorize'
 import { toDateInput, rupiah } from '../lib/format'
 import { fetchProducts } from '../lib/api'
 import { useCatalog } from '../context/CatalogContext'
+import { BATAS_DATE, BATAS_DATETIME, bersihkanTanggal } from '../lib/dateInput'
 
 // Stepper jumlah: tombol - dan +, plus input manual (boleh desimal).
 function QtyStepper({ value, onChange }) {
@@ -291,8 +292,8 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
           </div>
           <div className="field">
             <label htmlFor="tx-occurred-at">Tanggal &amp; waktu</label>
-            <input id="tx-occurred-at" className="input" type="datetime-local" value={occurredAt}
-              onChange={(e) => setOccurredAt(e.target.value)} />
+            <input id="tx-occurred-at" className="input" type="datetime-local" {...BATAS_DATETIME} value={occurredAt}
+              onChange={(e) => setOccurredAt(bersihkanTanggal(e.target.value))} />
           </div>
 
           <div className="field">
@@ -316,8 +317,8 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
           {paymentStatus === 'belum' && (
             <div className="field">
               <label htmlFor="tx-due-date">Jatuh tempo <span className="muted-sm">(opsional, untuk pengingat)</span></label>
-              <input id="tx-due-date" className="input" type="date" value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)} />
+              <input id="tx-due-date" className="input" type="date" {...BATAS_DATE} value={dueDate}
+                onChange={(e) => setDueDate(bersihkanTanggal(e.target.value))} />
             </div>
           )}
           <div className="field">

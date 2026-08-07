@@ -7,11 +7,13 @@ import {
 import { nextDocNumber, buildOpnameItems, opnameDiff, opnameSummary, SO_STATUS } from '../lib/gudang'
 import { fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 
 // Stock Opname bersesi: Draf (isi hitung fisik, bisa disimpan berkali-kali)
 // -> Posting (stok sistem DISET = hasil hitung; sesi terkunci) / Batal.
 export default function Opname() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const op = t.opname
   const soStatusLabel = (key) => ({ draft: op.statusDraft, posted: op.statusPosted, cancelled: op.statusCancelled }[key])
   const [list, setList] = useState(null)
@@ -78,7 +80,7 @@ export default function Opname() {
   }
 
   const cancelSession = async (s) => {
-    if (!confirm(op.confirmCancelSession.replace('{num}', s.opname_number))) return
+    if (!(await showConfirm({ message: op.confirmCancelSession.replace('{num}', s.opname_number) }))) return
     try {
       const upd = await updateOpname(s.id, { status: 'cancelled' })
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
@@ -87,7 +89,7 @@ export default function Opname() {
   }
 
   const removeSession = async (s) => {
-    if (!confirm(op.confirmDelSession.replace('{num}', s.opname_number))) return
+    if (!(await showConfirm({ message: op.confirmDelSession.replace('{num}', s.opname_number), type: 'error' }))) return
     try {
       await deleteOpname(s.id)
       setList((prev) => prev.filter((x) => x.id !== s.id))

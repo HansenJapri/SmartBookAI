@@ -9,6 +9,7 @@ import { toDateInput, rupiah } from '../lib/format'
 import AIDisclaimer from '../components/AIDisclaimer'
 import Modal from '../components/Modal'
 import { useLang } from '../context/LangContext'
+import { BATAS_DATETIME, bersihkanTanggal } from '../lib/dateInput'
 
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.heic,.pdf,image/*,application/pdf'
 const blankItem = () => ({ name: '', qty: 1, unit: 'pcs', total: '', productId: '', conv: 1 })
@@ -227,7 +228,7 @@ export default function Struk() {
             </div>
             <div className="field">
               <label htmlFor="struk-occurred-at">{sk.lDateTime}</label>
-              <input id="struk-occurred-at" className="input" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+              <input id="struk-occurred-at" className="input" type="datetime-local" {...BATAS_DATETIME} value={occurredAt} onChange={(e) => setOccurredAt(bersihkanTanggal(e.target.value))} />
             </div>
             <div className="field">
               <label htmlFor="struk-note">{sk.lNote}</label>

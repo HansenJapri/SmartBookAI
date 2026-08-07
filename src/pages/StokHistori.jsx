@@ -7,6 +7,7 @@ import {
 import { fetchProducts, fetchTransactions, fetchStockHistorySources } from '../lib/api'
 import { rupiah, fmtDateTime } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 import './stok.css'
 import './stok-histori.css'
 
@@ -195,9 +196,9 @@ export default function StokHistori() {
           </select>
           <label className="s2h-date">
             <Calendar size={14} aria-hidden="true" />
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label={sh.fromAria} />
+            <input type="date" {...BATAS_DATE} value={from} onChange={(e) => setFrom(bersihkanTanggal(e.target.value))} aria-label={sh.fromAria} />
             <span>—</span>
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label={sh.toAria} />
+            <input type="date" {...BATAS_DATE} value={to} onChange={(e) => setTo(bersihkanTanggal(e.target.value))} aria-label={sh.toAria} />
           </label>
         </div>
       </div>

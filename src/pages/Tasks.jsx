@@ -6,7 +6,9 @@ import {
   TASK_STATUSES, TASK_PRIORITIES, priorityOf, nextStatus, prevStatus, isTaskOverdue, sortTasks,
 } from '../lib/ops'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 import { fmtDate } from '../lib/format'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
 const blankForm = () => ({ id: null, title: '', note: '', priority: 'normal', due_date: '', assignee_id: '' })
 
@@ -15,6 +17,7 @@ const blankForm = () => ({ id: null, title: '', note: '', priority: 'normal', du
 // Setiap perubahan terekam otomatis di Audit Log (= log aktivitas operasional).
 export default function Tasks() {
   const { t: tr } = useLang()
+  const { showConfirm } = useAlert()
   const tk = tr.tasks
   const [tasks, setTasks] = useState(null)
   const [employees, setEmployees] = useState([])
@@ -74,7 +77,7 @@ export default function Tasks() {
   }
 
   const remove = async (task) => {
-    if (!confirm(tk.confirmDel.replace('{title}', task.title))) return
+    if (!await showConfirm({ message: tk.confirmDel.replace('{title}', task.title), type: 'error' })) return
     try {
       await deleteTask(task.id)
       setTasks((prev) => prev.filter((x) => x.id !== task.id))
@@ -185,8 +188,8 @@ export default function Tasks() {
                 </div>
                 <div className="field">
                   <label htmlFor="task-due-date">{tk.fDue} <span className="muted-sm">{tk.optional}</span></label>
-                  <input id="task-due-date" className="input" type="date" value={form.due_date}
-                    onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                  <input id="task-due-date" className="input" type="date" {...BATAS_DATE} value={form.due_date}
+                    onChange={(e) => setForm({ ...form, due_date: bersihkanTanggal(e.target.value) })} />
                 </div>
               </div>
               <div className="field">
