@@ -13,3 +13,7 @@ playwright-report
 /playwright/.cache
 # Sesi login hasil auth.setup.js — berisi token asli, JANGAN di-commit
 e2e/.auth
+
+# Laporan JSON vitest untuk penjaga "nol test berjalan" di CI
+vitest-report.json
+

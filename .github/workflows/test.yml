@@ -7,6 +7,14 @@ name: Test
 # ATURAN MUTLAK (§3.4): NOL panggilan API AI berbayar di CI.
 # `npm run eval:ai` memanggil Gemini live dan memakan kuota harian — sengaja
 # TIDAK ada di sini. Jalankan manual saat prompt atau nama model berubah.
+#
+# VERSI NODE — JANGAN TURUNKAN KE 20.
+# jsdom@30 (dipakai vitest untuk component test) menarik undici@8, yang memanggil
+# `require('node:worker_threads').markAsUncloneable`. Fungsi itu baru ada sejak
+# Node 22. Di Node 20 nilainya undefined, setiap worker jsdom crash saat memuat,
+# dan vitest melaporkan "Test Files: no tests" — job merah TANPA satu pun test
+# pernah dijalankan. Gejalanya menipu: sekilas terlihat seperti test gagal,
+# padahal gerbangnya tidak pernah menguji apa pun.
 
 on:
   push:
@@ -33,11 +41,30 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - name: Vitest + coverage
-        run: npx vitest run --coverage
+        run: npx vitest run --coverage --reporter=default --reporter=json --outputFile=vitest-report.json
+      # Penjaga anti-"gerbang hampa". Job yang merah karena NOL test berjalan
+      # terlihat persis seperti job yang merah karena ada test gagal — dan itu
+      # sudah pernah terjadi di repo ini (Node 20 + jsdom@30, lihat catatan di
+      # kepala berkas). Langkah ini membuat bedanya terbaca di baris pertama log,
+      # dan menutup jalan pintas `--passWithNoTests` yang akan mengubah gerbang
+      # rusak menjadi gerbang hijau palsu.
+      - name: Pastikan test benar-benar dijalankan
+        if: always()
+        run: |
+          if [ ! -f vitest-report.json ]; then
+            echo "::error::Laporan vitest tidak terbentuk — runner gagal sebelum test dikumpulkan."
+            exit 1
+          fi
+          total=$(node -p "(require('./vitest-report.json').numTotalTests) || 0")
+          echo "Total test yang benar-benar dijalankan: $total"
+          if [ "$total" -lt 1 ]; then
+            echo "::error::NOL test berjalan — gerbang ini tidak menguji apa pun. Periksa kompatibilitas versi Node dengan jsdom/undici."
+            exit 1
+          fi
       - name: Unggah laporan coverage
         if: always()
         uses: actions/upload-artifact@v4
@@ -55,7 +82,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       # Ambang G-11 adalah 0 critical. `high` dilaporkan tapi tidak memblokir —
@@ -81,9 +108,14 @@ jobs:
       # Dijalankan DARI supabase/functions/ agar deno.json di sana yang dipakai;
       # dari root repo, Deno ikut membaca package.json frontend dan type-check
       # gagal mencari npm:@types/node.
+      # --allow-read WAJIB: invariant_test.ts memakai Deno.readDir() untuk
+      # menyapu SETIAP folder Edge Function dan memastikan tidak ada yang lolos
+      # dari guard. Tanpa flag itu Deno melempar NotCapable sebelum pemeriksaan
+      # jalan — dan karena job ini `needs: unit` yang lebih dulu merah, gerbang
+      # ini selalu ter-skip sehingga kegagalannya tidak pernah terlihat.
       - name: deno test guards + rate limiter
         working-directory: supabase/functions
-        run: deno test --quiet --allow-import _shared/ai/
+        run: deno test --quiet --allow-import --allow-read _shared/ai/
 
   # ---- Gerbang 4: build produksi + audit rahasia (G-13, G-07) ----
   build:
@@ -94,7 +126,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -127,7 +159,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - name: Pasang browser Playwright
