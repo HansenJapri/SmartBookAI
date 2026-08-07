@@ -5,6 +5,7 @@ import { useLang } from '../context/LangContext'
 import AuthSide from '../components/AuthSide'
 import PasswordChecklist from '../components/PasswordChecklist'
 import OtpInput from '../components/OtpInput'
+import { useOtpLock, OTP_BUCKET, OTP_MAX_ATTEMPTS } from '../lib/useOtpLock'
 import OtpCountdown from '../components/OtpCountdown'
 import { isPasswordValid, normalizePhone, isEmailValid } from '../lib/validators'
 import useForceLightTheme from '../lib/useForceLightTheme'
@@ -25,6 +26,8 @@ export default function Register() {
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  // Pembatas percobaan kode (P2): 5 kali salah -> input dikunci 15 menit.
+  const kunci = useOtpLock(OTP_BUCKET.signup, form.email, step === 'otp')
 
   const submitForm = async (e) => {
     e.preventDefault()
@@ -68,13 +71,19 @@ export default function Register() {
   const submitOtp = async (e) => {
     e.preventDefault()
     setErr('')
+    if (kunci.terkunci) return setErr(a.errOtpLocked.replace('{waktu}', kunci.tungguTeks))
     if (otp.length < 8) return setErr(a.errOtp8)
     setBusy(true)
     try {
       await verifyEmailOtp({ email: form.email, token: otp })
+      await kunci.bersihkan()
       nav('/app')
     } catch (e) {
-      setErr(a.errOtpWrong)
+      const s = await kunci.catatGagal()
+      setOtp('')
+      setErr(s.locked
+        ? a.errOtpLocked.replace('{waktu}', kunci.tungguTeks || `${Math.ceil(s.retryAfter / 60)}:00`)
+        : a.errOtpWrongLeft.replace('{n}', s.remaining))
     } finally { setBusy(false) }
   }
 
@@ -133,14 +142,20 @@ export default function Register() {
             <p className="sub">{a.verifySub}<b>{form.email}</b></p>
             {info && <div className="alert alert-ok">{info}</div>}
             {err && <div className="alert alert-err">{err}</div>}
-            <OtpInput value={otp} onChange={setOtp} maxLength={8} />
+            {kunci.terkunci && (
+              <div className="alert alert-err">{a.errOtpLocked.replace('{waktu}', kunci.tungguTeks)}</div>
+            )}
+            <OtpInput value={otp} onChange={setOtp} maxLength={8} disabled={kunci.terkunci} />
             <OtpCountdown startedAt={sentAt} seconds={OTP_TTL_SECONDS}
               onExpire={() => setKedaluwarsa(true)} />
-            <button className="btn btn-primary btn-block btn-lg" disabled={busy || kedaluwarsa} style={{ marginTop: 6 }}>
+            {!kunci.terkunci && kunci.sisaPercobaan < OTP_MAX_ATTEMPTS && (
+              <p className="muted-sm" style={{ marginTop: 4 }}>{a.otpAttemptsLeft.replace('{n}', kunci.sisaPercobaan)}</p>
+            )}
+            <button className="btn btn-primary btn-block btn-lg" disabled={busy || kedaluwarsa || kunci.terkunci} style={{ marginTop: 6 }}>
               {busy ? a.verifying : a.verifyBtn}
             </button>
             <p className="auth-foot">
-              {a.noCode} <button type="button" className="linklike" onClick={resend}>{a.resend}</button>
+              {a.noCode} <button type="button" className="linklike" onClick={resend} disabled={kunci.terkunci}>{a.resend}</button>
               <br />
               <button type="button" className="linklike" onClick={() => { setStep('form'); setOtp(''); setErr('') }}>{a.changeData}</button>
             </p>

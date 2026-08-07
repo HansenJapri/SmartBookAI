@@ -199,6 +199,10 @@ export const translations = {
       resendWait: 'Kirim ulang ({detik}s)',
       otpValidFor: 'Kode berlaku', otpExpired: 'Kode sudah kedaluwarsa. Klik "Kirim ulang" untuk kode baru.',
       errOtpWrong: 'Kode salah atau sudah kedaluwarsa. Periksa lagi kodenya, atau klik "Kirim ulang" untuk kode baru.', infoResent: 'Kode baru telah dikirim.', errRate: 'Terlalu sering. Tunggu beberapa saat.',
+      // Pembatas percobaan kode (P2)
+      errOtpWrongLeft: 'Kode salah atau sudah kedaluwarsa. Sisa {n} percobaan sebelum input kode dikunci sementara.',
+      errOtpLocked: 'Input kode dikunci sementara karena terlalu banyak percobaan salah. Coba lagi dalam {waktu}.',
+      otpAttemptsLeft: 'Sisa {n} percobaan sebelum input kode dikunci sementara.',
       fgTitle: 'Lupa Password', fgSub: 'Masukkan email akun Anda', fgSend: 'Kirim kode reset', fgSending: 'Mengirim...', backToLogin: '← Kembali ke Masuk',
       npTitle: 'Password Baru', npSubReset: 'Masukkan kode dari email & password baru', npSubLink: 'Masukkan password baru Anda',
       otpLabel: 'Kode verifikasi (6 digit)', newPwd: 'Password baru', repeatPwd: 'Ulangi password baru', savePwd: 'Simpan password baru', saving: 'Menyimpan...',
@@ -1027,6 +1031,10 @@ export const translations = {
       resendWait: 'Resend ({detik}s)',
       otpValidFor: 'Code valid for', otpExpired: 'The code has expired. Click "Resend" to get a new one.',
       errOtpWrong: 'Wrong or expired code. Check the code again, or click "Resend" for a new one.', infoResent: 'A new code has been sent.', errRate: 'Too many attempts. Please wait a moment.',
+      // OTP attempt limiter (P2)
+      errOtpWrongLeft: 'Wrong or expired code. {n} attempts left before the code input is temporarily locked.',
+      errOtpLocked: 'Code input is temporarily locked after too many wrong attempts. Try again in {waktu}.',
+      otpAttemptsLeft: '{n} attempts left before the code input is temporarily locked.',
       fgTitle: 'Forgot Password', fgSub: 'Enter your account email', fgSend: 'Send reset code', fgSending: 'Sending...', backToLogin: '← Back to Sign in',
       npTitle: 'New Password', npSubReset: 'Enter the email code & new password', npSubLink: 'Enter your new password',
       otpLabel: 'Verification code (6 digits)', newPwd: 'New password', repeatPwd: 'Repeat new password', savePwd: 'Save new password', saving: 'Saving...',
