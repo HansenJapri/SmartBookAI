@@ -69,8 +69,10 @@ export default function Hpp() {
 
   // Muat komposisi tersimpan saat produk dipilih.
   useEffect(() => {
-    if (!productId) { setRows([]); setPakaiKomposisi(false); setYieldInfo(null); return }
+    if (!productId) { setRows([]); setPakaiKomposisi(false); setYieldInfo(null); setHppLangsung(''); return }
     setLoadingBom(true); setMsg(''); setErr(''); setNote('')
+    const terpilih = products.find((x) => x.id === productId)
+    setHppLangsung(terpilih?.cost_price ? String(terpilih.cost_price) : '')
     Promise.all([fetchBom(productId), fetchIngredients()])
       .then(([boms, ings]) => {
         const byId = new Map(ings.map((i) => [i.id, i]))
@@ -288,13 +290,19 @@ export default function Hpp() {
             <div style={{ marginTop: 12 }}>
               <div className="field" style={{ maxWidth: 320 }}>
                 <label htmlFor="hpp-langsung">{hp.lDirectCost.replace('{unit}', product.unit)}</label>
+                {/* Nilai awal diisi sekali saat produk dipilih (lihat efek
+                    [productId]), bukan lewat fallback di sini. Versi sebelumnya
+                    memakai `hppLangsung === '' ? product.cost_price : ...`,
+                    sehingga mengosongkan kolom membuatnya terisi ulang sendiri —
+                    pengguna tidak bisa menyetel HPP ke 0 — dan label tombol
+                    menampilkan harga lama padahal yang tersimpan 0. */}
                 <input id="hpp-langsung" className="input" type="number" min="0" step="any"
-                  value={hppLangsung === '' ? (product.cost_price || '') : hppLangsung}
+                  value={hppLangsung}
                   onChange={(e) => setHppLangsung(e.target.value)} placeholder="0" />
               </div>
               <button className="btn btn-primary btn-block btn-lg" style={{ marginTop: 10 }}
                 onClick={simpanTanpaKomposisi} disabled={saving}>
-                {saving ? hp.saving : `${hp.saveComposition} ${rupiah(Number(hppLangsung === '' ? product.cost_price : hppLangsung) || 0)}`}
+                {saving ? hp.saving : `${hp.saveComposition} ${rupiah(Number(hppLangsung) || 0)}`}
               </button>
             </div>
           ) : loadingBom ? <div className="spinner" style={{ margin: '16px auto' }} /> : (
