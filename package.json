@@ -12,6 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:db": "node scripts/uji-db.mjs",
     "test:e2e": "playwright test",
     "test:perf": "playwright test --project=performance --workers=1",
     "cek:bundle": "node scripts/cek-bundle.mjs",

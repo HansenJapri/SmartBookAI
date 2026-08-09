@@ -52,3 +52,42 @@
 --
 -- Definisi lengkap fungsinya ada di database (dipasang lewat migrasi di atas).
 -- Berkas ini merekam ALASAN dan urutan verifikasinya.
+
+-- ============================================================
+-- LANJUTAN — utang teknis #2 ditutup (migrasi stock_applied_green)
+-- ============================================================
+--
+-- MASALAH
+-- delete_transaction_with_stock() MENYIMPULKAN bahwa setiap baris ber-product_id
+-- pasti pernah menggerakkan stok. Benar untuk baris dari add_transaction_with_stock(),
+-- TIDAK benar untuk baris dari addTransactionsBulk() (impor CSV/marketplace) atau
+-- dari updateTransaction() yang menambahkan product_id belakangan — keduanya tidak
+-- pernah menyentuh stok. Menghapus baris seperti itu MENAMBAH stok yang tidak
+-- pernah dikurangi; angkanya tetap "masuk akal" di layar sehingga sulit disadari.
+--
+-- Hari ini belum ada parser impor yang mengisi product_id, jadi bahayanya laten —
+-- tapi whitelist KOLOM_TRANSAKSI di api.js mengizinkannya, jadi tinggal menunggu.
+--
+-- PERBAIKAN
+-- transactions.stock_applied (boolean, default false) MEREKAM fakta itu, tidak
+-- lagi menyimpulkannya. Hanya add_transaction_with_stock() yang menyetelnya true,
+-- dan hanya bila benar-benar ada baris produk yang diproses.
+--
+-- Backfill: sampai hari ini satu-satunya jalur yang mengisi product_id + qty
+-- adalah TransactionModal / Struk / asisten AI, ketiganya lewat RPC tersebut.
+-- Jadi baris lama ber-product_id memang menggerakkan stok. Backfill menyamakan
+-- perilaku dengan yang SUDAH berlaku sebelum kolom ini ada — tidak ada data lama
+-- yang berubah arti.
+--
+-- TDD: test_stock_applied() ditulis lebih dulu, gagal dengan
+-- 'column "stock_applied" does not exist', lalu hijau 4/4 setelah implementasi.
+--
+-- ============================================================
+-- Utang teknis #4 ditutup — gerbang DB kini berjalan di CI
+-- ============================================================
+-- public.test_semua() menggabungkan seluruh suite + lint jadi satu pintu:
+--   test_bom (14) + test_pembatalan (8) + test_stock_applied (4)
+--   + rls_lint + tenancy_lint (setiap baris = pelanggaran)
+-- Dijalankan scripts/uji-db.mjs lewat `npm run test:db` dan job "db" di
+-- .github/workflows/test.yml. Tanpa rahasia SUPABASE_DB_URL skripnya keluar
+-- sukses dengan pesan "dilewati" — PR dari fork tidak punya akses rahasia.
