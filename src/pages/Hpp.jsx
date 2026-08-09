@@ -351,9 +351,9 @@ export default function Hpp() {
                           const satuanHarga = hargaPerSatuan(r)
                           return (
                           <tr key={i} className={r.is_ai_estimated ? 'row-ai' : ''}>
-                            <td><input className="input" value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder={hp.namePh} style={{ minWidth: 140 }} /></td>
+                            <td><input className="input" value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder={hp.namePh} aria-label={hp.thComponent} style={{ minWidth: 140 }} /></td>
                             <td>
-                              <select className="input" value={r.type} onChange={(e) => setRow(i, { type: e.target.value })} style={{ minWidth: 112 }}>
+                              <select className="input" value={r.type} onChange={(e) => setRow(i, { type: e.target.value })} aria-label={hp.thCostType} style={{ minWidth: 112 }}>
                                 <option value="bahan">{hp.typeBahan}</option>
                                 <option value="kemasan">{hp.typeKemasan}</option>
                                 <option value="energi">{hp.typeEnergi}</option>
@@ -450,7 +450,7 @@ export default function Hpp() {
                               </select>
                             </td>
                             <td><input className="input" type="number" step="any" value={r.simPct} onChange={(e) => setRow(i, { simPct: e.target.value })} placeholder="auto" style={{ width: 92, textAlign: 'right' }} title={hp.simPctTitle} aria-label={hp.thSimPct} /></td>
-                            <td><button type="button" className="icon-btn danger" onClick={() => removeRow(i)} title={hp.delTitle}><Trash2 size={15} /></button></td>
+                            <td><button type="button" className="icon-btn danger" onClick={() => removeRow(i)} title={hp.delTitle} aria-label={`${hp.delTitle} ${r.name || hp.namePh}`}><Trash2 size={15} /></button></td>
                           </tr>
                           )
                         })}

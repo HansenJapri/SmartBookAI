@@ -238,7 +238,7 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
                     return (
                       <div className="prod-line" key={l.key}>
                         <div className="pl-row">
-                          <select className="input" value={l.productId} onChange={(e) => pickProduct(l.key, e.target.value)}>
+                          <select className="input" value={l.productId} onChange={(e) => pickProduct(l.key, e.target.value)} aria-label="Pilih produk">
                             <option value="">— pilih produk —</option>
                             {Object.entries(productGroups).map(([g, list]) => (
                               <optgroup key={g} label={g}>
@@ -260,7 +260,7 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
                             </div>
                             <div className="pl-cell">
                               <span className="pl-lbl">Harga satuan (Rp)</span>
-                              <input className="input" type="number" min="0" step="any" value={l.unitPrice}
+                              <input className="input" type="number" min="0" step="any" value={l.unitPrice} aria-label="Harga satuan"
                                 onChange={(e) => setLine(l.key, { unitPrice: e.target.value, priceEdited: false })} />
                             </div>
                             <div className="pl-cell">

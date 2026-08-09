@@ -529,14 +529,14 @@ export default function Chatbot() {
                       ) : (
                         <div key={j} className="draft-card">
                           <div className="draft-row">
-                            <select className="input" value={d.direction}
+                            <select className="input" value={d.direction} aria-label="Jenis transaksi"
                               onChange={(e) => patchDraft(i, j, { direction: e.target.value, category: (catNames(e.target.value)[0] || '') })}>
                               <option value="in">Pemasukan</option>
                               <option value="out">Pengeluaran</option>
                             </select>
                             <input className="input" type="number" min="0" value={d.amount}
                               onChange={(e) => patchDraft(i, j, { amount: e.target.value })} placeholder="Nominal (Rp)" />
-                            <button type="button" className="icon-btn danger" title="Hapus" onClick={() => removeDraft(i, j)}><Trash2 size={14} /></button>
+                            <button type="button" className="icon-btn danger" title="Hapus" aria-label="Hapus transaksi ini dari daftar" onClick={() => removeDraft(i, j)}><Trash2 size={14} /></button>
                           </div>
                           <div className="draft-row">
                             <select className="input" value={d.category} onChange={(e) => patchDraft(i, j, { category: e.target.value })}>

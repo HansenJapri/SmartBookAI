@@ -379,7 +379,7 @@ export default function Kpi() {
                         {Number(r.deduction) > 0 && <span className="num-hint is-cut">−{rupiah(Number(r.deduction))}</span>}
                       </td>
                       <td className="col-label">
-                        <input className="input" defaultValue={r.label || ''} placeholder={kp.labelPh}
+                        <input className="input" defaultValue={r.label || ''} placeholder={kp.labelPh} aria-label={kp.labelPh}
                           onBlur={(e) => patchRule(r, 'label', e.target.value)} />
                       </td>
                       <td className="col-act"><button className="icon-btn danger" aria-label={kp.del} onClick={() => removeRule(r)}><Trash2 size={14} /></button></td>

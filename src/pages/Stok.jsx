@@ -544,8 +544,8 @@ export default function Stok() {
                         <td>
                           <div className="s2-log-actions">
                             <button className="s2-icon-btn" title={sk.detailProduct} aria-label={sk.detailAria.replace('{name}', p.name)} onClick={() => bukaDetail(p)}><Info size={18} /></button>
-                            <button className="s2-icon-btn" title={sk.edit} onClick={() => startEdit(p)}><Pencil size={18} /></button>
-                            <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
+                            <button className="s2-icon-btn" title={sk.edit} aria-label={sk.editAria.replace('{name}', p.name)} onClick={() => startEdit(p)}><Pencil size={18} /></button>
+                            <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} aria-label={sk.delAria.replace('{name}', p.name)} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
                           </div>
                         </td>
                       </tr>
@@ -600,8 +600,8 @@ export default function Stok() {
                     <td className={`s2-log-stock ${lv.variant === 'danger' ? 's2-log-stock-danger' : ''}`}>{Number(p.stock)} {p.unit || 'pcs'}</td>
                     <td>
                       <div className="s2-log-actions">
-                        <button className="s2-icon-btn" title={sk.edit} onClick={() => startEdit(p)}><Pencil size={18} /></button>
-                        <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
+                        <button className="s2-icon-btn" title={sk.edit} aria-label={sk.editAria.replace('{name}', p.name)} onClick={() => startEdit(p)}><Pencil size={18} /></button>
+                        <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} aria-label={sk.delAria.replace('{name}', p.name)} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
                       </div>
                     </td>
                   </tr>
