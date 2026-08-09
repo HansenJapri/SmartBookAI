@@ -310,7 +310,9 @@ export const translations = {
       thDate: 'Tanggal', thType: 'Jenis', thDesc: 'Deskripsi', thChannel: 'Channel', thCat: 'Kategori', thStatus: 'Status', thAmount: 'Nominal',
       typeIn: 'Pemasukan', typeOut: 'Pengeluaran', payBelum: 'Belum Lunas', payLunas: 'Lunas',
       receipt: 'struk', viewReceipt: 'Lihat struk', invoice: 'Invoice', invoiceTitle: 'Buat / bagikan invoice', edit: 'Edit', del: 'Hapus',
-      confirmDel: 'Hapus transaksi ini?', openReceiptErr: 'Gagal membuka struk: ', openReceiptTitle: 'Struk gagal dibuka',
+      confirmDel: 'Hapus transaksi ini? Stok yang sempat berubah karenanya akan dikembalikan.',
+      stockRestored: 'Stok dikembalikan —',
+      openReceiptErr: 'Gagal membuka struk: ', openReceiptTitle: 'Struk gagal dibuka',
       showingA: 'Menampilkan', showingB: 'dari', showingC: 'transaksi.',
     },
     reveal: {
@@ -1191,7 +1193,9 @@ export const translations = {
       thDate: 'Date', thType: 'Type', thDesc: 'Description', thChannel: 'Channel', thCat: 'Category', thStatus: 'Status', thAmount: 'Amount',
       typeIn: 'Income', typeOut: 'Expense', payBelum: 'Unpaid', payLunas: 'Paid',
       receipt: 'receipt', viewReceipt: 'View receipt', invoice: 'Invoice', invoiceTitle: 'Create / share invoice', edit: 'Edit', del: 'Delete',
-      confirmDel: 'Delete this transaction?', openReceiptErr: 'Failed to open receipt: ', openReceiptTitle: 'Could not open receipt',
+      confirmDel: 'Delete this transaction? Any stock it moved will be restored.',
+      stockRestored: 'Stock restored —',
+      openReceiptErr: 'Failed to open receipt: ', openReceiptTitle: 'Could not open receipt',
       showingA: 'Showing', showingB: 'of', showingC: 'transactions.',
     },
     reveal: {

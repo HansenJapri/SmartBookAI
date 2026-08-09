@@ -67,8 +67,21 @@ export default function Transactions() {
 
   const remove = async (id) => {
     if (!await showConfirm({ message: T.confirmDel, type: 'error' })) return
-    await deleteTransaction(id)
-    setTx((prev) => prev.filter((t2) => t2.id !== id))
+    setStockMsg('')
+    try {
+      // Penghapusan sekarang membalik efek stoknya juga. Perubahannya
+      // ditampilkan, bukan dilakukan diam-diam: pengguna perlu tahu bahwa
+      // menghapus satu penjualan mengembalikan bahan bakunya ke gudang.
+      const changes = await deleteTransaction(id)
+      setTx((prev) => prev.filter((t2) => t2.id !== id))
+      if (changes?.length) {
+        setStockMsg(T.stockRestored + ' ' + changes
+          .map((c) => `${c.name}: ${Number(c.before)} → ${Number(c.after)} ${c.unit}`)
+          .join('; '))
+      }
+    } catch (e) {
+      showAlert({ type: 'error', title: T.del, message: e.message })
+    }
   }
 
   const openReceipt = async (path) => {

@@ -1,0 +1,54 @@
+-- ============================================================
+-- Aturan 6 Shneiderman (pembalikan mudah): menghapus transaksi kini MEMBALIK
+-- efek stoknya, bukan hanya membuang barisnya.
+--
+-- Terpasang di project hexaidoxmeycctpwfbst sebagai migrasi:
+--   test_pembatalan_stok_red
+--   pembatalan_stok_green
+--   transaksi_merekam_stok_yang_digerakkan
+--
+-- Pemakaian:  select * from public.test_pembatalan();  -- 8 baris, semua lulus
+-- ============================================================
+--
+-- MASALAH
+-- Penjualan produk ber-komposisi memotong stok bahan bakunya secara otomatis.
+-- Tetapi deleteTransaction() hanya menghapus baris transaksi, sehingga pengguna
+-- yang salah catat lalu menghapusnya melihat stok bahan TETAP berkurang — tanpa
+-- jalan membatalkan selain koreksi manual lewat Stock Opname. Aksi otomatis yang
+-- tidak bisa dibatalkan adalah aksi yang bikin pengguna takut mencoba.
+--
+-- URUTAN TDD (9 Agu 2026)
+-- 1. RED   — test_pembatalan() ditulis lebih dulu; gagal dengan
+--            "function public.delete_transaction_with_stock does not exist".
+-- 2. Implementasi restore_pack_stock / restore_bom_for_sale /
+--    delete_transaction_with_stock.
+-- 3. Masih MERAH di B2/B3/B5/B6/B7 — dan di sinilah tesnya membayar dirinya:
+--
+--    CACAT YANG DITEMUKAN: add_transaction_with_stock() menyesuaikan stok dari
+--    p_lines, tetapi kolom product_id/qty pada baris transaksi hanya terisi bila
+--    pemanggil KEBETULAN juga menaruhnya di p_tx. Transaksi tidak merekam stok
+--    apa yang ia gerakkan, jadi pembalikan tidak punya apa pun untuk dibalik.
+--    Tanpa tes ini, fitur pembatalan akan tampak "selesai" padahal diam-diam
+--    tidak bekerja untuk sebagian pemanggil.
+--
+-- 4. Perbaikan: bila p_tx tidak menyebut product_id sementara ada TEPAT SATU
+--    baris produk sah, baris itulah yang dicatat. Lebih dari satu baris sengaja
+--    dibiarkan kosong — skema transactions cuma punya satu pasang
+--    product_id/qty, dan menebak salah satunya akan memulihkan produk yang keliru.
+-- 5. GREEN — 8/8, dan test_bom() yang lama tetap 14/14.
+--
+-- MATEMATIKA PEMBALIKAN KEMASAN
+-- restore_pack_stock() adalah kebalikan tepat dari consume_pack_stock():
+--   stok 11, terbuka 100, kembalikan 600
+--     -> 100 - 600 = -500 ; ceil(500/800) = 1 kemasan naik
+--     -> stok 12, terbuka -500 + 800 = 300   (persis keadaan sebelum konsumsi)
+--
+-- BATAS YANG DIKETAHUI (sengaja tidak disembunyikan)
+-- Pembalikan menghitung ulang dari komposisi yang BERLAKU SEKARANG dan
+-- mengasumsikan stok belum disentuh hal lain sejak transaksi dibuat. Bila
+-- komposisi produk sudah diubah, atau stok sempat dipotong sampai nol
+-- (greatest(0, ...) pada consume), angka pulihnya bisa berbeda dari keadaan
+-- semula. Untuk kasus itu Stock Opname tetap jalur koreksi yang benar.
+--
+-- Definisi lengkap fungsinya ada di database (dipasang lewat migrasi di atas).
+-- Berkas ini merekam ALASAN dan urutan verifikasinya.

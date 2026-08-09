@@ -234,9 +234,24 @@ export async function updateTransaction(id, patch) {
   return data
 }
 
+// Menghapus transaksi SEKALIGUS membalik efek stoknya, dalam satu transaksi
+// database (RPC delete_transaction_with_stock).
+//
+// Sebelumnya penghapusan hanya membuang barisnya. Padahal penjualan produk
+// ber-komposisi sudah memotong stok bahan otomatis, jadi salah catat lalu
+// menghapusnya meninggalkan stok yang berkurang selamanya — pengguna tidak
+// punya jalan membatalkan selain koreksi manual lewat Stock Opname. Itu
+// melanggar prinsip "setiap aksi harus mudah dibalik".
+//
+// Mengembalikan daftar perubahan stok supaya UI bisa memberi tahu apa yang
+// dipulihkan, bukan menghapus diam-diam.
 export async function deleteTransaction(id) {
-  const { error } = await wsDelete(await wsOwner(), 'transactions').eq('id', id)
+  const { data, error } = await supabase.rpc('delete_transaction_with_stock', {
+    p_id: id,
+    p_owner: await wsOwner(),
+  })
   if (error) throw error
+  return data?.changes || []
 }
 
 // ---------- ATURAN KATEGORI ----------
