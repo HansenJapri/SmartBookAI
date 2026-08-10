@@ -59,3 +59,31 @@
 --
 -- BELUM OTOMATIS DI CI: runner GitHub tidak punya akses ke database ini.
 -- Harness dijalankan manual sebelum rilis, atau lewat MCP/psql.
+
+-- ============================================================
+-- LANJUTAN 10 Agu 2026 — utang teknis #3 diperkecil
+-- ============================================================
+--
+-- MASALAH
+-- Harness ini MENULIS baris nyata (produk, bahan, komposisi, transaksi) ke
+-- database PRODUKSI memakai akun tester. Ia memang membersihkan miliknya
+-- sendiri di jalur sukses maupun di blok exception — tetapi pembersihan yang
+-- bergantung pada kode yang sedang diuji adalah jaminan yang melingkar. Satu
+-- `raise` di tempat tak terduga, satu perubahan prefiks nama, atau koneksi yang
+-- putus di tengah jalan sudah cukup untuk meninggalkan sampah di database yang
+-- dipakai pengguna sungguhan.
+--
+-- PERBAIKAN
+-- scripts/uji-db.mjs kini membungkus SELURUH pemanggilan dengan
+--   begin;  select ... from public.test_semua();  rollback;
+-- sehingga jaminannya berpindah ke Postgres: apa pun yang terjadi di dalam,
+-- tidak ada satu byte pun yang di-commit. Keluaran SELECT tetap terkirim ke
+-- stdout sebelum ROLLBACK, jadi hasil ujinya tidak ikut hilang.
+-- Terverifikasi: test_semua() mengembalikan 26/26 di dalam blok transaksi eksplisit.
+--
+-- YANG MASIH TERSISA
+-- Pengujian tetap berjalan di instance produksi: ia memakai koneksi dan
+-- mengunci baris sesaat (SELECT ... FOR UPDATE). Ringan dan sesaat, tapi bukan
+-- nol. Memindahkannya ke database terpisah (Supabase branch atau Postgres lokal
+-- di CI) adalah langkah berikutnya yang benar; ROLLBACK menutup bagian paling
+-- berbahayanya lebih dulu.
