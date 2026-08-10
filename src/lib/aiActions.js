@@ -182,9 +182,50 @@ export async function saveDraftAction(draft) {
         price: num(values.price) ?? 0, cost_price: num(values.cost_price) ?? 0,
         stock: num(values.stock) ?? 0, min_stock: num(values.min_stock) ?? 0,
         category: txt(values.category), supplier_id: values.supplier_id || null,
+        kind: values.kind === 'bahan' ? 'bahan' : 'jual',
       }
       if (operation === 'update') { await updateProduct(targetId, row); return 'Produk diperbarui.' }
-      await addProduct(row)
+      const produk = await addProduct(row)
+
+      // ---- Multi-routing: stok masuk = uang keluar ----
+      //
+      // Menambah stok tanpa mencatat pengeluarannya membuat laporan laba rugi
+      // terlalu bagus: barangnya bertambah di gudang, uangnya tidak pernah
+      // tercatat keluar. Karena itu penambahan stok yang biayanya diketahui ikut
+      // menulis satu baris pengeluaran.
+      //
+      // Persetujuannya EKSPLISIT lewat field `catat_pengeluaran` pada kartu
+      // pratinjau — mencatat uang keluar diam-diam sama merusaknya dengan tidak
+      // mencatatnya sama sekali, hanya ke arah sebaliknya.
+      const modal = num(values.cost_price) ?? 0
+      const jumlah = num(values.stock) ?? 0
+      const nilai = Math.round(modal * jumlah)
+      const ikutCatat = values.catat_pengeluaran !== false && values.catat_pengeluaran !== 'false'
+      if (ikutCatat && nilai > 0) {
+        try {
+          await addTransactionWithStock(
+            {
+              description: `Pembelian stok awal: ${jumlah} ${row.unit} ${row.name}`.slice(0, 200),
+              amount: nilai,
+              direction: 'out',
+              category: values.expense_category || 'Pembelian Stok',
+              channel: 'asisten',
+              occurred_at: occurredAtIso(values.occurred_at),
+              supplier_id: row.supplier_id,
+              product_id: produk.id,
+              qty: jumlah,
+            },
+            // Stok awal sudah ikut tersimpan lewat addProduct; kalau baris produk
+            // dikirim juga, stoknya akan bertambah dua kali.
+            [],
+          )
+          return `Produk "${row.name}" ditambahkan, dan pengeluaran ${nilai.toLocaleString('id-ID')} tercatat sebagai pembelian stok.`
+        } catch {
+          // Produknya sudah tersimpan; katakan apa adanya supaya pengguna bisa
+          // mencatat pengeluarannya manual alih-alih mengira semuanya gagal.
+          return `Produk "${row.name}" ditambahkan, tetapi pencatatan pengeluarannya gagal — catat manual di menu Transaksi.`
+        }
+      }
       return `Produk "${row.name}" ditambahkan.`
     }
 

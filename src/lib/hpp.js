@@ -44,6 +44,55 @@ export function computeHpp(rows) {
   return rows.reduce((s, r) => s + (Number(r.qty) || 0) * (Number(r.price_per_unit) || 0), 0)
 }
 
+// ---------- Konversi kemasan & biaya per periode ----------
+//
+// Harga per satuan dari harga belanja per KEMASAN.
+//
+// Ini menutup akar bug "1200 terbaca 12000": pemilik warung tahu harganya
+// sebagai "satu bungkus Rp 12.000, isinya 800 gram", bukan "Rp 15 per gram".
+// Dulu satu-satunya kolom yang ada adalah harga per satuan, jadi angka kemasan
+// diketik di sana dan langsung dikalikan takaran resep. Sekarang harga satuan
+// DIHITUNG dari kemasan; kolom manual hanya dipakai bila kemasannya tidak diisi.
+export function hargaPerSatuan(row) {
+  const isi = Number(row?.pack_size) || 0
+  const hargaKemasan = Number(row?.pack_price) || 0
+  if (isi > 0 && hargaKemasan > 0) return hargaKemasan / isi
+  return Number(row?.price_per_unit) || 0
+}
+
+// Biaya satu baris komposisi untuk MEMBUAT SATU unit produk.
+//
+// Dua dasar perhitungan, karena UMKM memang punya dua jenis biaya:
+//   per_unit    -> takaran x harga satuan (bahan, kemasan)
+//   per_periode -> biaya bulanan dibagi perkiraan hasil produksi periode itu
+//                  (sewa tempat, listrik, gaji) — dibiarkan 0 bila jumlah
+//                  produksinya belum diisi, karena membagi dengan 0 hanya akan
+//                  menghasilkan HPP tak hingga yang membingungkan.
+export function biayaBarisPerUnit(row) {
+  if (row?.cost_basis === 'per_periode') {
+    const hasil = Number(row.period_output) || 0
+    return hasil > 0 ? (Number(row.period_amount) || 0) / hasil : 0
+  }
+  return (Number(row?.qty_per_unit ?? row?.qty) || 0) * hargaPerSatuan(row)
+}
+
+// HPP dari baris editor komposisi (sudah memperhitungkan kemasan & periode).
+export function hppKomposisi(rows) {
+  return (rows || []).reduce((s, r) => s + biayaBarisPerUnit(r), 0)
+}
+
+// Berapa unit produk yang bisa dibuat dari sisa stok satu bahan.
+// stock/pack_size/opened_used mengikuti kolom products; qtyPerUnit = takaran resep.
+export function yieldDariStok({ stock, pack_size, opened_used }, qtyPerUnit) {
+  const takaran = Number(qtyPerUnit) || 0
+  if (takaran <= 0) return null
+  const isi = Number(pack_size) || 0
+  const tersedia = isi > 0
+    ? Math.max(0, (Number(stock) || 0) * isi - (Number(opened_used) || 0))
+    : Math.max(0, Number(stock) || 0)
+  return Math.floor(tersedia / takaran)
+}
+
 // Margin (%) terhadap harga jual. price 0 -> 0.
 export function marginPct(price, hpp) {
   const p = Number(price) || 0
@@ -61,10 +110,12 @@ export function priceForMargin(hpp, targetMarginPct) {
 // adjustments: { [ingredientKeyOrId]: pct } — pct dalam persen (mis. 12 = +12%).
 // Kembalikan HPP baru.
 export function applyAdjustments(rows, getPctForRow) {
+  // Memakai biayaBarisPerUnit agar skenario ikut menghormati harga kemasan dan
+  // biaya per periode; baris lama berbentuk { qty, price_per_unit } tetap
+  // menghasilkan angka yang sama karena keduanya punya jalur cadangan di sana.
   return rows.reduce((s, r) => {
     const pct = Number(getPctForRow(r)) || 0
-    const price = (Number(r.price_per_unit) || 0) * (1 + pct / 100)
-    return s + (Number(r.qty) || 0) * price
+    return s + biayaBarisPerUnit(r) * (1 + pct / 100)
   }, 0)
 }
 
@@ -72,7 +123,7 @@ export function applyAdjustments(rows, getPctForRow) {
 // ter-mapping memakai rentang estimasi sinyal [min, max]; sisanya 0.
 // signalsByKey: { [commodity_key]: { est_pct_min, est_pct_max } }
 export function applyMacroScenario(rows, signalsByKey) {
-  const base = computeHpp(rows)
+  const base = hppKomposisi(rows)
   const min = applyAdjustments(rows, (r) => signalsByKey[r.commodity_key]?.est_pct_min ?? 0)
   const max = applyAdjustments(rows, (r) => signalsByKey[r.commodity_key]?.est_pct_max ?? 0)
   return { base, min: Math.min(min, max), max: Math.max(min, max) }
@@ -81,7 +132,7 @@ export function applyMacroScenario(rows, signalsByKey) {
 // Skenario pelemahan kurs: rupiah melemah kursPct% -> bahan naik sesuai
 // faktor keterpaparan impor per baris.
 export function applyKursScenario(rows, kursPct) {
-  const base = computeHpp(rows)
+  const base = hppKomposisi(rows)
   const next = applyAdjustments(rows, (r) => (Number(kursPct) || 0) * (EXPOSURE_FACTOR[r.import_exposure] ?? 0.1))
   return { base, next }
 }

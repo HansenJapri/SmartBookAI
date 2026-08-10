@@ -7,6 +7,7 @@ import { rupiah, fmtDate } from '../lib/format'
 import { Upload, FileText, Smartphone, Store } from 'lucide-react'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
 export default function Import() {
   const nav = useNavigate()
@@ -287,8 +288,8 @@ export default function Import() {
                         <td style={{ maxWidth: 240 }}>{tt.description}</td>
                         <td style={{ textAlign: 'right' }} className={tt.direction === 'in' ? 'amt-in' : 'amt-out'}>{rupiah(tt.amount)}</td>
                         <td>
-                          <input type="date" className="input" style={{ padding: '5px 8px', fontSize: 13 }}
-                            value={keYmd(tt.occurred_at)} onChange={(e) => perbaikiTanggal(tt._id, e.target.value)}
+                          <input type="date" {...BATAS_DATE} className="input" style={{ padding: '5px 8px', fontSize: 13 }}
+                            value={keYmd(tt.occurred_at)} onChange={(e) => perbaikiTanggal(tt._id, bersihkanTanggal(e.target.value))}
                             aria-label={i.thFix} />
                         </td>
                         <td><button className="btn btn-ghost" onClick={() => lewatiBaris([tt._id])}>{i.dateSkipOne}</button></td>

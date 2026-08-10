@@ -6,6 +6,7 @@ import AuthSide from '../components/AuthSide'
 import PasswordChecklist from '../components/PasswordChecklist'
 import OtpInput from '../components/OtpInput'
 import { isEmailValid, isPasswordValid } from '../lib/validators'
+import { useOtpLock, OTP_BUCKET, OTP_MAX_ATTEMPTS } from '../lib/useOtpLock'
 
 export default function ForgotPassword() {
   const { requestPasswordReset, verifyRecoveryAndSetPassword, updatePassword, user } = useAuth()
@@ -20,6 +21,9 @@ export default function ForgotPassword() {
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
+  // Pembatas percobaan kode (P2). Hanya berlaku untuk jalur OTP; jalur tautan
+  // ('link') sudah dijaga oleh sesi recovery yang terbit dari email.
+  const kunci = useOtpLock(OTP_BUCKET.recovery, email, step === 'reset')
 
   useEffect(() => {
     if (user && window.location.pathname === '/reset-password') setStep('link')
@@ -40,6 +44,7 @@ export default function ForgotPassword() {
 
   const doReset = async (e) => {
     e.preventDefault(); setErr('')
+    if (step === 'reset' && kunci.terkunci) return setErr(a.errOtpLocked.replace('{waktu}', kunci.tungguTeks))
     if (step === 'reset' && otp.length < 6) return setErr(a.errOtpFull)
     if (!isPasswordValid(pw)) return setErr(a.errPwdReq)
     if (pw !== pw2) return setErr(a.errPwdMatch)
@@ -47,11 +52,23 @@ export default function ForgotPassword() {
     try {
       if (step === 'link') await updatePassword(pw)
       else await verifyRecoveryAndSetPassword({ email, token: otp, newPassword: pw })
+      if (step === 'reset') await kunci.bersihkan()
       setInfo(a.pwdChanged)
       setTimeout(() => nav('/masuk'), 1400)
     } catch (e) {
       const m = (e.message || '').toLowerCase()
-      if (m.includes('expired') || m.includes('invalid') || m.includes('token')) setErr(a.errOtpExpired)
+      const kodeSalah = m.includes('expired') || m.includes('invalid') || m.includes('token')
+      // Kode recovery yang salah dihitung sebagai percobaan: tanpa ini, kode
+      // pemulihan bisa ditebak berulang kali sampai masa berlakunya habis.
+      if (step === 'reset' && kodeSalah) {
+        const s = await kunci.catatGagal()
+        setOtp('')
+        setErr(s.locked
+          ? a.errOtpLocked.replace('{waktu}', kunci.tungguTeks || `${Math.ceil(s.retryAfter / 60)}:00`)
+          : `${a.errOtpExpired} ${a.otpAttemptsLeft.replace('{n}', s.remaining)}`)
+        return
+      }
+      if (kodeSalah) setErr(a.errOtpExpired)
       else setErr(e.message)
     } finally { setBusy(false) }
   }
@@ -80,12 +97,18 @@ export default function ForgotPassword() {
             <p className="sub">{step === 'reset' ? a.npSubReset : a.npSubLink}</p>
             {info && <div className="alert alert-ok">{info}</div>}
             {err && <div className="alert alert-err">{err}</div>}
+            {step === 'reset' && kunci.terkunci && (
+              <div className="alert alert-err">{a.errOtpLocked.replace('{waktu}', kunci.tungguTeks)}</div>
+            )}
             {step === 'reset' && (
               <div className="field">
                 <label id="fg-otp-label">{a.otpLabel}</label>
                 <div role="group" aria-labelledby="fg-otp-label">
-                  <OtpInput value={otp} onChange={setOtp} />
+                  <OtpInput value={otp} onChange={setOtp} disabled={kunci.terkunci} />
                 </div>
+                {!kunci.terkunci && kunci.sisaPercobaan < OTP_MAX_ATTEMPTS && (
+                  <p className="muted-sm" style={{ marginTop: 4 }}>{a.otpAttemptsLeft.replace('{n}', kunci.sisaPercobaan)}</p>
+                )}
               </div>
             )}
             <div className="field">
@@ -97,7 +120,7 @@ export default function ForgotPassword() {
               <label htmlFor="fg-repeat-password">{a.repeatPwd}</label>
               <input id="fg-repeat-password" className="input" type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="••••••••" />
             </div>
-            <button className="btn btn-primary btn-block btn-lg" disabled={busy}>{busy ? a.saving : a.savePwd}</button>
+            <button className="btn btn-primary btn-block btn-lg" disabled={busy || (step === 'reset' && kunci.terkunci)}>{busy ? a.saving : a.savePwd}</button>
             <p className="auth-foot"><Link to="/masuk">{a.backToLogin}</Link></p>
           </form>
         )}

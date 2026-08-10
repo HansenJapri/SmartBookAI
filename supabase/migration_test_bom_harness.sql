@@ -1,0 +1,61 @@
+-- ============================================================
+-- Harness uji mesin pemotongan stok BOM + perbaikan FK komposit.
+-- Terpasang di project hexaidoxmeycctpwfbst sebagai migrasi:
+--   test_bom_harness_v3, test_bom_k13_dan_pulihkan_floor,
+--   fk_komposit_supplier_dan_bahan
+--
+-- Pemakaian:  select * from public.test_bom();   -- 14 baris, semua lulus = true
+--             select * from public.rls_lint();     -- harus KOSONG
+--             select * from public.tenancy_lint(); -- harus KOSONG
+--
+-- Definisi lengkap fungsi ada di database (dipasang lewat migrasi di atas).
+-- Berkas ini merekam ALASAN dan hasil verifikasinya.
+-- ============================================================
+--
+-- KENAPA HARNESS INI ADA
+-- consume_pack_stock / consume_bom_for_sale / product_yield memindahkan STOK,
+-- dan stok adalah uang. Sebelumnya logikanya hanya pernah diverifikasi sekali
+-- secara manual lalu datanya dihapus — perubahan berikutnya tidak akan
+-- tertangkap oleh apa pun.
+--
+-- TEMUAN DARI UJI MUTASI (9 Agu 2026) — ini bagian terpentingnya.
+-- Versi pertama harness berisi 12 kasus dan semuanya hijau. Untuk menguji
+-- apakah harness-nya sendiri ada gunanya, floor() di consume_pack_stock diganti
+-- round() (bug yang sangat mungkin ditulis orang). SELURUH 12 kasus TETAP HIJAU.
+--
+-- Sebabnya: tidak satu pun kasus memakai pecahan di rentang 0,5-0,99.
+--   300/800 = 0,375  -> floor 0, round 0   (sama)
+--   900/800 = 1,125  -> floor 1, round 1   (sama)
+--   800/800 = 1,0    -> floor 1, round 1   (sama)
+--
+-- Kasus pembeda lalu ditambahkan (K4/K4b): pakai 500g dari kemasan 800g utuh.
+--   floor(0,625) = 0 -> stok tetap 12, terbuka 500      (benar)
+--   round(0,625) = 1 -> stok 11, terbuka -300           (salah, dan NEGATIF)
+-- Dengan bug terpasang K4 merah; setelah floor() dikembalikan, 14/14 hijau.
+--
+-- Pelajarannya: suite yang hijau belum tentu suite yang menguji. Kalau kasus
+-- baru ditambahkan ke sini, pastikan ia benar-benar bisa merah.
+--
+-- PERBAIKAN FK KOMPOSIT
+-- tenancy_lint() menemukan dua FK yang ditambahkan migrasi bom_inventaris_v1
+-- hanya memakai satu kolom, sehingga baris workspace A bisa menunjuk baris
+-- workspace B:
+--   transactions.supplier_id      -> suppliers(id)
+--   ingredients.source_product_id -> products(id)
+-- Keduanya diganti menjadi FK komposit (user_id, <kolom>) -> (user_id, id),
+-- memakai kunci unik *_tenant_key yang memang sudah tersedia. Data lama
+-- diperiksa lebih dulu; migrasi gagal keras bila ada tautan yang sudah
+-- menyeberang workspace, bukan diam-diam menghapusnya.
+--
+-- CATATAN JALANNYA
+-- products.user_id punya FK ke auth.users, jadi user_id sintetis ditolak.
+-- Harness memakai akun tester yang sudah ada dan MEMBERSIHKAN hanya baris
+-- ber-prefiks 'UJI ' — data asli akun itu tidak mungkin ikut terhapus walau
+-- harness gagal di tengah jalan (dijamin blok exception).
+--
+-- product_yield() melewati resolve_owner() yang menuntut auth.uid(); harness
+-- dijalankan service_role tanpa sesi, jadi klaim disetel LOKAL lewat
+-- public.test_bom_setup_claims() (is_local = true, hilang saat transaksi selesai).
+--
+-- BELUM OTOMATIS DI CI: runner GitHub tidak punya akses ke database ini.
+-- Harness dijalankan manual sebelum rilis, atau lewat MCP/psql.

@@ -14,12 +14,15 @@ import {
 } from '../lib/kpi'
 import { rupiah } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
+import { BATAS_MONTH, bersihkanTanggal } from '../lib/dateInput'
 
 // KPI Karyawan: skor per kriteria (otomatis dari absensi & papan tugas, atau
 // manual), total tertimbang, lalu jenjang skor -> usulan bonus/potongan yang
 // dipakai otomatis saat membuat draf gaji (tetap bisa dikoreksi manual).
 export default function Kpi() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const kp = t.kpi
   const srcLabel = (key) => (key === 'kehadiran' ? kp.srcKehadiran : key === 'tugas' ? kp.srcTugas : key === 'manual' ? kp.srcManual : (KPI_SOURCES.find((s) => s.key === key)?.label || key))
   const [employees, setEmployees] = useState(null)
@@ -67,15 +70,33 @@ export default function Kpi() {
   const savedOf = (empId, critId) =>
     savedScores.find((s) => s.employee_id === empId && s.criteria_id === critId)
 
-  // Skor efektif satu sel: manual edit di layar > tersimpan > hitung otomatis.
+  // Skor efektif satu sel.
+  //
+  // Urutan untuk kriteria OTOMATIS (kehadiran & tugas) sengaja menaruh hasil
+  // hitung DI ATAS nilai tersimpan: manual di layar > hitung otomatis > tersimpan.
+  //
+  // Versi sebelumnya mendahulukan nilai tersimpan, dan itu memutus hubungan yang
+  // justru jadi inti fiturnya: begitu skor satu periode disimpan, absensi yang
+  // dikoreksi sesudahnya (karyawan ternyata alpa, cuti ditambahkan susulan)
+  // tidak pernah lagi mengubah skor kehadiran. Angka KPI membeku di kondisi
+  // absensi saat tombol Simpan ditekan, padahal layarnya tetap berlabel
+  // "Otomatis: Kehadiran". Nilai tersimpan kini hanya jadi cadangan untuk
+  // periode lama yang catatan absensinya sudah tidak ada.
   const scoreOf = (emp, crit) => {
     const typed = manual[emp.id]?.[crit.id]
     if (typed !== undefined && typed !== '') return Math.max(0, Math.min(100, Number(typed) || 0))
     if (typed === '') return null
     const saved = savedOf(emp.id, crit.id)
+
+    if (crit.source === 'kehadiran') {
+      const hitung = attendanceScore(recapAttendance(attRows, emp.id))
+      return hitung !== null ? hitung : (saved ? Number(saved.score) : null)
+    }
+    if (crit.source === 'tugas') {
+      const hitung = taskScore(tasks, emp.id, period)
+      return hitung !== null ? hitung : (saved ? Number(saved.score) : null)
+    }
     if (saved) return Number(saved.score)
-    if (crit.source === 'kehadiran') return attendanceScore(recapAttendance(attRows, emp.id))
-    if (crit.source === 'tugas') return taskScore(tasks, emp.id, period)
     return null // manual belum diisi
   }
 
@@ -132,7 +153,7 @@ export default function Kpi() {
     } catch (e2) { setErr(e2.message) }
   }
   const removeCrit = async (c) => {
-    if (!confirm(kp.confirmDelCrit.replace('{name}', c.name))) return
+    if (!await showConfirm({ message: kp.confirmDelCrit.replace('{name}', c.name), type: 'error' })) return
     try {
       await deleteKpiCriteria(c.id)
       setCriteria((prev) => prev.filter((x) => x.id !== c.id))
@@ -162,7 +183,7 @@ export default function Kpi() {
     } catch (e2) { setErr(e2.message) }
   }
   const removeRule = async (r) => {
-    if (!confirm(kp.confirmDelTier)) return
+    if (!await showConfirm({ message: kp.confirmDelTier, type: 'error' })) return
     try {
       await deleteKpiBonusRule(r.id)
       setRules((prev) => prev.filter((x) => x.id !== r.id))
@@ -183,8 +204,8 @@ export default function Kpi() {
 
       <div className="toolbar">
         <button className="icon-btn" onClick={() => shiftPeriod(-1)} aria-label={kp.prevMonth}><ChevronLeft size={16} /></button>
-        <input className="input" type="month" style={{ maxWidth: 170 }} aria-label={kp.periodAria} value={period}
-          onChange={(e) => e.target.value && setPeriod(e.target.value)} />
+        <input className="input" type="month" {...BATAS_MONTH} style={{ maxWidth: 170 }} aria-label={kp.periodAria} value={period}
+          onChange={(e) => bersihkanTanggal(e.target.value) && setPeriod(bersihkanTanggal(e.target.value))} />
         <button className="icon-btn" onClick={() => shiftPeriod(1)} aria-label={kp.nextMonth}><ChevronRight size={16} /></button>
         <div style={{ flex: 1 }} />
         <button className="btn btn-primary" onClick={saveAll} disabled={busy || active.length === 0}>
@@ -280,13 +301,23 @@ export default function Kpi() {
           </div>
           <div className="table-wrap" style={{ marginTop: 8 }}>
             <table className="tbl">
-              <thead><tr><th>{kp.thName}</th><th>{kp.thWeight}</th><th>{kp.thSource}</th><th>{kp.thActive}</th><th></th></tr></thead>
+              {/* Lebar kolom dipatok eksplisit: kolom Bobot dulu dibatasi
+                  maxWidth 90 sehingga input angka + tombol panahnya terpotong
+                  dan angka tiga digit (100%) tidak terbaca utuh. */}
+              <thead><tr>
+                <th style={{ minWidth: 180 }}>{kp.thName}</th>
+                <th style={{ minWidth: 130, width: 130 }}>{kp.thWeight}</th>
+                <th style={{ minWidth: 150 }}>{kp.thSource}</th>
+                <th style={{ minWidth: 70 }}>{kp.thActive}</th>
+                <th style={{ width: 48 }}></th>
+              </tr></thead>
               <tbody>
                 {(criteria || []).map((c) => (
                   <tr key={c.id} style={c.active === false ? { opacity: 0.55 } : undefined}>
                     <td><b>{c.name}</b></td>
-                    <td style={{ maxWidth: 90 }}>
-                      <input className="input" type="number" min="0" max="100" defaultValue={Number(c.weight)}
+                    <td style={{ width: 130 }}>
+                      <input className="input" type="number" min="0" max="100" step="1" defaultValue={Number(c.weight)}
+                        style={{ width: 106, textAlign: 'right' }}
                         aria-label={kp.weightAria.replace('{name}', c.name)}
                         onBlur={(e) => { const w = Math.max(0, Math.min(100, Number(e.target.value) || 0)); if (w !== Number(c.weight)) patchCrit(c, { weight: w }) }} />
                     </td>
@@ -348,7 +379,7 @@ export default function Kpi() {
                         {Number(r.deduction) > 0 && <span className="num-hint is-cut">−{rupiah(Number(r.deduction))}</span>}
                       </td>
                       <td className="col-label">
-                        <input className="input" defaultValue={r.label || ''} placeholder={kp.labelPh}
+                        <input className="input" defaultValue={r.label || ''} placeholder={kp.labelPh} aria-label={kp.labelPh}
                           onBlur={(e) => patchRule(r, 'label', e.target.value)} />
                       </td>
                       <td className="col-act"><button className="icon-btn danger" aria-label={kp.del} onClick={() => removeRule(r)}><Trash2 size={14} /></button></td>

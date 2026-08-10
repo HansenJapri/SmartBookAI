@@ -2,13 +2,14 @@ import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Camera, FolderOpen, ScanLine, FileText, Sparkles, Plus, Trash2, X } from 'lucide-react'
 import { useCatalog } from '../context/CatalogContext'
-import { uploadReceipt, addTransaction, fetchProducts, updateProduct } from '../lib/api'
+import { uploadReceipt, addTransactionWithStock, fetchProducts } from '../lib/api'
 import { readReceipt } from '../lib/ai'
 import { compressImage } from '../lib/imageCompress'
 import { toDateInput, rupiah } from '../lib/format'
 import AIDisclaimer from '../components/AIDisclaimer'
 import Modal from '../components/Modal'
 import { useLang } from '../context/LangContext'
+import { BATAS_DATETIME, bersihkanTanggal } from '../lib/dateInput'
 
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.heic,.pdf,image/*,application/pdf'
 const blankItem = () => ({ name: '', qty: 1, unit: 'pcs', total: '', productId: '', conv: 1 })
@@ -27,6 +28,9 @@ export default function Struk() {
   const [category, setCategory] = useState('')
   const [occurredAt, setOccurredAt] = useState(toDateInput())
   const [keterangan, setKeterangan] = useState('')
+  // Nama toko hasil baca AI, terpisah dari keterangan supaya bisa ditautkan ke
+  // Daftar Pemasok — dan tetap bisa dikoreksi pengguna sebelum disimpan.
+  const [namaToko, setNamaToko] = useState('')
   const [items, setItems] = useState([])
   const [products, setProducts] = useState([])
   const [aiBusy, setAiBusy] = useState(false)
@@ -74,6 +78,7 @@ export default function Struk() {
       })
       setItems(mapped.length ? mapped : [blankItem()])
       setKeterangan(res.merchant ? sk.shoppingAt.replace('{merchant}', res.merchant) : '')
+      setNamaToko(res.merchant || '')
       setDirection('out')
       setAiMeta({ total: Number(res.total) || 0, legibility: res.legibility || 'cetak_jelas' })
       if (res.date) { try { setOccurredAt(toDateInput(res.date + 'T12:00')) } catch { /* abaikan */ } }
@@ -111,29 +116,45 @@ export default function Struk() {
       if (file) { try { receipt_url = await uploadReceipt(file) } catch { /* lampiran opsional */ } }
       const desc = keterangan.trim()
         || (items.length ? sk.shoppingDesc.replace('{items}', items.slice(0, 3).map((it) => `${it.qty} ${it.unit} ${it.name}`).join(', ')) + (items.length > 3 ? sk.shoppingMore : '') : sk.shoppingFallback)
-      await addTransaction({
-        description: desc.slice(0, 200),
-        amount: grandTotal,
-        direction, category,
-        channel: 'struk',
-        occurred_at: new Date(occurredAt).toISOString(),
-        receipt_url,
-        source_ref: file ? file.name : null,
-      })
-      // Perbarui stok: pengeluaran (beli) menambah stok, pemasukan (jual) mengurangi.
-      for (const it of items) {
-        const q = stockQty(it)
-        if (it.productId && q > 0) {
-          const p = productById(it.productId)
-          if (p) {
-            const next = Number(p.stock) + (direction === 'out' ? q : -q)
-            await updateProduct(p.id, { stock: next < 0 ? 0 : next })
-          }
-        }
-      }
-      setDoneMsg(sk.savedMsg.replace('{n}', items.length) + (linkedCount ? sk.savedStockMsg.replace('{n}', linkedCount) : '.'))
+
+      // Baris struk yang sudah ditautkan ke produk. Dikirim sebagai `lines`
+      // supaya transaksi dan penyesuaian stok tersimpan dalam SATU transaksi
+      // database.
+      //
+      // Versi sebelumnya menyimpan transaksinya dulu, lalu memperbarui stok satu
+      // per satu lewat updateProduct(). Bila salah satu pembaruan gagal di
+      // tengah jalan, transaksinya SUDAH tersimpan tapi layar menampilkan pesan
+      // galat — pengguna wajar menyimpan ulang, dan struk yang sama tercatat
+      // dua kali dengan stok yang tetap salah. Jalur atomik menutup itu:
+      // semuanya berhasil, atau tidak ada yang tersimpan sama sekali.
+      const lines = items
+        .filter((it) => it.productId && stockQty(it) > 0)
+        .map((it) => ({ productId: it.productId, qty: stockQty(it) }))
+      const single = lines.length === 1 ? lines[0] : null
+
+      const { changes } = await addTransactionWithStock(
+        {
+          description: desc.slice(0, 200),
+          amount: grandTotal,
+          direction, category,
+          channel: 'struk',
+          occurred_at: new Date(occurredAt).toISOString(),
+          receipt_url,
+          source_ref: file ? file.name : null,
+          product_id: single ? single.productId : null,
+          qty: single ? single.qty : null,
+          // Struk belanja = pembelian dari pemasok. Namanya (bila terbaca AI)
+          // ditautkan ke Daftar Pemasok oleh tautkanPihakTransaksi().
+          supplier_name: direction === 'out' ? (namaToko.trim() || null) : null,
+        },
+        lines,
+      )
+      setDoneMsg(
+        sk.savedMsg.replace('{n}', items.length)
+        + (changes?.length ? sk.savedStockMsg.replace('{n}', changes.length) : '.'),
+      )
       setFile(null); if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null)
-      setItems([]); setKeterangan(''); setAiMeta(null)
+      setItems([]); setKeterangan(''); setNamaToko(''); setAiMeta(null)
       fetchProducts().then(setProducts).catch(() => {})
     } catch (e) {
       setErr(e.message?.toLowerCase().includes('bucket')
@@ -227,11 +248,19 @@ export default function Struk() {
             </div>
             <div className="field">
               <label htmlFor="struk-occurred-at">{sk.lDateTime}</label>
-              <input id="struk-occurred-at" className="input" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+              <input id="struk-occurred-at" className="input" type="datetime-local" {...BATAS_DATETIME} value={occurredAt} onChange={(e) => setOccurredAt(bersihkanTanggal(e.target.value))} />
             </div>
             <div className="field">
               <label htmlFor="struk-note">{sk.lNote}</label>
               <input id="struk-note" className="input" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} placeholder={sk.notePh} />
+            </div>
+            <div className="field">
+              {/* Nama toko dibaca AI dan tetap bisa dikoreksi sebelum disimpan —
+                  hasilnya jadi baris di Daftar Pemasok, jadi salah ketik di sini
+                  akan membuat pemasok kembar. */}
+              <label htmlFor="struk-merchant">{sk.lMerchant}</label>
+              <input id="struk-merchant" className="input" value={namaToko}
+                onChange={(e) => setNamaToko(e.target.value)} placeholder={sk.merchantPh} />
             </div>
           </div>
 

@@ -10,6 +10,8 @@ import { nextDocNumber, PO_STATUS } from '../lib/gudang'
 import { rupiah, fmtDate } from '../lib/format'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
 const blankForm = (productId = '') => ({
   id: null, product_id: productId, supplier_id: '', qty: '1', unit_price: '',
@@ -20,6 +22,7 @@ const blankForm = (productId = '') => ({
 // Satu PO = satu produk (selaras aturan 1 transaksi = 1 produk).
 export default function PurchaseOrders() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const poT = t.po
   const poStatusLabel = (key) => ({ draft: poT.statusDraft, approved: poT.statusApproved, received: poT.statusReceived, cancelled: poT.statusCancelled }[key])
   const { catNames } = useCatalog()
@@ -106,7 +109,7 @@ export default function PurchaseOrders() {
   }
 
   const cancel = async (po) => {
-    if (!confirm(poT.confirmCancel.replace('{num}', po.po_number))) return
+    if (!await showConfirm({ message: poT.confirmCancel.replace('{num}', po.po_number) })) return
     try {
       const upd = await updatePurchaseOrder(po.id, { status: 'cancelled' })
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
@@ -114,7 +117,7 @@ export default function PurchaseOrders() {
   }
 
   const remove = async (po) => {
-    if (!confirm(poT.confirmDelete.replace('{num}', po.po_number))) return
+    if (!await showConfirm({ message: poT.confirmDelete.replace('{num}', po.po_number), type: 'error' })) return
     try {
       await deletePurchaseOrder(po.id)
       setList((prev) => prev.filter((x) => x.id !== po.id))
@@ -288,8 +291,8 @@ export default function PurchaseOrders() {
               <div className="grid-2">
                 <div className="field">
                   <label htmlFor="po-expected-date">{poT.lExpectedDate} <span className="muted-sm">{poT.optional}</span></label>
-                  <input id="po-expected-date" className="input" type="date" value={form.expected_date}
-                    onChange={(e) => setForm({ ...form, expected_date: e.target.value })} />
+                  <input id="po-expected-date" className="input" type="date" {...BATAS_DATE} value={form.expected_date}
+                    onChange={(e) => setForm({ ...form, expected_date: bersihkanTanggal(e.target.value) })} />
                 </div>
                 <div className="field">
                   <label htmlFor="po-note">{poT.lNote} <span className="muted-sm">{poT.optional}</span></label>
@@ -345,7 +348,7 @@ export default function PurchaseOrders() {
                   {rcPayment === 'belum' && (
                     <div className="field">
                       <label htmlFor="po-rc-due-date">{poT.lDueDate} <span className="muted-sm">{poT.optional}</span></label>
-                      <input id="po-rc-due-date" className="input" type="date" value={rcDueDate} onChange={(e) => setRcDueDate(e.target.value)} />
+                      <input id="po-rc-due-date" className="input" type="date" {...BATAS_DATE} value={rcDueDate} onChange={(e) => setRcDueDate(bersihkanTanggal(e.target.value))} />
                     </div>
                   )}
                 </>

@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { fetchSuppliers, addSupplier, updateSupplier, deleteSupplier } from '../lib/api'
 import { useLang } from '../context/LangContext'
+import { useAlert } from '../context/AlertContext'
 
 const empty = { name: '', phone: '', email: '', address: '', note: '' }
 
 export default function Supplier() {
   const { t } = useLang()
+  const { showConfirm } = useAlert()
   const s = t.supplier
   const [rows, setRows] = useState(null)
   const [form, setForm] = useState(empty)
@@ -31,7 +33,7 @@ export default function Supplier() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   const cancel = () => { setEditId(null); setForm(empty) }
-  const remove = async (row) => { if (!confirm(`${s.confirmDel} "${row.name}"?`)) return; await deleteSupplier(row.id); await load() }
+  const remove = async (row) => { if (!await showConfirm({ message: `${s.confirmDel} "${row.name}"?`, type: 'error' })) return; await deleteSupplier(row.id); await load() }
 
   if (!rows) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
   const filtered = rows.filter((r) => !q || `${r.name} ${r.phone || ''}`.toLowerCase().includes(q.toLowerCase()))

@@ -7,6 +7,14 @@ name: Test
 # ATURAN MUTLAK (§3.4): NOL panggilan API AI berbayar di CI.
 # `npm run eval:ai` memanggil Gemini live dan memakan kuota harian — sengaja
 # TIDAK ada di sini. Jalankan manual saat prompt atau nama model berubah.
+#
+# VERSI NODE — JANGAN TURUNKAN KE 20.
+# jsdom@30 (dipakai vitest untuk component test) menarik undici@8, yang memanggil
+# `require('node:worker_threads').markAsUncloneable`. Fungsi itu baru ada sejak
+# Node 22. Di Node 20 nilainya undefined, setiap worker jsdom crash saat memuat,
+# dan vitest melaporkan "Test Files: no tests" — job merah TANPA satu pun test
+# pernah dijalankan. Gejalanya menipu: sekilas terlihat seperti test gagal,
+# padahal gerbangnya tidak pernah menguji apa pun.
 
 on:
   push:
@@ -30,17 +38,36 @@ jobs:
     name: Unit & integration (Vitest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - name: Vitest + coverage
-        run: npx vitest run --coverage
+        run: npx vitest run --coverage --reporter=default --reporter=json --outputFile=vitest-report.json
+      # Penjaga anti-"gerbang hampa". Job yang merah karena NOL test berjalan
+      # terlihat persis seperti job yang merah karena ada test gagal — dan itu
+      # sudah pernah terjadi di repo ini (Node 20 + jsdom@30, lihat catatan di
+      # kepala berkas). Langkah ini membuat bedanya terbaca di baris pertama log,
+      # dan menutup jalan pintas `--passWithNoTests` yang akan mengubah gerbang
+      # rusak menjadi gerbang hijau palsu.
+      - name: Pastikan test benar-benar dijalankan
+        if: always()
+        run: |
+          if [ ! -f vitest-report.json ]; then
+            echo "::error::Laporan vitest tidak terbentuk — runner gagal sebelum test dikumpulkan."
+            exit 1
+          fi
+          total=$(node -p "(require('./vitest-report.json').numTotalTests) || 0")
+          echo "Total test yang benar-benar dijalankan: $total"
+          if [ "$total" -lt 1 ]; then
+            echo "::error::NOL test berjalan — gerbang ini tidak menguji apa pun. Periksa kompatibilitas versi Node dengan jsdom/undici."
+            exit 1
+          fi
       - name: Unggah laporan coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage
           path: coverage/
@@ -52,10 +79,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       # Ambang G-11 adalah 0 critical. `high` dilaporkan tapi tidak memblokir —
@@ -72,18 +99,49 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit
     steps:
-      - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v1
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.x
+          deno-version: v2.x
       # Menguji 18/18 BLOCKED_TABLES dan 13/13 BLOCKED_PATTERNS satu per satu,
       # plus kontrak kuota (checkQuota/commitQuota). Tanpa jaringan ke Gemini.
       # Dijalankan DARI supabase/functions/ agar deno.json di sana yang dipakai;
       # dari root repo, Deno ikut membaca package.json frontend dan type-check
       # gagal mencari npm:@types/node.
+      # --allow-read WAJIB: invariant_test.ts memakai Deno.readDir() untuk
+      # menyapu SETIAP folder Edge Function dan memastikan tidak ada yang lolos
+      # dari guard. Tanpa flag itu Deno melempar NotCapable sebelum pemeriksaan
+      # jalan — dan karena job ini `needs: unit` yang lebih dulu merah, gerbang
+      # ini selalu ter-skip sehingga kegagalannya tidak pernah terlihat.
       - name: deno test guards + rate limiter
         working-directory: supabase/functions
-        run: deno test --quiet --allow-import _shared/ai/
+        run: deno test --quiet --allow-import --allow-read _shared/ai/
+
+  # ---- Gerbang 3b: invarian & mesin stok di DATABASE ----
+  #
+  # Sebelumnya seluruh penjaga sisi database (rls_lint, tenancy_lint, test_bom,
+  # test_pembatalan, test_stock_applied) hanya berjalan kalau ada yang INGAT
+  # menjalankannya lewat MCP/psql. Penjaga yang bergantung pada ingatan bukan
+  # penjaga. Job ini menjalankannya di setiap push.
+  #
+  # Tanpa rahasia SUPABASE_DB_URL, skripnya keluar sukses dengan pesan
+  # "dilewati" — pull request dari fork tidak punya akses rahasia, dan
+  # menggagalkan CI di sana hanya mengajari orang mengabaikan warna merah.
+  db:
+    name: Invarian & mesin stok (database)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Pasang klien psql
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+      - name: Jalankan public.test_semua()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: node scripts/uji-db.mjs
 
   # ---- Gerbang 4: build produksi + audit rahasia (G-13, G-07) ----
   build:
@@ -91,10 +149,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -112,7 +170,7 @@ jobs:
       # menghapus manfaat code-splitting tanpa ada yang menyadarinya.
       - name: Anggaran ukuran bundle
         run: node scripts/cek-bundle.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dist
           path: dist/
@@ -124,10 +182,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit, build]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - name: Pasang browser Playwright
@@ -144,7 +202,7 @@ jobs:
       - name: Core Web Vitals (indikatif, tidak memblokir)
         continue-on-error: true
         run: npx playwright test --project=performance --workers=1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: playwright-report

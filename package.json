@@ -3,11 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "//": "Node 22+ WAJIB: jsdom@30 -> undici@8 memakai node:worker_threads.markAsUncloneable yang baru ada di Node 22. Di Node 20 seluruh worker vitest crash sebelum satu test pun jalan.",
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:db": "node scripts/uji-db.mjs",
     "test:e2e": "playwright test",
     "test:perf": "playwright test --project=performance --workers=1",
     "cek:bundle": "node scripts/cek-bundle.mjs",

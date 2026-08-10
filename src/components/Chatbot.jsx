@@ -8,6 +8,7 @@ import AIDisclaimer from './AIDisclaimer'
 import VoiceAssistant from './VoiceAssistant'
 import { liveVoiceSupported } from '../lib/liveAudio'
 import { useLang } from '../context/LangContext'
+import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
 const CONSENT_KEY = 'bukupintar_ai_consent'
 
@@ -123,7 +124,37 @@ export default function Chatbot() {
     return -1
   }
 
-  const actionMessage = (res) => ({
+  // Draf produk baru yang stok & harga modalnya diketahui ikut mencatat
+  // pengeluaran (multi-routing). Pilihannya ditambahkan DI KLIEN sebagai satu
+  // baris ringkasan biasa supaya tampil, bisa dimatikan, dan ikut tersimpan ke
+  // draft.values — tanpa perlu menunggu Edge Function menambahkan field ini.
+  const withRoutingField = (res) => {
+    const d = res?.draft
+    if (!d || d.entity !== 'produk' || (d.operation || 'create') !== 'create') return res
+    const nilai = Math.round((Number(d.values?.cost_price) || 0) * (Number(d.values?.stock) || 0))
+    if (nilai <= 0) return res
+    const sudahAda = (res.summary || []).some((s) => s.field === 'catat_pengeluaran')
+    if (sudahAda) return res
+    const aktif = d.values?.catat_pengeluaran !== false
+    return {
+      ...res,
+      draft: { ...d, values: { ...d.values, catat_pengeluaran: aktif } },
+      summary: [
+        ...(res.summary || []),
+        {
+          field: 'catat_pengeluaran',
+          label: `Sekalian catat pengeluaran Rp ${nilai.toLocaleString('id-ID')}?`,
+          type: 'select',
+          value: aktif ? 'ya' : 'tidak',
+          options: [{ value: 'ya', label: 'Ya, catat sebagai pembelian stok' }, { value: 'tidak', label: 'Tidak usah' }],
+        },
+      ],
+    }
+  }
+
+  const actionMessage = (resMentah) => {
+    const res = withRoutingField(resMentah)
+    return {
     role: 'assistant',
     type: 'action',
     draft: res.draft,
@@ -133,9 +164,11 @@ export default function Chatbot() {
     requiresConfirmation: !!res.requiresConfirmation,
     saved: false,
     savedText: '',
-  })
+    }
+  }
 
-  const mergeActionResponse = (idx, res) => {
+  const mergeActionResponse = (idx, resMentah) => {
+    const res = withRoutingField(resMentah)
     setMessages((all) => all.map((m, i) => (i === idx ? {
       ...m,
       draft: res.draft,
@@ -171,9 +204,12 @@ export default function Chatbot() {
   const patchAction = (idx, field, value) => {
     setMessages((all) => all.map((m, i) => {
       if (i !== idx || m.type !== 'action') return m
+      // Pilihan ya/tidak disimpan sebagai boolean di draft.values supaya
+      // saveDraftAction() tidak perlu menebak arti string 'tidak'.
+      const nilaiDraft = field === 'catat_pengeluaran' ? value === 'ya' : value
       return {
         ...m,
-        draft: { ...m.draft, values: { ...m.draft.values, [field]: value } },
+        draft: { ...m.draft, values: { ...m.draft.values, [field]: nilaiDraft } },
         summary: m.summary.map((s) => (s.field === field ? { ...s, value } : s)),
       }
     }))
@@ -293,7 +329,11 @@ export default function Chatbot() {
         category: d.category,
         channel: 'asisten',
         occurred_at: occurredAtIso(d.occurred_at),
-        payment_status: d.direction === 'in' && d.payment_status === 'belum' ? 'belum' : 'lunas',
+        // Berlaku dua arah: 'belum' pada pemasukan = piutang, pada pengeluaran
+        // = utang. Syarat `direction === 'in'` yang lama membuang status utang
+        // yang sudah dipilih pengguna di pratinjau tanpa memberi tahu.
+        payment_status: d.payment_status === 'belum' ? 'belum' : 'lunas',
+        due_date: d.payment_status === 'belum' && d.due_date ? d.due_date : null,
       }))
     if (!rows.length) { setErr('Tidak ada transaksi valid untuk disimpan (nominal harus lebih dari 0).'); return }
     setSaving(true); setErr('')
@@ -489,34 +529,46 @@ export default function Chatbot() {
                       ) : (
                         <div key={j} className="draft-card">
                           <div className="draft-row">
-                            <select className="input" value={d.direction}
+                            <select className="input" value={d.direction} aria-label="Jenis transaksi"
                               onChange={(e) => patchDraft(i, j, { direction: e.target.value, category: (catNames(e.target.value)[0] || '') })}>
                               <option value="in">Pemasukan</option>
                               <option value="out">Pengeluaran</option>
                             </select>
                             <input className="input" type="number" min="0" value={d.amount}
                               onChange={(e) => patchDraft(i, j, { amount: e.target.value })} placeholder="Nominal (Rp)" />
-                            <button type="button" className="icon-btn danger" title="Hapus" onClick={() => removeDraft(i, j)}><Trash2 size={14} /></button>
+                            <button type="button" className="icon-btn danger" title="Hapus" aria-label="Hapus transaksi ini dari daftar" onClick={() => removeDraft(i, j)}><Trash2 size={14} /></button>
                           </div>
                           <div className="draft-row">
                             <select className="input" value={d.category} onChange={(e) => patchDraft(i, j, { category: e.target.value })}>
                               {catNames(d.direction).map((c) => <option key={c} value={c}>{c}</option>)}
                               {!catNames(d.direction).includes(d.category) && <option value={d.category}>{d.category}</option>}
                             </select>
-                            <input className="input" type="date" value={d.occurred_at}
-                              onChange={(e) => patchDraft(i, j, { occurred_at: e.target.value })} />
+                            <input className="input" type="date" {...BATAS_DATE} value={d.occurred_at}
+                              onChange={(e) => patchDraft(i, j, { occurred_at: bersihkanTanggal(e.target.value) })} />
                           </div>
                           <div className="draft-row">
                             <input className="input" value={d.description}
                               onChange={(e) => patchDraft(i, j, { description: e.target.value })} placeholder="Keterangan" />
-                            {d.direction === 'in' && (
-                              <select className="input" value={d.payment_status || 'lunas'}
-                                onChange={(e) => patchDraft(i, j, { payment_status: e.target.value })}>
-                                <option value="lunas">Lunas</option>
-                                <option value="belum">Belum</option>
-                              </select>
-                            )}
+                            {/* Status bayar berlaku untuk KEDUA arah: 'belum'
+                                pada pemasukan = piutang, pada pengeluaran =
+                                utang. Sebelumnya hanya muncul untuk pemasukan,
+                                sehingga utang dari kalimat "belum dibayar"
+                                tidak pernah bisa dikoreksi di pratinjau. */}
+                            <select className="input" value={d.payment_status || 'lunas'}
+                              aria-label="Status pembayaran"
+                              onChange={(e) => patchDraft(i, j, { payment_status: e.target.value })}>
+                              <option value="lunas">Lunas</option>
+                              <option value="belum">{d.direction === 'in' ? 'Belum (piutang)' : 'Belum (utang)'}</option>
+                            </select>
                           </div>
+                          {(d.payment_status || 'lunas') === 'belum' && (
+                            <div className="draft-row">
+                              <label className="muted-sm" htmlFor={`draft-due-${i}-${j}`} style={{ alignSelf: 'center' }}>Jatuh tempo</label>
+                              <input id={`draft-due-${i}-${j}`} className="input" type="date" {...BATAS_DATE}
+                                value={d.due_date || ''}
+                                onChange={(e) => patchDraft(i, j, { due_date: bersihkanTanggal(e.target.value) })} />
+                            </div>
+                          )}
                           {d.flag_large && <div className="draft-warn">Nominal sangat besar — pastikan benar.</div>}
                         </div>
                       )

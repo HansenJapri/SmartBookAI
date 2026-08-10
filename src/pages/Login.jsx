@@ -6,6 +6,7 @@ import AuthSide from '../components/AuthSide'
 import OtpInput from '../components/OtpInput'
 import OtpCountdown from '../components/OtpCountdown'
 import useForceLightTheme from '../lib/useForceLightTheme'
+import { useOtpLock, OTP_BUCKET, OTP_MAX_ATTEMPTS } from '../lib/useOtpLock'
 
 // Login dua langkah: password -> kode 8 digit dari email.
 //
@@ -32,6 +33,8 @@ export default function Login() {
   // antar-email ke alamat yang sama (bawaan 60 detik); tanpa penghitung ini
   // pengguna menekan tombolnya berulang kali dan hanya mendapat pesan gagal.
   const [tungguKirim, setTungguKirim] = useState(0)
+  // Pembatas percobaan kode (P2): 5 kali salah -> input dikunci 15 menit.
+  const kunci = useOtpLock(OTP_BUCKET.login, email, step === 'otp')
 
   useEffect(() => {
     if (tungguKirim <= 0) return
@@ -87,13 +90,22 @@ export default function Login() {
   const submitOtp = async (e) => {
     e.preventDefault()
     setErr('')
+    if (kunci.terkunci) return setErr(a.errOtpLocked.replace('{waktu}', kunci.tungguTeks))
     if (otp.length < 8) return setErr(a.errOtp8)
     setBusy(true)
     try {
       await verifyLoginOtp({ email, token: otp })
+      await kunci.bersihkan()
       nav('/app')
     } catch {
-      setErr(a.errOtpWrong)
+      // Kode salah dicatat sebagai satu percobaan. Setelah batas tercapai,
+      // input dikunci — kode 8 digit yang boleh ditebak tanpa batas selama masa
+      // berlakunya adalah permukaan brute-force yang nyata.
+      const s = await kunci.catatGagal()
+      setOtp('')
+      setErr(s.locked
+        ? a.errOtpLocked.replace('{waktu}', kunci.tungguTeks || `${Math.ceil(s.retryAfter / 60)} menit`)
+        : a.errOtpWrongLeft.replace('{n}', s.remaining))
     } finally { setBusy(false) }
   }
 
@@ -156,17 +168,23 @@ export default function Login() {
             <p className="sub">{a.verifySub}<b>{email}</b></p>
             {info && <div className="alert alert-ok">{info}</div>}
             {err && <div className="alert alert-err">{err}</div>}
-            <OtpInput value={otp} onChange={setOtp} maxLength={8} />
+            {kunci.terkunci && (
+              <div className="alert alert-err">{a.errOtpLocked.replace('{waktu}', kunci.tungguTeks)}</div>
+            )}
+            <OtpInput value={otp} onChange={setOtp} maxLength={8} disabled={kunci.terkunci} />
             <OtpCountdown startedAt={sentAt} seconds={OTP_TTL_SECONDS}
               onExpire={() => setKedaluwarsa(true)} />
-            <button className="btn btn-primary btn-block btn-lg" disabled={busy || kedaluwarsa}
+            {!kunci.terkunci && kunci.sisaPercobaan < OTP_MAX_ATTEMPTS && (
+              <p className="muted-sm" style={{ marginTop: 4 }}>{a.otpAttemptsLeft.replace('{n}', kunci.sisaPercobaan)}</p>
+            )}
+            <button className="btn btn-primary btn-block btn-lg" disabled={busy || kedaluwarsa || kunci.terkunci}
               style={{ marginTop: 6 }}>
               {busy ? a.verifying : a.verifyBtn}
             </button>
             <p className="auth-foot">
               {a.noCode}{' '}
               <button type="button" className="linklike" onClick={resend}
-                disabled={busy || tungguKirim > 0}>
+                disabled={busy || tungguKirim > 0 || kunci.terkunci}>
                 {tungguKirim > 0 ? a.resendWait.replace('{detik}', tungguKirim) : a.resend}
               </button>
               <br />

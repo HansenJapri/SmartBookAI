@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchTransactions, fetchProfile, fetchTxCount, track } from '../lib/api'
-import { rupiah, fmtDate, monthKey } from '../lib/format'
+import { rupiah, fmtDate, fmtDateTime, monthKey } from '../lib/format'
+import { sheetRibuan } from '../lib/excelFormat'
 import { summarize, monthlyBreakdown, expenseByCategory, taxSummaryForYear, TAX } from '../lib/analytics'
 import Accordion from '../components/Accordion'
 import Modal from '../components/Modal'
@@ -49,6 +50,15 @@ export default function Reports() {
   const byCat = useMemo(() => expenseByCategory(scoped), [scoped])
   const monthly = useMemo(() => monthlyBreakdown(tx || []), [tx])
 
+  // Rincian per transaksi. Laporan yang hanya memuat total tidak bisa
+  // ditelusuri oleh analis kredit maupun konsultan pajak — mereka selalu minta
+  // buktinya per baris. Diurutkan dari yang terlama supaya terbaca seperti
+  // buku kas.
+  const rincian = useMemo(
+    () => scoped.slice().sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at)),
+    [scoped],
+  )
+
   const taxpayerType = profile?.taxpayer_type || 'pribadi'
   // Tahun pajak: jika periode = bulan tertentu pakai tahunnya; jika 'all' pakai 'all'
   const taxYear = period === 'all' ? 'all' : period.slice(0, 4)
@@ -71,6 +81,21 @@ export default function Reports() {
       <p>{r.emptyDesc}</p>
     </div></div>
   }
+
+  // ---------- RINCIAN TRANSAKSI (dipakai PDF maupun Excel) ----------
+  const RINCIAN_HEAD = ['Tanggal', 'Jenis', 'Deskripsi', 'Kategori', 'Saluran', 'Status Bayar', 'Pihak', 'Nominal (Rp)']
+  // Nominal dikembalikan sebagai ANGKA agar sel Excel tetap bisa dijumlahkan;
+  // versi PDF membungkusnya dengan rupiah() saat dirender.
+  const rincianRow = (t2) => [
+    fmtDateTime(t2.occurred_at),
+    t2.direction === 'in' ? 'Pemasukan' : 'Pengeluaran',
+    t2.description || '-',
+    t2.category || '-',
+    t2.channel || 'manual',
+    (t2.payment_status || 'lunas') === 'belum' ? 'Belum Lunas' : 'Lunas',
+    t2.customer_name || '-',
+    Math.round(Number(t2.amount) || 0),
+  ]
 
   // ---------- PDF GENERATORS ----------
   const pdfHeader = (doc, title) => {
@@ -143,6 +168,33 @@ export default function Reports() {
         columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
       })
     }
+    // Rincian per transaksi — bukan sekadar total agregat. Dimulai di halaman
+    // baru supaya lampirannya bisa dirobek/di-scan terpisah saat diserahkan.
+    if (rincian.length) {
+      doc.addPage()
+      doc.setFontSize(11); doc.setFont(undefined, 'bold')
+      doc.text(`Rincian Transaksi — ${periodLabel}`, 14, 16)
+      doc.setFont(undefined, 'normal'); doc.setFontSize(8); doc.setTextColor(110, 110, 110)
+      doc.text(`${rincian.length} transaksi, diurutkan dari yang terlama.`, 14, 21)
+      doc.setTextColor(30, 30, 30)
+      autoTable(doc, {
+        startY: 25,
+        margin: { bottom: PDF_FOOTER_H + 4, left: 10, right: 10 },
+        head: [RINCIAN_HEAD],
+        body: rincian.map((t2) => {
+          const row = rincianRow(t2)
+          return [...row.slice(0, 7), rupiah(row[7])]
+        }),
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], fontSize: 7.5 },
+        styles: { fontSize: 7, cellPadding: 1.6, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 26 }, 1: { cellWidth: 20 }, 2: { cellWidth: 48 },
+          3: { cellWidth: 26 }, 4: { cellWidth: 20 }, 5: { cellWidth: 18 },
+          6: { cellWidth: 22 }, 7: { halign: 'right' },
+        },
+      })
+    }
     stampPdfDisclaimer(doc, DISCLAIMER_KUR)
     doc.save(refFile(`Laporan-LabaRugi-${bizName}-${period}.pdf`))
     track('report_generated', { type: 'labarugi_pdf', period })
@@ -168,25 +220,39 @@ export default function Reports() {
       ['Margin Laba (%)', sum.income ? Math.round(sum.profit / sum.income * 100) : 0],
       ['Jumlah Transaksi', sum.count],
     ]
-    const ws1 = XLSX.utils.aoa_to_sheet(ringkasan)
-    ws1['!cols'] = [{ wch: 34 }, { wch: 20 }]
-    XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan')
+    XLSX.utils.book_append_sheet(wb, sheetRibuan(XLSX, ringkasan, [{ wch: 34 }, { wch: 20 }]), 'Ringkasan')
 
     const monthlyAoa = [
       ['Bulan', 'Pemasukan', 'Pengeluaran', 'Laba Bersih'],
       ...monthly.map((m) => [monthLabel(m.month), Math.round(m.income), Math.round(m.expense), Math.round(m.profit)]),
     ]
-    const ws2 = XLSX.utils.aoa_to_sheet(monthlyAoa)
-    ws2['!cols'] = [{ wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
-    XLSX.utils.book_append_sheet(wb, ws2, 'Rekap Bulanan')
+    XLSX.utils.book_append_sheet(
+      wb, sheetRibuan(XLSX, monthlyAoa, [{ wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]), 'Rekap Bulanan',
+    )
 
     const catAoa = [
       ['Kategori Pengeluaran', 'Total (Rp)'],
       ...byCat.map((c) => [c.name, Math.round(c.value)]),
     ]
-    const ws3 = XLSX.utils.aoa_to_sheet(catAoa)
-    ws3['!cols'] = [{ wch: 30 }, { wch: 18 }]
-    XLSX.utils.book_append_sheet(wb, ws3, 'Pengeluaran per Kategori')
+    XLSX.utils.book_append_sheet(
+      wb, sheetRibuan(XLSX, catAoa, [{ wch: 30 }, { wch: 18 }]), 'Pengeluaran per Kategori',
+    )
+
+    // Rincian per transaksi — inti dari laporan yang bisa diverifikasi.
+    const rincianAoa = [
+      [`Rincian Transaksi — ${periodLabel} (${rincian.length} transaksi)`],
+      [],
+      RINCIAN_HEAD,
+      ...rincian.map(rincianRow),
+    ]
+    XLSX.utils.book_append_sheet(
+      wb,
+      sheetRibuan(XLSX, rincianAoa, [
+        { wch: 20 }, { wch: 13 }, { wch: 44 }, { wch: 22 },
+        { wch: 14 }, { wch: 13 }, { wch: 22 }, { wch: 18 },
+      ]),
+      'Rincian Transaksi',
+    )
 
     XLSX.writeFile(wb, refFile(`Laporan-LabaRugi-${bizName}-${period}.xlsx`))
     track('report_generated', { type: 'labarugi_excel', period })
@@ -247,14 +313,32 @@ export default function Reports() {
       ['Dasar Pengenaan Pajak', Math.round(taxInfo.taxable)],
       ['PPh Final Terutang (estimasi)', Math.round(taxInfo.pphTotal)],
     ]
-    const ws1 = XLSX.utils.aoa_to_sheet(info); ws1['!cols'] = [{ wch: 40 }, { wch: 20 }]
-    XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan Pajak')
+    XLSX.utils.book_append_sheet(wb, sheetRibuan(XLSX, info, [{ wch: 40 }, { wch: 20 }]), 'Ringkasan Pajak')
     const rowsAoa = [
       ['Bulan', 'Peredaran Bruto', 'Bebas Pajak', 'Dasar Kena Pajak', 'PPh 0,5%'],
       ...taxInfo.rows.map((r) => [monthLabel(r.month), Math.round(r.income), Math.round(r.exemptApplied), Math.round(r.taxable), Math.round(r.pph)]),
     ]
-    const ws2 = XLSX.utils.aoa_to_sheet(rowsAoa); ws2['!cols'] = [{ wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }]
-    XLSX.utils.book_append_sheet(wb, ws2, 'Rincian Bulanan')
+    XLSX.utils.book_append_sheet(
+      wb, sheetRibuan(XLSX, rowsAoa, [{ wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }]), 'Rincian Bulanan',
+    )
+
+    // Dasar peredaran bruto ada di transaksi pemasukan — dilampirkan per baris
+    // supaya angka omzet di sheet ringkasan bisa ditelusuri sampai sumbernya.
+    const pemasukan = rincian.filter((t2) => t2.direction === 'in')
+    const omzetAoa = [
+      [`Rincian Pemasukan (dasar peredaran bruto) — ${pemasukan.length} transaksi`],
+      [],
+      RINCIAN_HEAD,
+      ...pemasukan.map(rincianRow),
+    ]
+    XLSX.utils.book_append_sheet(
+      wb,
+      sheetRibuan(XLSX, omzetAoa, [
+        { wch: 20 }, { wch: 13 }, { wch: 44 }, { wch: 22 },
+        { wch: 14 }, { wch: 13 }, { wch: 22 }, { wch: 18 },
+      ]),
+      'Rincian Pemasukan',
+    )
     XLSX.writeFile(wb, refFile(`Rekap-Pajak-${bizName}-${taxYear}.xlsx`))
     track('report_generated', { type: 'pajak_excel', year: taxYear })
   }

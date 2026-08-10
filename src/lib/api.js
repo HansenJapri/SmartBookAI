@@ -162,9 +162,10 @@ export async function fetchMonthlySummary() {
 
 export async function addTransaction(tx) {
   const { data: { user } } = await supabase.auth.getUser()
+  const row = await tautkanPihakTransaksi(tx)
   const { data, error } = await supabase
     .from('transactions')
-    .insert({ ...tx, user_id: await wsOwner() })
+    .insert({ ...row, user_id: await wsOwner() })
     .select()
     .single()
   if (error) throw error
@@ -172,13 +173,58 @@ export async function addTransaction(tx) {
   return data
 }
 
+// Kolom transactions yang boleh diisi dari jalur impor/OCR.
+//
+// Kenapa whitelist, bukan sekadar meneruskan objeknya: baris hasil impor datang
+// dari beberapa parser berbeda (CSV umum, laporan marketplace 5 platform, OCR
+// struk) dan tiap parser menempelkan field kerjanya sendiri — penanda baris,
+// alasan tanggal meragukan, sisa kolom mentah. Satu kunci yang tidak punya
+// kolom padanan membuat PostgREST menolak SELURUH batch dengan pesan Postgres
+// mentah ("column ... does not exist"), sehingga impor 300 baris gagal total
+// tanpa penjelasan yang bisa dipahami pemilik usaha. Menyaring di satu tempat
+// membuat penambahan field kerja di parser mana pun tidak bisa lagi merusak
+// penyimpanan.
+const KOLOM_TRANSAKSI = [
+  'occurred_at', 'description', 'amount', 'direction', 'category', 'channel',
+  'source_ref', 'raw', 'receipt_url', 'payment_status', 'due_date',
+  'customer_name', 'customer_contact', 'customer_id', 'supplier_id',
+  'product_id', 'qty', 'import_confidence', 'is_duplicate', 'dismissed_dup',
+]
+
+export function bersihkanBarisTransaksi(row) {
+  const out = {}
+  for (const k of KOLOM_TRANSAKSI) {
+    if (row[k] !== undefined) out[k] = row[k]
+  }
+  return out
+}
+
+// Disimpan bertahap, bukan satu insert raksasa: satu berkas marketplace bisa
+// berisi ribuan baris, dan payload sebesar itu rawan ditolak di tengah jalan.
+const UKURAN_BATCH_IMPOR = 200
+
 export async function addTransactionsBulk(list) {
   const ownerId = await wsOwner()
-  const payload = list.map((t) => ({ ...t, user_id: ownerId }))
-  const { data, error } = await supabase.from('transactions').insert(payload).select()
-  if (error) throw error
-  track('import_completed', { count: payload.length })
-  return data || []
+  const payload = (list || []).map((t) => ({ ...bersihkanBarisTransaksi(t), user_id: ownerId }))
+  if (!payload.length) return []
+
+  const tersimpan = []
+  for (let i = 0; i < payload.length; i += UKURAN_BATCH_IMPOR) {
+    const batch = payload.slice(i, i + UKURAN_BATCH_IMPOR)
+    const { data, error } = await supabase.from('transactions').insert(batch).select()
+    if (error) {
+      // Sebutkan berapa yang SUDAH masuk. Tanpa angka ini pengguna tidak tahu
+      // apakah aman mengulang impor, lalu sering menggandakan datanya sendiri.
+      const e = new Error(
+        `${error.message} (${tersimpan.length} dari ${payload.length} baris sudah tersimpan sebelum kegagalan ini)`,
+      )
+      e.tersimpan = tersimpan.length
+      throw e
+    }
+    tersimpan.push(...(data || []))
+  }
+  track('import_completed', { count: tersimpan.length })
+  return tersimpan
 }
 
 export async function updateTransaction(id, patch) {
@@ -188,9 +234,24 @@ export async function updateTransaction(id, patch) {
   return data
 }
 
+// Menghapus transaksi SEKALIGUS membalik efek stoknya, dalam satu transaksi
+// database (RPC delete_transaction_with_stock).
+//
+// Sebelumnya penghapusan hanya membuang barisnya. Padahal penjualan produk
+// ber-komposisi sudah memotong stok bahan otomatis, jadi salah catat lalu
+// menghapusnya meninggalkan stok yang berkurang selamanya — pengguna tidak
+// punya jalan membatalkan selain koreksi manual lewat Stock Opname. Itu
+// melanggar prinsip "setiap aksi harus mudah dibalik".
+//
+// Mengembalikan daftar perubahan stok supaya UI bisa memberi tahu apa yang
+// dipulihkan, bukan menghapus diam-diam.
 export async function deleteTransaction(id) {
-  const { error } = await wsDelete(await wsOwner(), 'transactions').eq('id', id)
+  const { data, error } = await supabase.rpc('delete_transaction_with_stock', {
+    p_id: id,
+    p_owner: await wsOwner(),
+  })
   if (error) throw error
+  return data?.changes || []
 }
 
 // ---------- ATURAN KATEGORI ----------
@@ -409,10 +470,17 @@ export async function track(type, meta = null) {
 
 // ---------- FORUM FEEDBACK ----------
 // Mengambil semua postingan (forum) - hanya berhasil untuk user yang login.
+// Feedback bersifat 1-on-1: hanya pengirim dan Admin SmartBook AI yang boleh
+// membacanya. Penyaring utamanya adalah RLS (policy "feedback select own");
+// filter .eq() di bawah ini adalah lapis kedua yang membuat maksudnya terbaca
+// dari kode dan menahan kesalahan bila suatu saat policy diubah keliru.
 export async function fetchFeedback({ limit = 200 } = {}) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
   const { data, error } = await supabase
     .from('feedback')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error) throw error
@@ -540,6 +608,55 @@ export async function resolveCustomer({ name, phone } = {}) {
   return { customer: await addCustomer({ name: nama }), created: true }
 }
 
+/**
+ * Cari-atau-buat pemasok berdasarkan nama (P11).
+ *
+ * Lebih sederhana dari resolveCustomer: pemasok tidak punya kunci sekuat nomor
+ * telepon pelanggan, dan daftarnya jauh lebih pendek, jadi pencocokan nama
+ * persis (tanpa memperhatikan huruf besar-kecil) sudah memadai. Nama ganda
+ * dibiarkan memakai baris pertama — untuk pemasok, salah pilih antara dua baris
+ * bernama sama tidak merusak riwayat sebesar salah pilih pelanggan.
+ */
+export async function resolveSupplier({ name } = {}) {
+  const nama = String(name || '').trim()
+  if (!nama) return null
+  const owner = await wsOwner()
+  const { data, error } = await wsSelect(owner, 'suppliers').ilike('name', nama).limit(1)
+  if (error) throw error
+  if (data?.length) return data[0]
+  return await addSupplier({ name: nama })
+}
+
+/**
+ * Menautkan nama pihak pada transaksi ke tabel relasi (P11).
+ *
+ * Dipanggil dari jalur simpan transaksi supaya nama yang diketik di kolom
+ * "Pelanggan"/"Pemasok" tidak berhenti jadi teks bebas: pelanggan piutang
+ * otomatis punya baris di tabel pelanggan, pemasok utang punya baris di tabel
+ * pemasok, dan keduanya bisa ditelusuri lintas transaksi.
+ *
+ * Kegagalan penautan SENGAJA tidak membatalkan pencatatan transaksi. Relasi itu
+ * pelengkap; menolak menyimpan penjualan hanya karena baris pelanggan gagal
+ * dibuat akan membuat pengguna kehilangan catatan uang yang sudah masuk.
+ */
+export async function tautkanPihakTransaksi(tx) {
+  const out = { ...tx }
+  if (!out.customer_id && out.customer_name) {
+    try {
+      const { customer } = await resolveCustomer({ name: out.customer_name, phone: out.customer_contact })
+      if (customer) out.customer_id = customer.id
+    } catch { /* relasi opsional */ }
+  }
+  if (!out.supplier_id && out.supplier_name) {
+    try {
+      const s = await resolveSupplier({ name: out.supplier_name })
+      if (s) out.supplier_id = s.id
+    } catch { /* relasi opsional */ }
+  }
+  delete out.supplier_name
+  return out
+}
+
 // ---------- PRODUK / STOK ----------
 export async function fetchProducts() {
   const { data, error } = await wsSelect(await wsOwner(), 'products').order('name')
@@ -606,7 +723,7 @@ export async function deleteProductImage(urlOrPath) {
 // yang dia catat di usahanya SENDIRI justru tersimpan ke usaha itu.
 export async function addTransactionWithStock(tx, lines = []) {
   const args = {
-    p_tx: tx,
+    p_tx: await tautkanPihakTransaksi(tx),
     p_lines: (lines || []).map((l) => ({ productId: l.productId, qty: l.qty })),
     p_owner: await wsOwner(),
   }
@@ -1437,6 +1554,14 @@ export async function saveBom(productId, rows) {
       commodity_key: r.commodity_key || null,
       import_exposure: r.import_exposure || 'rendah',
       price_source: r.price_source || 'manual',
+      // Harga belanja per KEMASAN + isinya. Disimpan supaya harga per satuan
+      // bisa dihitung ulang (dan diperiksa) alih-alih hanya menyimpan hasilnya.
+      pack_size: Number(r.pack_size) || 0,
+      pack_price: Number(r.pack_price) || 0,
+      // Bahan yang tertaut ke produk stok -> stoknya ikut berkurang saat
+      // produk jadi terjual. Bahan tanpa tautan (tenaga kerja, listrik, sewa)
+      // tetap membentuk HPP tapi tidak punya stok.
+      source_product_id: r.source_product_id || null,
     }
     if (ing) {
       const { data, error } = await wsUpdate(await wsOwner(), 'ingredients', { ...fields, updated_at: new Date().toISOString() })
@@ -1453,6 +1578,11 @@ export async function saveBom(productId, rows) {
     bomRows.push({
       user_id: await wsOwner(), product_id: productId, ingredient_id: ing.id,
       qty_per_unit: qty, is_ai_estimated: Boolean(r.is_ai_estimated),
+      cost_basis: r.cost_basis === 'per_periode' ? 'per_periode' : 'per_unit',
+      period_amount: Number(r.period_amount) || 0,
+      period_output: Number(r.period_output) || 0,
+      // Hanya baris yang benar-benar tertaut ke stok yang boleh memotong stok.
+      deduct_stock: Boolean(r.deduct_stock) && Boolean(r.source_product_id),
     })
   }
   const { error: delErr } = await wsDelete(await wsOwner(), 'product_boms').eq('product_id', productId)
@@ -1461,8 +1591,23 @@ export async function saveBom(productId, rows) {
     const { error } = await supabase.from('product_boms').insert(bomRows)
     if (error) throw error
   }
+  // Penanda "produk ini punya komposisi" hidup di products.has_bom supaya
+  // pemotongan stok di server bisa memutuskannya tanpa membaca tabel BOM dulu.
+  await updateProduct(productId, { has_bom: bomRows.length > 0 })
   track('bom_saved', { rows: bomRows.length })
   return bomRows.length
+}
+
+// Estimasi berapa unit produk yang masih bisa dibuat dari sisa stok bahan,
+// beserta batas per bahan supaya antarmuka bisa menunjuk bahan penghambatnya.
+// Mengembalikan { yield: number|null, parts: [...] }.
+export async function fetchProductYield(productId) {
+  const { data, error } = await supabase.rpc('product_yield', {
+    p_product_id: productId,
+    p_owner: await wsOwner(),
+  })
+  if (error) throw error
+  return data || { yield: null, parts: [] }
 }
 
 // ---------- DATA MAKRO BERSAMA (cache dari Edge Function makro-harian) ----------

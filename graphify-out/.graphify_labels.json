@@ -185,6 +185,7 @@
   "183": "11. Stock Opname",
   "184": "migration_import_confidence.sql",
   "185": "FeedbackAdmin.jsx",
+  "186": "Reminders.jsx",
   "187": "scripts",
   "188": "aiActions.test.js",
   "189": "Modal.jsx",
@@ -199,8 +200,13 @@
   "198": "AppLock.test.jsx",
   "199": "ErrorBoundary.test.jsx",
   "200": "TransactionModal.test.jsx",
+  "201": "migration_otp_attempt_limit.sql",
   "202": ".getClientRects",
   "203": ".getClientRects",
   "204": "setup.js",
-  "206": "ragPrice.js"
+  "205": "3. Modul B — Manajemen Pesanan",
+  "206": "ragPrice.js",
+  "207": "otpGuard.test.js",
+  "208": "vitest",
+  "209": "migration_feedback_privasi.sql"
 }
