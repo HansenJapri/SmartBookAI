@@ -164,12 +164,44 @@ async function savePurchaseOrder(operation, targetId, values) {
   return `Purchase Order ${po.po_number} dibuat sebagai draf.`
 }
 
+// Field yang HARUS berisi UUID saat sampai ke database, beserta nama yang
+// dikenali pengguna untuk menjelaskannya bila tidak.
+const KOLOM_REF = {
+  product_id: 'Produk', supplier_id: 'Pemasok', employee_id: 'Karyawan',
+  criteria_id: 'Kriteria KPI', assignee_id: 'Penanggung jawab', customer_id: 'Pelanggan',
+}
+const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Jaring pengaman terakhir sebelum menulis ke database.
+ *
+ * Kartu ringkasan bisa disunting, dan hasilnya disimpan LANGSUNG dari klien
+ * tanpa melewati Edge Function lagi — jadi tidak ada pemeriksaan server di
+ * antara suntingan dan INSERT. Kalau sebuah field ref entah bagaimana masih
+ * berisi nama alih-alih ID, Postgres akan menolaknya dengan
+ * "invalid input syntax for type uuid" — kalimat yang tidak berarti apa pun
+ * bagi pemilik warung dan tidak menunjuk ke apa yang harus ia perbaiki.
+ *
+ * Resolusi nama->ID sudah ditangani di server (crud-tools.ts); ini hanya
+ * memastikan kegagalannya, bila ada, bisa dibaca manusia.
+ */
+function pastikanRefBerupaId(values = {}) {
+  for (const [kolom, label] of Object.entries(KOLOM_REF)) {
+    const v = values[kolom]
+    if (v === undefined || v === null || v === '') continue
+    if (!POLA_UUID.test(String(v))) {
+      throw new Error(`${label} "${v}" belum dikenali. Pilih ${label.toLowerCase()} dari daftar pada kartu di atas.`)
+    }
+  }
+}
+
 /**
  * Simpan satu draft yang sudah dikonfirmasi pengguna.
  * @returns {Promise<string>} kalimat ringkas untuk ditampilkan di percakapan.
  */
 export async function saveDraftAction(draft) {
   const { entity, operation = 'create', targetId, values = {} } = draft || {}
+  if (operation !== 'delete') pastikanRefBerupaId(values)
 
   switch (entity) {
     case 'transaksi':
