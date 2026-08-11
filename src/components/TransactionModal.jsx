@@ -5,6 +5,8 @@ import { categorize } from '../lib/categorize'
 import { toDateInput, rupiah } from '../lib/format'
 import { fetchProducts, fetchSuppliers } from '../lib/api'
 import { useCatalog } from '../context/CatalogContext'
+import { useLang } from '../context/LangContext'
+import { sedangOffline } from '../lib/useOnline'
 import { BATAS_DATE, BATAS_DATETIME, bersihkanTanggal } from '../lib/dateInput'
 
 // Stepper jumlah: tombol - dan +, plus input manual (boleh desimal).
@@ -26,7 +28,8 @@ const blankLine = () => ({
 })
 
 export default function TransactionModal({ initial, rules = [], onClose, onSave }) {
-  const { channels, catNames } = useCatalog()
+  const { channels, catNames, gagal: katalogGagal, reload: muatKatalog } = useCatalog()
+  const { t } = useLang()
   const editing = Boolean(initial?.id)
   const [direction, setDirection] = useState(initial?.direction || 'in')
   const [description, setDescription] = useState(initial?.description || '')
@@ -157,6 +160,15 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
     if (!desc) return setErr('Deskripsi wajib diisi (atau pilih produk).')
     if (!amt || amt <= 0) return setErr('Nominal harus lebih dari 0.')
     if (!category) return setErr('Pilih kategori dulu.')
+    // Tanggal boleh dikosongkan di kolomnya (bersihkanTanggal mengizinkan itu),
+    // tetapi `new Date('').toISOString()` MELEMPAR RangeError. Tanpa penjagaan
+    // ini pengguna yang menghapus isi kolom tanggal mendapat pesan berbahasa
+    // Inggris "Invalid time value" — galat yang tidak menunjuk ke apa pun yang
+    // bisa ia perbaiki.
+    const waktu = new Date(occurredAt)
+    if (!occurredAt || Number.isNaN(waktu.getTime())) return setErr('Tanggal & waktu wajib diisi.')
+    // Simpan yang sudah pasti gagal hanya membuang isian yang sudah diketik.
+    if (sedangOffline()) return setErr(t.koneksi.offlineSimpan)
     // Pembelian stok tanpa pemasok tidak bisa ditelusuri lagi kemudian
     // ("stok ini dibeli dari siapa, harganya berapa waktu itu?").
     if (wajibPemasok && !supplierId && !newSupplier.trim()) {
@@ -173,7 +185,7 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
           direction,
           category,
           channel,
-          occurred_at: new Date(occurredAt).toISOString(),
+          occurred_at: waktu.toISOString(),
           // 'belum' pada pemasukan = PIUTANG; pada pengeluaran = UTANG.
           payment_status: paymentStatus,
           due_date: paymentStatus === 'belum' && dueDate ? dueDate : null,
@@ -200,6 +212,18 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
         </div>
         <div className="modal-body">
           {err && <div className="alert alert-err">{err}</div>}
+          {/* Kategori wajib diisi, jadi daftar kategori yang gagal dimuat membuat
+              form ini MUSTAHIL disimpan. Menampilkannya seolah-olah normal
+              berarti membiarkan pengguna mengetik seluruh isian lalu ditolak
+              oleh syarat yang tidak bisa ia penuhi. Sebutkan sebabnya di atas,
+              dengan satu tombol yang benar-benar memperbaikinya. */}
+          {katalogGagal && (
+            <div className="alert alert-err" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <span>Daftar kategori gagal dimuat, jadi transaksi belum bisa disimpan.</span>
+              <button type="button" className="btn btn-ghost" style={{ padding: '4px 12px' }}
+                onClick={() => muatKatalog().catch(() => {})}>Muat ulang kategori</button>
+            </div>
+          )}
           <div className="field">
             {/* Pilihan berupa tombol, bukan satu kontrol tunggal — jadi diberi
                 semantik grup + status tertekan, bukan label-for. */}
@@ -391,7 +415,7 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
 
           <div className="modal-foot">
             <button type="button" className="btn btn-ghost btn-block" onClick={onClose}>Batal</button>
-            <button className="btn btn-primary btn-block" disabled={busy}>
+            <button className="btn btn-primary btn-block" disabled={busy || katalogGagal}>
               {busy ? 'Menyimpan...' : 'Simpan'}
             </button>
           </div>

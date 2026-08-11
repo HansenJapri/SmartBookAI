@@ -14,6 +14,8 @@ import { filterNav, canModule } from '../lib/rbac'
 import { useWorkspace } from '../context/WorkspaceContext'
 import Chatbot from './Chatbot'
 import AppLock from './AppLock'
+import ErrorBoundary from './ErrorBoundary'
+import StatusKoneksi from './StatusKoneksi'
 import LangToggle from './LangToggle'
 import ThemeToggle from './ThemeToggle'
 import WorkspaceSwitcher from './WorkspaceSwitcher'
@@ -205,8 +207,20 @@ export default function AppLayout() {
             </div>
           )}
 
+          <StatusKoneksi />
+
+          {/* ErrorBoundary DI SINI, bukan hanya di akar aplikasi.
+              Dengan satu boundary di main.jsx, galat render di satu halaman
+              menghapus seluruh aplikasi — sidebar, menu, navigasi — dan
+              menyisakan layar galat dengan satu tombol muat ulang. Galat kecil
+              di grafik Laporan tidak boleh memutus akses pengguna ke menu
+              Transaksi. `key={pathname}` membuat boundary ini pulih sendiri
+              begitu pengguna berpindah halaman, jadi ada jalan keluar yang
+              tidak menuntut muat ulang penuh. */}
           <CatalogProvider>
-            <Outlet />
+            <ErrorBoundary key={loc.pathname} variant="inline">
+              <Outlet />
+            </ErrorBoundary>
           </CatalogProvider>
         </main>
       </div>

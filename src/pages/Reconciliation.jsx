@@ -5,6 +5,7 @@ import { rupiah, fmtDateTime } from '../lib/format'
 import { CheckCircle2 } from 'lucide-react'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import GagalMuat from '../components/GagalMuat'
 import { useAlert } from '../context/AlertContext'
 
 export default function Reconciliation() {
@@ -13,9 +14,12 @@ export default function Reconciliation() {
   const { showConfirm } = useAlert()
   const r = t.recon
   const [tx, setTx] = useState(null)
+  const [gagalMuat, setGagalMuat] = useState(null)
   const [tol, setTol] = useState(24)
 
-  const load = () => fetchTransactions().then(setTx).catch(() => setTx([]))
+  const load = () => fetchTransactions()
+    .then((d) => { setTx(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
   useEffect(() => { load() }, [])
 
   const groups = useMemo(() => {
@@ -36,6 +40,7 @@ export default function Reconciliation() {
     setTx((prev) => prev.map((t2) => group.some((g) => g.id === t2.id) ? { ...t2, dismissed_dup: true } : t2))
   }
 
+  if (gagalMuat && !tx) return <GagalMuat galat={gagalMuat} onRetry={load} />
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   return (

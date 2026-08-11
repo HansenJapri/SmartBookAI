@@ -1,3 +1,19 @@
+/* ============================================================
+   FONT DI-HOST SENDIRI, bukan dari fonts.googleapis.com.
+   Sebelumnya index.html memuatnya lewat <link rel="stylesheet"> ke CDN Google.
+   Tag itu MEMBLOKIR RENDER: di jaringan seluler yang lambat — perangkat sehari-
+   hari pengguna kami — layar tetap putih sampai berkas dari domain pihak ketiga
+   selesai atau menyerah. Satu domain yang tersendat menahan seluruh aplikasi.
+   Menyertakannya lewat bundel juga menghapus satu pengiriman alamat IP pengguna
+   ke pihak ketiga pada setiap kunjungan, yang relevan untuk UU PDP.
+   ============================================================ */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+@import '@fontsource-variable/space-grotesk';
+
 :root {
   /* Palet wajib brand */
   --primary: #1c36ee;
@@ -34,7 +50,10 @@
   --radius: 16px;
   --radius-sm: 10px;
   --maxw: 1180px;
-  --font-head: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  /* 'Space Grotesk Variable' adalah nama keluarga yang didaftarkan paket
+     @fontsource-variable; nama lama dipertahankan sebagai cadangan bagi
+     perangkat yang kebetulan sudah memasangnya sendiri. */
+  --font-head: 'Space Grotesk Variable', 'Space Grotesk', 'Inter', system-ui, sans-serif;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light;
 }

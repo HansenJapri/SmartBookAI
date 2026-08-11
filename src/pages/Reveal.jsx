@@ -9,6 +9,7 @@ import { Search, FileDown } from 'lucide-react'
 import { revealLeak } from '../lib/reveal'
 import { downloadLeakReport } from '../lib/leakReport'
 import { useLang } from '../context/LangContext'
+import GagalMuat from '../components/GagalMuat'
 
 // `demoTx` dipakai rute publik /demo: bila diisi, transaksi datang langsung
 // dari state dan fetchTransactions() TIDAK PERNAH dipanggil — mode demo tidak
@@ -22,12 +23,17 @@ export default function Reveal({ demoTx = null }) {
   const [profile, setProfile] = useState(null)
   const [baseline, setBaseline] = useState(null)
   const [unduh, setUnduh] = useState(false)
+  const [gagalMuat, setGagalMuat] = useState(null)
   const demo = demoTx !== null
+
+  const muatTx = () => fetchTransactions()
+    .then((d) => { setTx(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
 
   useEffect(() => {
     if (demoTx) { setTx(demoTx); return }
-    fetchTransactions().then(setTx).catch(() => setTx([]))
-  }, [demoTx])
+    muatTx()
+  }, [demoTx]) // eslint-disable-line
 
   // Profil dan baseline hanya diambil di mode ter-login. Mode demo memakai nama
   // usaha fiktif supaya rute publik /demo tetap nol query ke database.
@@ -46,6 +52,7 @@ export default function Reveal({ demoTx = null }) {
 
   const r = useMemo(() => (tx ? revealLeak(tx, period) : null), [tx, period])
 
+  if (gagalMuat && !tx) return <GagalMuat galat={gagalMuat} onRetry={muatTx} />
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   const marginAsliPct = Math.round(r.marginAsli * 1000) / 10

@@ -11,6 +11,7 @@ import { useCatalog } from '../context/CatalogContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
 import { useAlert } from '../context/AlertContext'
+import GagalMuat from '../components/GagalMuat'
 
 export default function Transactions() {
   const { showAlert, showConfirm } = useAlert()
@@ -27,8 +28,14 @@ export default function Transactions() {
   const [modal, setModal] = useState(null)
   const [invoiceTx, setInvoiceTx] = useState(null)
   const [stockMsg, setStockMsg] = useState('')
+  const [gagalMuat, setGagalMuat] = useState(null)
 
-  const load = () => fetchTransactions().then(setTx).catch(() => setTx([]))
+  // Kegagalan TIDAK menulis `tx`. Menyetelnya ke [] akan menampilkan
+  // "Belum ada transaksi" kepada orang yang catatannya utuh di server — dan
+  // yang dia lakukan berikutnya adalah mencatat ulang semuanya.
+  const load = () => fetchTransactions()
+    .then((d) => { setTx(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
   useEffect(() => {
     load()
     fetchRules().then(setRules).catch(() => {})
@@ -93,6 +100,7 @@ export default function Transactions() {
     }
   }
 
+  if (gagalMuat && !tx) return <GagalMuat galat={gagalMuat} onRetry={load} />
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   return (

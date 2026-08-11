@@ -13,6 +13,57 @@ function isMissingRpc(error) {
   return /could not find the function|does not exist/i.test(String(error.message || ''))
 }
 
+// ---------- SESI KEDALUWARSA ----------
+//
+// Kelas sendiri, bukan Error biasa, supaya lapisan UI bisa MEMBEDAKANNYA dari
+// kegagalan jaringan. Keduanya sama-sama membuat query gagal, tetapi jawabannya
+// berlawanan: gangguan jaringan hilang sendiri dan pantas ditawari "Coba lagi",
+// sementara sesi yang berakhir tidak akan pernah pulih sampai pengguna masuk
+// lagi — menawarinya "Coba lagi" hanya membuat orang menekan tombol yang
+// dijamin gagal, sambil makin yakin datanya rusak.
+export class SesiBerakhirError extends Error {
+  constructor(pesan = 'Sesi Anda sudah berakhir. Silakan masuk kembali.') {
+    super(pesan)
+    this.name = 'SesiBerakhirError'
+    this.kode = 'SESI_BERAKHIR'
+  }
+}
+
+// Penanda otentikasi yang gagal dari PostgREST/GoTrue. PGRST301 = JWT tidak
+// sah/kedaluwarsa; 401/403 dengan pesan JWT berasal dari gerbang yang sama.
+export function adalahGalatSesi(error) {
+  if (!error) return false
+  if (error instanceof SesiBerakhirError) return true
+  const kode = String(error.code || error.status || '')
+  if (kode === 'PGRST301' || kode === '401') return true
+  return /jwt (expired|is invalid)|invalid claim|token is expired|refresh_token_not_found/i
+    .test(String(error.message || ''))
+}
+
+// Disiarkan sekali per kejadian; AuthContext yang menampilkannya. Lewat event,
+// bukan impor langsung, agar api.js tetap bebas dari React dan tidak melingkar.
+let sesiSudahDisiarkan = false
+export function siarkanSesiBerakhir() {
+  if (sesiSudahDisiarkan) return
+  sesiSudahDisiarkan = true
+  try { window.dispatchEvent(new Event('bp-sesi-berakhir')) } catch { /* non-browser */ }
+}
+supabase?.auth?.onAuthStateChange((_e, session) => { if (session?.user) sesiSudahDisiarkan = false })
+
+/**
+ * Dilewatkan pada SETIAP hasil query. Mengubah penolakan otentikasi menjadi
+ * SesiBerakhirError sekaligus memberi tahu lapisan UI, lalu meneruskan error
+ * lain apa adanya.
+ */
+export function periksaGalat(error) {
+  if (!error) return
+  if (adalahGalatSesi(error)) {
+    siarkanSesiBerakhir()
+    throw new SesiBerakhirError()
+  }
+  throw error
+}
+
 // ---------- RBAC: pemilik data efektif (workspace aktif) ----------
 // ATURAN DASAR: setiap pengguna SELALU memiliki workspace-nya sendiri.
 // Keanggotaan sebagai staf di usaha orang lain bersifat TAMBAHAN dan hanya
@@ -65,7 +116,11 @@ export async function effectiveOwnerId() {
     .eq('status', 'active')
     .eq('owner_id', selected)
     .limit(1)
-  if (error) throw error
+  // Gangguan jaringan TIDAK boleh sampai ke cabang di bawah: membersihkan
+  // pilihan workspace karena sinyal berkedip akan memindahkan pengguna ke
+  // usahanya sendiri tanpa ia meminta, dan itu tampak persis seperti data
+  // usaha yang sedang dibuka menghilang.
+  if (error) periksaGalat(error)
   const verified = data?.[0]?.owner_id
   if (!verified) {
     setSelectedWorkspace('')
@@ -98,7 +153,10 @@ supabase?.auth?.onAuthStateChange(() => { _ownerCache = null })
 
 export async function wsOwner() {
   const ownerId = await effectiveOwnerId()
-  if (!ownerId) throw new Error('Sesi tidak valid. Silakan masuk kembali.')
+  // Tidak ada pengguna = sesi jatuh. Dilempar sebagai SesiBerakhirError, bukan
+  // Error umum, supaya halaman tidak memperlakukannya sebagai kegagalan muat
+  // biasa lalu menawarkan "Coba lagi" yang mustahil berhasil.
+  if (!ownerId) { siarkanSesiBerakhir(); throw new SesiBerakhirError() }
   return ownerId
 }
 
@@ -135,14 +193,35 @@ export async function fetchTransactions({ limit = TX_FETCH_LIMIT } = {}) {
   const { data, error } = await wsSelect(await wsOwner(), 'transactions')
     .order('occurred_at', { ascending: false })
     .limit(limit)
-  if (error) throw error
+  if (error) periksaGalat(error)
+  return data || []
+}
+
+// Transaksi yang BELUM LUNAS — piutang (in) dan utang (out).
+//
+// Halaman Piutang & Utang dulu memanggil fetchTransactions() lalu menyaring
+// `payment_status === 'belum'` di browser. Itu tampak setara, dan untuk usaha
+// kecil memang setara — sampai transaksinya melewati TX_FETCH_LIMIT. Di atas
+// angka itu, plafon memotong dari yang PALING BARU ke belakang, sehingga
+// tagihan lama justru yang pertama menghilang dari layar. Tagihan yang tidak
+// terlihat tidak akan ditagih; ini bug yang berujung pada uang yang tidak
+// pernah masuk, dan tidak ada satu pun pesan yang memberi tahu.
+//
+// Menyaring di server membuat plafonnya tidak relevan: baris yang belum lunas
+// jumlahnya kecil menurut sifatnya, berapa pun total transaksinya.
+export async function fetchUnpaid() {
+  const { data, error } = await wsSelect(await wsOwner(), 'transactions')
+    .eq('payment_status', 'belum')
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('occurred_at', { ascending: false })
+  if (error) periksaGalat(error)
   return data || []
 }
 
 // Jumlah total transaksi milik pengguna (untuk mendeteksi data terpotong).
 export async function fetchTxCount() {
   const { count, error } = await wsSelect(await wsOwner(), 'transactions', 'id', { count: 'exact', head: true })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return count || 0
 }
 
@@ -153,7 +232,7 @@ export async function fetchMonthlySummary() {
   const p_owner = await wsOwner()
   let { data, error } = await supabase.rpc('my_monthly_summary', { p_owner })
   if (error && isMissingRpc(error)) ({ data, error } = await supabase.rpc('my_monthly_summary'))
-  if (error) throw error
+  if (error) periksaGalat(error)
   return (data || []).map((r) => ({
     month: r.month, income: Number(r.income), expense: Number(r.expense),
     profit: Number(r.income) - Number(r.expense), count: Number(r.cnt),
@@ -168,7 +247,7 @@ export async function addTransaction(tx) {
     .insert({ ...row, user_id: await wsOwner() })
     .select()
     .single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('transaction_added', { channel: tx.channel, direction: tx.direction })
   return data
 }
@@ -230,7 +309,7 @@ export async function addTransactionsBulk(list) {
 export async function updateTransaction(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'transactions', patch)
     .eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
@@ -250,7 +329,7 @@ export async function deleteTransaction(id) {
     p_id: id,
     p_owner: await wsOwner(),
   })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data?.changes || []
 }
 
@@ -258,7 +337,7 @@ export async function deleteTransaction(id) {
 export async function fetchRules() {
   const { data, error } = await wsSelect(await wsOwner(), 'categorization_rules')
     .order('created_at', { ascending: true })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -266,42 +345,42 @@ export async function addRule(rule) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
     .from('categorization_rules').insert({ ...rule, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
 export async function deleteRule(id) {
   const { error } = await wsDelete(await wsOwner(), 'categorization_rules').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- KATEGORI (milik user) ----------
 export async function fetchCategories() {
   const { data, error } = await wsSelect(await wsOwner(), 'categories').order('direction').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addCategory({ name, direction }) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
     .from('categories').insert({ name: name.trim(), direction, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateCategory(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'categories', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteCategory(id) {
   const { error } = await wsDelete(await wsOwner(), 'categories').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- CHANNEL (milik user) ----------
 export async function fetchChannels() {
   const { data, error } = await wsSelect(await wsOwner(), 'channels').order('created_at')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addChannel({ value, label, icon }) {
@@ -309,17 +388,17 @@ export async function addChannel({ value, label, icon }) {
   const { data, error } = await supabase
     .from('channels').insert({ value, label: label.trim(), icon: icon || '🏷️', user_id: await wsOwner() })
     .select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateChannel(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'channels', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteChannel(id) {
   const { error } = await wsDelete(await wsOwner(), 'channels').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Default yang di-seed saat pertama kali (semuanya bisa diedit/dihapus user)
@@ -379,13 +458,13 @@ export async function uploadReceipt(file) {
   const { error } = await supabase.storage.from('receipts').upload(path, file, {
     cacheControl: '3600', upsert: false, contentType: file.type || undefined,
   })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return path
 }
 export async function getReceiptUrl(path) {
   if (!path) return null
   const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path, 60 * 10)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data.signedUrl
 }
 
@@ -395,7 +474,7 @@ export async function fetchProfile() {
   const ownerId = await wsOwner()
   if (!ownerId) return null
   const { data, error } = await supabase.from('profiles').select('*').eq('id', ownerId).maybeSingle()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
@@ -403,7 +482,7 @@ export async function updateProfile(patch) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
     .from('profiles').update(patch).eq('id', user.id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
@@ -483,7 +562,7 @@ export async function fetchFeedback({ limit = 200 } = {}) {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(limit)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -508,7 +587,7 @@ export async function addFeedback({ rating, category, message, helped }) {
       helped: typeof helped === 'boolean' ? helped : null,
     })
     .select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('feedback_submitted', { category, rating, helped })
   return data
 }
@@ -520,29 +599,29 @@ export async function deleteFeedback(id) {
   if (!user) throw new Error('Harus masuk (login).')
   const { error } = await supabase
     .from('feedback').delete().eq('id', id).eq('user_id', user.id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- SUPPLIER (pemasok) ----------
 export async function fetchSuppliers() {
   const { data, error } = await wsSelect(await wsOwner(), 'suppliers').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addSupplier(s) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase.from('suppliers').insert({ ...s, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateSupplier(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'suppliers', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteSupplier(id) {
   const { error } = await wsDelete(await wsOwner(), 'suppliers').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- PELANGGAN (CRM) ----------
@@ -551,26 +630,26 @@ export async function deleteSupplier(id) {
 // "0812...", "+62812...", dan "812..." jadi tiga pelanggan berbeda.
 export async function fetchCustomers() {
   const { data, error } = await wsSelect(await wsOwner(), 'customers').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addCustomer(c) {
   const row = { ...c, user_id: await wsOwner() }
   row.phone = normalizePhone(c?.phone) || null
   const { data, error } = await supabase.from('customers').insert(row).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateCustomer(id, patch) {
   const row = { ...patch }
   if ('phone' in row) row.phone = normalizePhone(row.phone) || null
   const { data, error } = await wsUpdate(await wsOwner(), 'customers', row).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteCustomer(id) {
   const { error } = await wsDelete(await wsOwner(), 'customers').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 /**
@@ -595,13 +674,13 @@ export async function resolveCustomer({ name, phone } = {}) {
 
   if (telp) {
     const { data, error } = await wsSelect(owner, 'customers').eq('phone', telp).limit(1)
-    if (error) throw error
+    if (error) periksaGalat(error)
     if (data?.length) return { customer: data[0], created: false }
     return { customer: await addCustomer({ name: nama || telp, phone: telp }), created: true }
   }
 
   const { data, error } = await wsSelect(owner, 'customers').ilike('name', nama)
-  if (error) throw error
+  if (error) periksaGalat(error)
   if (data?.length === 1) return { customer: data[0], created: false }
   if (data?.length > 1) return { customer: null, created: false, candidates: data }
 
@@ -622,7 +701,7 @@ export async function resolveSupplier({ name } = {}) {
   if (!nama) return null
   const owner = await wsOwner()
   const { data, error } = await wsSelect(owner, 'suppliers').ilike('name', nama).limit(1)
-  if (error) throw error
+  if (error) periksaGalat(error)
   if (data?.length) return data[0]
   return await addSupplier({ name: nama })
 }
@@ -660,25 +739,25 @@ export async function tautkanPihakTransaksi(tx) {
 // ---------- PRODUK / STOK ----------
 export async function fetchProducts() {
   const { data, error } = await wsSelect(await wsOwner(), 'products').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addProduct(p) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase.from('products').insert({ ...p, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('product_added')
   return data
 }
 export async function updateProduct(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'products', { ...patch, updated_at: new Date().toISOString() })
     .eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteProduct(id) {
   const { error } = await wsDelete(await wsOwner(), 'products').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Unggah foto produk ke bucket product-images. Path selalu diawali <user_id>/
@@ -695,7 +774,7 @@ export async function uploadProductImage(file) {
   const { error } = await supabase.storage.from('product-images').upload(path, file, {
     cacheControl: '3600', upsert: false, contentType: file.type,
   })
-  if (error) throw error
+  if (error) periksaGalat(error)
   const { data } = supabase.storage.from('product-images').getPublicUrl(path)
   return { path, publicUrl: data.publicUrl }
 }
@@ -732,7 +811,7 @@ export async function addTransactionWithStock(tx, lines = []) {
     delete args.p_owner
     ;({ data, error } = await supabase.rpc('add_transaction_with_stock', args))
   }
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('transaction_added', { channel: tx.channel, direction: tx.direction })
   return { txn: data?.txn || null, changes: data?.changes || [] }
 }
@@ -743,7 +822,7 @@ export async function addTransactionWithStock(tx, lines = []) {
 export async function fetchPurchaseOrders() {
   const { data, error } = await wsSelect(await wsOwner(), 'purchase_orders')
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -751,7 +830,7 @@ export async function addPurchaseOrder(po) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
     .from('purchase_orders').insert({ ...po, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('po_created')
   return data
 }
@@ -759,13 +838,13 @@ export async function addPurchaseOrder(po) {
 export async function updatePurchaseOrder(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'purchase_orders', patch)
     .eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
 export async function deletePurchaseOrder(id) {
   const { error } = await wsDelete(await wsOwner(), 'purchase_orders').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Menerima PO (status approved -> received) dalam SATU transaksi database
@@ -786,7 +865,7 @@ export async function receivePurchaseOrder(po, { createExpense = true, category 
     delete args.p_owner
     ;({ data, error } = await supabase.rpc('receive_purchase_order', args))
   }
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('po_received', { with_expense: Boolean(data?.txn) })
   return { po: data?.po, stock: data?.stock, txn: data?.txn || null }
 }
@@ -808,8 +887,8 @@ export async function fetchStockHistorySources() {
       .order('posted_at', { ascending: false, nullsFirst: false })
       .limit(200),
   ])
-  if (po.error) throw po.error
-  if (op.error) throw op.error
+  if (po.error) periksaGalat(po.error)
+  if (op.error) periksaGalat(op.error)
   return { purchaseOrders: po.data || [], opnames: op.data || [] }
 }
 
@@ -817,7 +896,7 @@ export async function fetchStockHistorySources() {
 export async function fetchOpnames() {
   const { data, error } = await wsSelect(await wsOwner(), 'stock_opnames')
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -825,7 +904,7 @@ export async function addOpname(payload) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase
     .from('stock_opnames').insert({ ...payload, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('opname_created')
   return data
 }
@@ -833,13 +912,13 @@ export async function addOpname(payload) {
 export async function updateOpname(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'stock_opnames', patch)
     .eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
 export async function deleteOpname(id) {
   const { error } = await wsDelete(await wsOwner(), 'stock_opnames').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Posting opname dalam SATU transaksi database (RPC post_stock_opname):
@@ -857,7 +936,7 @@ export async function postOpname(opname) {
     delete args.p_owner
     ;({ data, error } = await supabase.rpc('post_stock_opname', args))
   }
-  if (error) throw error
+  if (error) periksaGalat(error)
   const changes = data?.changes || []
   track('opname_posted', { changes: changes.length })
   return { opname: data?.opname, changes }
@@ -895,7 +974,7 @@ export async function fetchStaff() {
     .from('staff_members').select('*')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -953,7 +1032,7 @@ export async function addStaff(email, modules, role = 'staf', name = '') {
       role: STAFF_ROLES.includes(role) ? role : 'staf',
     })
     .select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('staff_invited')
   // Email undangan bersifat best-effort: undangannya sudah sah tanpa email.
   notifyInvite(data?.id).catch(() => {})
@@ -978,7 +1057,7 @@ export async function updateStaff(id, patch) {
     .from('staff_members').update(safe)
     .eq('id', id).eq('owner_id', user.id)
     .select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
@@ -986,7 +1065,7 @@ export async function deleteStaff(id) {
   const user = await assertOwnerView()
   const { error } = await supabase
     .from('staff_members').delete().eq('id', id).eq('owner_id', user.id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Mengundang ulang staf yang menolak undangan sebelumnya.
@@ -1089,66 +1168,66 @@ export async function fetchAuditLogs({ table = '', action = '', limit = 200 } = 
   if (table) q = q.eq('table_name', table)
   if (action) q = q.eq('action', action)
   const { data, error } = await q
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
 // ---------- OPERASIONAL: PAPAN TUGAS (fase 5) ----------
 export async function fetchTasks() {
   const { data, error } = await wsSelect(await wsOwner(), 'tasks').order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addTask(t) {
   const { data, error } = await supabase
     .from('tasks').insert({ ...t, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('task_added')
   return data
 }
 export async function updateTask(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'tasks', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteTask(id) {
   const { error } = await wsDelete(await wsOwner(), 'tasks').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- HR: KARYAWAN / ABSENSI / PENGGAJIAN (fase 4) ----------
 export async function fetchEmployees() {
   const { data, error } = await wsSelect(await wsOwner(), 'employees').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addEmployee(e) {
   const { data, error } = await supabase
     .from('employees').insert({ ...e, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('employee_added')
   return data
 }
 export async function updateEmployee(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'employees', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteEmployee(id) {
   const { error } = await wsDelete(await wsOwner(), 'employees').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Absensi satu tanggal (semua karyawan).
 export async function fetchAttendanceByDate(date) {
   const { data, error } = await wsSelect(await wsOwner(), 'attendance').eq('date', date)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 // Absensi rentang tanggal (untuk rekap & hitung gaji harian).
 export async function fetchAttendanceRange(from, to) {
   const { data, error } = await wsSelect(await wsOwner(), 'attendance').gte('date', from).lte('date', to)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 // Set status absensi karyawan pada tanggal tertentu (upsert: sekali klik ganti status).
@@ -1159,20 +1238,20 @@ export async function setAttendance(employeeId, date, status, note) {
     .from('attendance')
     .upsert(row, { onConflict: 'employee_id,date' })
     .select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 // Kosongkan absensi (salah input): hapus baris karyawan+tanggal tsb.
 export async function deleteAttendance(employeeId, date) {
   const { error } = await wsDelete(await wsOwner(), 'attendance')
     .eq('employee_id', employeeId).eq('date', date)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- ATURAN BONUS/POTONGAN PER STATUS ABSENSI ----------
 export async function fetchAttendanceRules() {
   const { data, error } = await wsSelect(await wsOwner(), 'attendance_rules')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function upsertAttendanceRule(status, patch) {
@@ -1183,35 +1262,35 @@ export async function upsertAttendanceRule(status, patch) {
       { onConflict: 'user_id,status' },
     )
     .select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
 // ---------- KPI KARYAWAN ----------
 export async function fetchKpiCriteria() {
   const { data, error } = await wsSelect(await wsOwner(), 'kpi_criteria').order('created_at')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addKpiCriteria(row) {
   const { data, error } = await supabase
     .from('kpi_criteria').insert({ ...row, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateKpiCriteria(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'kpi_criteria', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteKpiCriteria(id) {
   const { error } = await wsDelete(await wsOwner(), 'kpi_criteria').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 export async function fetchKpiScores(period) {
   const { data, error } = await wsSelect(await wsOwner(), 'kpi_scores').eq('period', period)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 // Simpan banyak skor sekaligus (upsert per karyawan+kriteria+periode).
@@ -1222,52 +1301,52 @@ export async function saveKpiScores(rows) {
     .from('kpi_scores')
     .upsert(rows.map((r) => ({ ...r, user_id: uid })), { onConflict: 'employee_id,criteria_id,period' })
     .select()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
 export async function fetchKpiBonusRules() {
   const { data, error } = await wsSelect(await wsOwner(), 'kpi_bonus_rules')
     .order('min_score', { ascending: false })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addKpiBonusRule(row) {
   const { data, error } = await supabase
     .from('kpi_bonus_rules').insert({ ...row, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateKpiBonusRule(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'kpi_bonus_rules', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteKpiBonusRule(id) {
   const { error } = await wsDelete(await wsOwner(), 'kpi_bonus_rules').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Penggajian per periode 'YYYY-MM'.
 export async function fetchPayrolls(period) {
   const { data, error } = await wsSelect(await wsOwner(), 'payrolls').eq('period', period)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addPayroll(row) {
   const { data, error } = await supabase
     .from('payrolls').insert({ ...row, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updatePayroll(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'payrolls', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deletePayroll(id) {
   const { error } = await wsDelete(await wsOwner(), 'payrolls').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Bayar gaji: catat transaksi pengeluaran (masuk cashflow & Laba Rugi otomatis)
@@ -1285,7 +1364,7 @@ export async function payPayroll(p, { employeeName = '', category = 'Gaji Karyaw
   const { data, error } = await wsUpdate(await wsOwner(), 'payrolls',
     { status: 'paid', paid_at: new Date().toISOString(), txn_id: txn.id })
     .eq('id', p.id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('payroll_paid')
   return { payroll: data, txn }
 }
@@ -1294,69 +1373,69 @@ export async function payPayroll(p, { employeeName = '', category = 'Gaji Karyaw
 export async function fetchReminders() {
   const { data, error } = await wsSelect(await wsOwner(), 'reminders')
     .eq('status', 'aktif').order('remind_at')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addReminder(row) {
   const { data, error } = await supabase
     .from('reminders').insert({ ...row, user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateReminder(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'reminders', patch).eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteReminder(id) {
   const { error } = await wsDelete(await wsOwner(), 'reminders').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- SATUAN PRODUK (CRUD) ----------
 export async function fetchUnits() {
   const { data, error } = await wsSelect(await wsOwner(), 'units').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addUnit(name) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase.from('units').insert({ name: name.trim(), user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateUnit(id, name) {
   const { data, error } = await wsUpdate(await wsOwner(), 'units', { name: name.trim() })
     .eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteUnit(id) {
   const { error } = await wsDelete(await wsOwner(), 'units').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- KATEGORI PRODUK (CRUD) ----------
 export async function fetchProductCategories() {
   const { data, error } = await wsSelect(await wsOwner(), 'product_categories').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 export async function addProductCategory(name) {
   const { data: { user } } = await supabase.auth.getUser()
   const { data, error } = await supabase.from('product_categories').insert({ name: name.trim(), user_id: await wsOwner() }).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function updateProductCategory(id, name) {
   const { data, error } = await wsUpdate(await wsOwner(), 'product_categories', { name: name.trim() })
     .eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 export async function deleteProductCategory(id) {
   const { error } = await wsDelete(await wsOwner(), 'product_categories').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // Satuan & kategori produk default (dibuat sekali bila masih kosong).
@@ -1382,7 +1461,7 @@ export async function ensureInventorySeed() {
 // Daftar produk dengan stok menipis (stock <= min_stock, dan min_stock > 0).
 export async function fetchLowStock() {
   const { data, error } = await wsSelect(await wsOwner(), 'products')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return (data || []).filter((p) => Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock))
 }
 
@@ -1391,7 +1470,7 @@ export async function fetchTodayTotals() {
   const start = new Date(); start.setHours(0, 0, 0, 0)
   const { data, error } = await wsSelect(await wsOwner(), 'transactions', 'direction, amount')
     .gte('occurred_at', start.toISOString())
-  if (error) throw error
+  if (error) periksaGalat(error)
   let income = 0, expense = 0
   for (const t of data || []) {
     if (t.direction === 'in') income += Number(t.amount) || 0
@@ -1407,7 +1486,7 @@ export async function fetchTodayTotals() {
 // justru menjadi nilai produk — tidak bisa direkonstruksi lagi.
 export async function fetchBaseline() {
   const { data, error } = await wsSelect(await wsOwner(), 'user_baseline').limit(1)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return (data && data[0]) || null
 }
 
@@ -1418,7 +1497,7 @@ export async function saveBaseline(jawaban) {
   const { error } = await supabase
     .from('user_baseline')
     .upsert({ user_id: owner, ...jawaban }, { onConflict: 'user_id' })
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 export async function fetchActiveTarget() {
@@ -1426,7 +1505,7 @@ export async function fetchActiveTarget() {
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(1)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return (data && data[0]) || null
 }
 
@@ -1446,7 +1525,7 @@ export async function fetchTargetTransactions(target) {
     q = q.lte('occurred_at', new Date(target.deadline + 'T23:59:59').toISOString())
   }
   const { data, error } = await q.limit(TX_FETCH_LIMIT)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -1480,7 +1559,7 @@ export async function addTarget({ name, start_date, deadline, revenue_target = n
   // jalan dan workspace berakhir dengan dua target aktif — `fetchActiveTarget`
   // lalu memilih salah satunya secara sewenang-wenang.
   const { error: deacErr } = await wsUpdate(owner, 'sales_targets', { is_active: false }).eq('is_active', true)
-  if (deacErr) throw deacErr
+  if (deacErr) periksaGalat(deacErr)
 
   const { data, error } = await supabase
     .from('sales_targets')
@@ -1492,7 +1571,7 @@ export async function addTarget({ name, start_date, deadline, revenue_target = n
       user_id: owner,
     })
     .select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   track('target_added')
   return data
 }
@@ -1500,7 +1579,7 @@ export async function addTarget({ name, start_date, deadline, revenue_target = n
 export async function deactivateTarget(id) {
   const { error, count } = await wsUpdate(await wsOwner(), 'sales_targets', { is_active: false }, { count: 'exact' })
     .eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
   // 0 baris terkena = id itu bukan milik workspace aktif (atau sudah hilang).
   // Tanpa cek ini pemanggil menganggap target sudah mati padahal masih aktif.
   if (count === 0) throw new Error('Target tidak ditemukan di usaha yang sedang dibuka.')
@@ -1509,26 +1588,26 @@ export async function deactivateTarget(id) {
 // ---------- BAHAN / KOMPONEN BIAYA (untuk HPP) ----------
 export async function fetchIngredients() {
   const { data, error } = await wsSelect(await wsOwner(), 'ingredients').order('name')
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
 export async function updateIngredient(id, patch) {
   const { data, error } = await wsUpdate(await wsOwner(), 'ingredients', { ...patch, updated_at: new Date().toISOString() })
     .eq('id', id).select().single()
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data
 }
 
 export async function deleteIngredient(id) {
   const { error } = await wsDelete(await wsOwner(), 'ingredients').eq('id', id)
-  if (error) throw error
+  if (error) periksaGalat(error)
 }
 
 // ---------- KOMPOSISI PRODUK / BoM ----------
 export async function fetchBom(productId) {
   const { data, error } = await wsSelect(await wsOwner(), 'product_boms').eq('product_id', productId)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -1566,12 +1645,12 @@ export async function saveBom(productId, rows) {
     if (ing) {
       const { data, error } = await wsUpdate(await wsOwner(), 'ingredients', { ...fields, updated_at: new Date().toISOString() })
         .eq('id', ing.id).select().single()
-      if (error) throw error
+      if (error) periksaGalat(error)
       ing = data
     } else {
       const { data, error } = await supabase
         .from('ingredients').insert({ ...fields, user_id: await wsOwner() }).select().single()
-      if (error) throw error
+      if (error) periksaGalat(error)
       ing = data
       byName.set(ing.name.trim().toLowerCase(), ing)
     }
@@ -1586,10 +1665,10 @@ export async function saveBom(productId, rows) {
     })
   }
   const { error: delErr } = await wsDelete(await wsOwner(), 'product_boms').eq('product_id', productId)
-  if (delErr) throw delErr
+  if (delErr) periksaGalat(delErr)
   if (bomRows.length) {
     const { error } = await supabase.from('product_boms').insert(bomRows)
-    if (error) throw error
+    if (error) periksaGalat(error)
   }
   // Penanda "produk ini punya komposisi" hidup di products.has_bom supaya
   // pemotongan stok di server bisa memutuskannya tanpa membaca tabel BOM dulu.
@@ -1606,7 +1685,7 @@ export async function fetchProductYield(productId) {
     p_product_id: productId,
     p_owner: await wsOwner(),
   })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || { yield: null, parts: [] }
 }
 
@@ -1617,7 +1696,7 @@ export async function fetchMacroSignals() {
     .from('macro_signals').select('*')
     .order('run_date', { ascending: false })
     .limit(42) // 2 hari x ~21 komoditas
-  if (error) throw error
+  if (error) periksaGalat(error)
   const rows = data || []
   if (!rows.length) return { runDate: null, signals: [] }
   const latest = rows[0].run_date
@@ -1631,7 +1710,7 @@ export async function fetchCommodityPrices() {
     .eq('province_id', 0) // tampilan bawaan = rata-rata nasional
     .order('run_date', { ascending: false })
     .limit(160) // 2-3 hari x ~50 baris (kelompok + varian + harga RAG)
-  if (error) throw error
+  if (error) periksaGalat(error)
   const rows = data || []
   if (!rows.length) return { runDate: null, prices: [] }
   const latest = rows[0].run_date
@@ -1644,7 +1723,7 @@ export async function fetchExchangeRates(days = 90) {
     .from('exchange_rates').select('*')
     .gte('rate_date', since)
     .order('rate_date', { ascending: true })
-  if (error) throw error
+  if (error) periksaGalat(error)
   return data || []
 }
 
@@ -1653,6 +1732,6 @@ export async function fetchMacroConfigLatest() {
     .from('macro_config').select('*')
     .order('month', { ascending: false })
     .limit(1)
-  if (error) throw error
+  if (error) periksaGalat(error)
   return (data && data[0]) || null
 }

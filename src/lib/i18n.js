@@ -303,6 +303,24 @@ export const translations = {
       errEmpty: 'File kosong atau format tidak terbaca.', errNoTx: 'Tidak menemukan transaksi yang bisa diparse. Pastikan ada kolom tanggal, keterangan, dan nominal (atau debit/kredit).', errRead: 'Gagal membaca file: ', errSave: 'Gagal menyimpan: ', colsRead: 'Kolom terbaca: ',
     },
     common: { months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'], allPeriods: 'Seluruh Periode' },
+    gagalMuat: {
+      judul: 'Data gagal dimuat',
+      judulOffline: 'Tidak ada koneksi internet',
+      pesan: 'Sambungan ke server terputus saat memuat halaman ini.',
+      pesanOffline: 'Perangkat Anda sedang tidak terhubung ke internet.',
+      aman: 'Catatan Anda tetap tersimpan aman — ini hanya gagal ditampilkan.',
+      coba: 'Coba lagi', mencoba: 'Memuat...', detail: 'Detail teknis',
+    },
+    koneksi: {
+      offline: 'Tidak ada koneksi internet. Catatan baru belum bisa disimpan.',
+      offlineSimpan: 'Tidak ada koneksi internet. Isian Anda tidak hilang — coba Simpan lagi setelah sinyal kembali.',
+      pulih: 'Koneksi kembali tersambung.',
+    },
+    sesi: {
+      judul: 'Sesi Anda sudah berakhir',
+      pesan: 'Demi keamanan, sesi masuk berakhir setelah beberapa waktu. Semua catatan Anda tersimpan aman di server.',
+      aksi: 'Masuk kembali',
+    },
     tx: {
       searchPh: 'Cari deskripsi atau kategori...', allTx: 'Semua transaksi', income: 'Pemasukan', expense: 'Pengeluaran',
       allPay: 'Semua status bayar', lunas: 'Lunas', belum: 'Belum lunas', add: '+ Tambah', addTx: '+ Tambah Transaksi',
@@ -456,7 +474,10 @@ export const translations = {
       tagLow: 'Stok Rendah', tagSafe: 'Stok Aman', general: 'Umum', remainingSuffix: 'Sisa', editProduct: 'Ubah produk', delProduct: 'Hapus produk', editAria: 'Ubah {name}', delAria: 'Hapus {name}',
       thProduct: 'Produk', thCat: 'Kategori', thStatus: 'Status', thStock: 'Sisa Stok', thAction: 'Tindakan',
       tagCritical: 'KRITIS', tagThin: 'MENIPIS', tagStable: 'STABIL',
-      logTitle: 'Log Pergerakan Stok', logSub: 'Ringkasan status produk yang terakhir Anda kelola.', seeAllHistory: 'Lihat Semua Histori',
+      // Judul lama "Log Pergerakan Stok" menjanjikan riwayat masuk/keluar,
+      // padahal isinya daftar produk beserta status stoknya. Riwayat yang
+      // sebenarnya ada di halaman terpisah lewat tautan "Lihat Semua Histori".
+      logTitle: 'Status Stok Terkini', logSub: 'Lima produk teratas pada daftar ini beserta status stoknya. Untuk mengubah data, gunakan daftar di atas.', seeAllHistory: 'Lihat Semua Histori',
       thProdInfo: 'Informasi Produk', thSku: 'SKU Produk', thInvStatus: 'Status Inventori',
       delTitle: 'Hapus produk?', delMsg: 'Produk "{name}" akan dihapus permanen beserta fotonya. Aksi ini tidak dapat dibatalkan.', delConfirm: 'Hapus', edit: 'Ubah', del: 'Hapus',
     },
@@ -1186,6 +1207,24 @@ export const translations = {
       errEmpty: 'File is empty or unreadable.', errNoTx: 'No parseable transactions found. Make sure there are date, description, and amount (or debit/credit) columns.', errRead: 'Failed to read file: ', errSave: 'Failed to save: ', colsRead: 'Columns read: ',
     },
     common: { months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], allPeriods: 'All Periods' },
+    gagalMuat: {
+      judul: 'Could not load your data',
+      judulOffline: 'No internet connection',
+      pesan: 'The connection to the server dropped while loading this page.',
+      pesanOffline: 'Your device is currently offline.',
+      aman: 'Your records are safe — only the display failed.',
+      coba: 'Try again', mencoba: 'Loading...', detail: 'Technical details',
+    },
+    koneksi: {
+      offline: 'No internet connection. New records cannot be saved yet.',
+      offlineSimpan: 'No internet connection. Your input is not lost — press Save again once you are back online.',
+      pulih: 'Connection restored.',
+    },
+    sesi: {
+      judul: 'Your session has expired',
+      pesan: 'For security, sign-in sessions expire after a while. All your records are safely stored on the server.',
+      aksi: 'Sign in again',
+    },
     tx: {
       searchPh: 'Search description or category...', allTx: 'All transactions', income: 'Income', expense: 'Expense',
       allPay: 'All payment status', lunas: 'Paid', belum: 'Unpaid', add: '+ Add', addTx: '+ Add Transaction',
@@ -1339,7 +1378,7 @@ export const translations = {
       tagLow: 'Low Stock', tagSafe: 'In Stock', general: 'General', remainingSuffix: 'left', editProduct: 'Edit product', delProduct: 'Delete product', editAria: 'Edit {name}', delAria: 'Delete {name}',
       thProduct: 'Product', thCat: 'Category', thStatus: 'Status', thStock: 'Stock Left', thAction: 'Actions',
       tagCritical: 'CRITICAL', tagThin: 'LOW', tagStable: 'STABLE',
-      logTitle: 'Stock Movement Log', logSub: 'A summary of the products you managed most recently.', seeAllHistory: 'View All History',
+      logTitle: 'Current Stock Status', logSub: 'The top five products in this list with their stock status. To change data, use the list above.', seeAllHistory: 'View All History',
       thProdInfo: 'Product Info', thSku: 'Product SKU', thInvStatus: 'Inventory Status',
       delTitle: 'Delete product?', delMsg: 'Product "{name}" will be permanently deleted along with its photo. This action cannot be undone.', delConfirm: 'Delete', edit: 'Edit', del: 'Delete',
     },

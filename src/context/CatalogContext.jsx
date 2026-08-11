@@ -20,24 +20,64 @@ function colorFor(value) {
   return PALETTE[h]
 }
 
+// ============================================================
+// KATALOG KATEGORI & CHANNEL.
+//
+// Berkas ini pernah menjadi penyebab keluhan "tiba-tiba tidak bisa input".
+// Rantainya: katalog dimuat SEKALI saat AppLayout dipasang; kalau sinyal
+// kebetulan sedang buruk, kegagalannya ditelan diam-diam dan `categories`
+// tinggal array kosong. Dropdown Kategori di form transaksi lalu hanya berisi
+// "(belum ada kategori)", dan tombol Simpan menolak dengan "Pilih kategori
+// dulu" — untuk kategori yang tidak ada satu pun bisa dipilih. Pengguna
+// terjebak sampai ia me-refresh halaman, dan tidak ada apa pun di layar yang
+// menyuruhnya melakukan itu.
+//
+// Dua perubahan menutupnya: kegagalan sekarang DICATAT (`gagal`) sehingga UI
+// bisa menawarkan jalan keluar, dan katalog dicoba lagi sendiri begitu koneksi
+// kembali atau tab diaktifkan lagi — jalur pemulihan yang tidak menuntut
+// pengguna memahami apa yang rusak.
+// ============================================================
+
 export function CatalogProvider({ children }) {
   const [categories, setCategories] = useState([])
   const [channels, setChannels] = useState([])
   const [ready, setReady] = useState(false)
+  const [gagal, setGagal] = useState(false)
 
   const reload = useCallback(async () => {
-    const [cats, chs] = await Promise.all([fetchCategories(), fetchChannels()])
-    setCategories(cats)
-    setChannels(chs)
+    try {
+      const [cats, chs] = await Promise.all([fetchCategories(), fetchChannels()])
+      setCategories(cats)
+      setChannels(chs)
+      setGagal(false)
+      return true
+    } catch (e) {
+      setGagal(true)
+      throw e
+    }
   }, [])
 
   useEffect(() => {
     (async () => {
       try { await ensureSeedData() } catch { /* abaikan jika tabel belum dimigrasi */ }
-      try { await reload() } catch { /* tabel belum ada */ }
+      try { await reload() } catch { /* status kegagalan sudah dicatat di `gagal` */ }
       setReady(true)
     })()
   }, [reload])
+
+  // Pemulihan otomatis. Hanya dipasang saat memang sedang gagal, jadi pemakaian
+  // normal tidak menambah satu pun permintaan jaringan.
+  useEffect(() => {
+    if (!gagal) return
+    const lagi = () => { reload().catch(() => {}) }
+    const saatTampak = () => { if (document.visibilityState === 'visible') lagi() }
+    window.addEventListener('online', lagi)
+    document.addEventListener('visibilitychange', saatTampak)
+    return () => {
+      window.removeEventListener('online', lagi)
+      document.removeEventListener('visibilitychange', saatTampak)
+    }
+  }, [gagal, reload])
 
   const catNames = (direction) =>
     categories.filter((c) => c.direction === direction).map((c) => c.name)
@@ -50,10 +90,24 @@ export function CatalogProvider({ children }) {
   const channelColor = (value) => BUILTIN_CH[value]?.color || colorFor(value || 'x')
 
   return (
-    <CatalogCtx.Provider value={{ categories, channels, ready, reload, catNames, channelLabel, channelColor }}>
+    <CatalogCtx.Provider value={{ categories, channels, ready, gagal, reload, catNames, channelLabel, channelColor }}>
       {children}
     </CatalogCtx.Provider>
   )
 }
 
-export const useCatalog = () => useContext(CatalogCtx)
+// Fallback tanpa provider — pola yang sama dengan useWorkspace().
+//
+// Sebelumnya hook ini mengembalikan null begitu saja, sehingga komponen mana
+// pun yang ter-render di luar <CatalogProvider> (rute yang salah pasang, modal
+// yang dipindah, komponen yang diuji terpisah) langsung melempar
+// "Cannot destructure property" — crash render yang mematikan SELURUH aplikasi
+// lewat ErrorBoundary akar. Nilai kosong yang aman jauh lebih baik daripada
+// layar error untuk sesuatu yang hanya salah pasang.
+export const useCatalog = () => useContext(CatalogCtx) || {
+  categories: [], channels: [], ready: false, gagal: false,
+  reload: async () => {},
+  catNames: () => [],
+  channelLabel: (v) => v,
+  channelColor: () => '#64748b',
+}
