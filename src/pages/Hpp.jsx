@@ -359,8 +359,8 @@ export default function Hpp() {
                           const satuanHarga = hargaPerSatuan(r)
                           return (
                           <tr key={i} className={r.is_ai_estimated ? 'row-ai' : ''}>
-                            <td><input className="input" value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder={hp.namePh} aria-label={hp.thComponent} style={{ minWidth: 140 }} /></td>
-                            <td>
+                            <td data-label={hp.thComponent}><input className="input" value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder={hp.namePh} aria-label={hp.thComponent} style={{ minWidth: 140 }} /></td>
+                            <td data-label={hp.thCostType}>
                               <select className="input" value={r.type} onChange={(e) => setRow(i, { type: e.target.value })} aria-label={hp.thCostType} style={{ minWidth: 112 }}>
                                 <option value="bahan">{hp.typeBahan}</option>
                                 <option value="kemasan">{hp.typeKemasan}</option>
@@ -372,7 +372,7 @@ export default function Hpp() {
                             </td>
                             {/* Dasar biaya: takaran per produk, atau biaya periode
                                 (sewa/listrik/gaji) dibagi hasil produksi periode itu. */}
-                            <td>
+                            <td data-label={hp.thBasis}>
                               <select className="input" value={r.cost_basis}
                                 onChange={(e) => setRow(i, { cost_basis: e.target.value })} style={{ minWidth: 122 }}
                                 aria-label={hp.thBasis}>
@@ -382,7 +382,7 @@ export default function Hpp() {
                             </td>
                             {perPeriode ? (
                               <>
-                                <td colSpan={4}>
+                                <td data-label={hp.thBasis} colSpan={4}>
                                   <div className="flex gap" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                                     <input className="input" type="number" min="0" step="any" value={r.period_amount}
                                       onChange={(e) => setRow(i, { period_amount: e.target.value })}
@@ -398,21 +398,21 @@ export default function Hpp() {
                               </>
                             ) : (
                               <>
-                                <td><input className="input" type="number" min="0" step="any" value={r.qty_per_unit} onChange={(e) => setRow(i, { qty_per_unit: e.target.value })} style={{ width: 84, textAlign: 'right' }} aria-label={hp.thQty} /></td>
-                                <td><input className="input" value={r.unit} onChange={(e) => setRow(i, { unit: e.target.value })} style={{ width: 74 }} aria-label={hp.thUnit} /></td>
+                                <td data-label={hp.thQty}><input className="input" type="number" min="0" step="any" value={r.qty_per_unit} onChange={(e) => setRow(i, { qty_per_unit: e.target.value })} style={{ width: 84, textAlign: 'right' }} aria-label={hp.thQty} /></td>
+                                <td data-label={hp.thUnit}><input className="input" value={r.unit} onChange={(e) => setRow(i, { unit: e.target.value })} style={{ width: 74 }} aria-label={hp.thUnit} /></td>
                                 {/* Harga BELANJA per kemasan + isinya. Inilah yang
                                     sebenarnya diketahui pemilik warung; harga per
                                     satuan dihitung dari sini, tidak lagi diketik. */}
-                                <td><input className="input" type="number" min="0" step="any" value={r.pack_price}
+                                <td data-label={hp.thPackPrice}><input className="input" type="number" min="0" step="any" value={r.pack_price}
                                   onChange={(e) => setRow(i, { pack_price: e.target.value })}
                                   style={{ width: 122, textAlign: 'right' }} placeholder="0" aria-label={hp.thPackPrice} /></td>
-                                <td><input className="input" type="number" min="0" step="any" value={r.pack_size}
+                                <td data-label={hp.thPackSize}><input className="input" type="number" min="0" step="any" value={r.pack_size}
                                   onChange={(e) => setRow(i, { pack_size: e.target.value })}
                                   style={{ width: 100, textAlign: 'right' }} placeholder="0" aria-label={hp.thPackSize} /></td>
                               </>
                             )}
                             {!perPeriode && (
-                              <td style={{ textAlign: 'right' }}>
+                              <td data-label={hp.thPricePerUnit} style={{ textAlign: 'right' }}>
                                 {Number(r.pack_size) > 0 && Number(r.pack_price) > 0 ? (
                                   <span title={hp.derivedTitle}>{rupiah(satuanHarga)}</span>
                                 ) : (
@@ -422,10 +422,10 @@ export default function Hpp() {
                                 )}
                               </td>
                             )}
-                            <td style={{ textAlign: 'right' }}><b>{rupiah(biayaBarisPerUnit(r))}</b></td>
+                            <td data-label={hp.thRowCost} style={{ textAlign: 'right' }}><b>{rupiah(biayaBarisPerUnit(r))}</b></td>
                             {/* Tautan ke stok: hanya baris yang menunjuk produk
                                 bahan yang bisa memotong stok saat produk terjual. */}
-                            <td>
+                            <td data-label={hp.thStockSource}>
                               <select className="input" value={r.source_product_id}
                                 onChange={(e) => setRow(i, { source_product_id: e.target.value, deduct_stock: e.target.value ? r.deduct_stock : false })}
                                 style={{ minWidth: 170 }} aria-label={hp.thStockSource}>
@@ -444,21 +444,21 @@ export default function Hpp() {
                                 </label>
                               )}
                             </td>
-                            <td>
+                            <td data-label={hp.thCommodity}>
                               <select className="input" value={r.commodity_key} onChange={(e) => setRow(i, { commodity_key: e.target.value })} style={{ minWidth: 150 }} aria-label={hp.thCommodity}>
                                 <option value="">{hp.notRelated}</option>
                                 {COMMODITIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                               </select>
                             </td>
-                            <td>
+                            <td data-label={hp.thImportDep}>
                               <select className="input" value={r.import_exposure} onChange={(e) => setRow(i, { import_exposure: e.target.value })} style={{ minWidth: 128 }} aria-label={hp.thImportDep}>
                                 <option value="rendah">{hp.expLow}</option>
                                 <option value="sedang">{hp.expMed}</option>
                                 <option value="tinggi">{hp.expHigh}</option>
                               </select>
                             </td>
-                            <td><input className="input" type="number" step="any" value={r.simPct} onChange={(e) => setRow(i, { simPct: e.target.value })} placeholder="auto" style={{ width: 92, textAlign: 'right' }} title={hp.simPctTitle} aria-label={hp.thSimPct} /></td>
-                            <td><button type="button" className="icon-btn danger" onClick={() => removeRow(i)} title={hp.delTitle} aria-label={`${hp.delTitle} ${r.name || hp.namePh}`}><Trash2 size={15} /></button></td>
+                            <td data-label={hp.thSimPct}><input className="input" type="number" step="any" value={r.simPct} onChange={(e) => setRow(i, { simPct: e.target.value })} placeholder="auto" style={{ width: 92, textAlign: 'right' }} title={hp.simPctTitle} aria-label={hp.thSimPct} /></td>
+                            <td data-label={hp.delTitle}><button type="button" className="icon-btn danger" onClick={() => removeRow(i)} title={hp.delTitle} aria-label={`${hp.delTitle} ${r.name || hp.namePh}`}><Trash2 size={15} /></button></td>
                           </tr>
                           )
                         })}

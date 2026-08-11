@@ -1,3 +1,19 @@
+/* ============================================================
+   FONT DI-HOST SENDIRI, bukan dari fonts.googleapis.com.
+   Sebelumnya index.html memuatnya lewat <link rel="stylesheet"> ke CDN Google.
+   Tag itu MEMBLOKIR RENDER: di jaringan seluler yang lambat — perangkat sehari-
+   hari pengguna kami — layar tetap putih sampai berkas dari domain pihak ketiga
+   selesai atau menyerah. Satu domain yang tersendat menahan seluruh aplikasi.
+   Menyertakannya lewat bundel juga menghapus satu pengiriman alamat IP pengguna
+   ke pihak ketiga pada setiap kunjungan, yang relevan untuk UU PDP.
+   ============================================================ */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+@import '@fontsource-variable/space-grotesk';
+
 :root {
   /* Palet wajib brand */
   --primary: #1c36ee;
@@ -34,7 +50,10 @@
   --radius: 16px;
   --radius-sm: 10px;
   --maxw: 1180px;
-  --font-head: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  /* 'Space Grotesk Variable' adalah nama keluarga yang didaftarkan paket
+     @fontsource-variable; nama lama dipertahankan sebagai cadangan bagi
+     perangkat yang kebetulan sudah memasangnya sendiri. */
+  --font-head: 'Space Grotesk Variable', 'Space Grotesk', 'Inter', system-ui, sans-serif;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light;
 }
@@ -1158,6 +1177,66 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .tbl-hpp th { white-space: nowrap; font-size: 12.5px; color: var(--slate); }
 .tbl-hpp td { vertical-align: middle; }
 .tbl-hpp select.input, .tbl-hpp input.input { font-size: 13px; padding: 8px 9px; }
+
+/* ---- Tabel HPP di layar sempit: tiap baris jadi KARTU ----
+   Kolomnya tumbuh jadi 14 sejak komposisi mendapat harga kemasan, dasar biaya
+   per periode, dan tautan stok. Di ponsel itu berarti menggeser tabel jauh ke
+   kanan sambil kehilangan judul kolomnya — pengguna tidak lagi tahu kotak yang
+   sedang diisi itu apa.
+
+   Judul kolom dibawa turun ke tiap sel lewat atribut data-label pada <td>,
+   jadi tidak ada teks yang digandakan di JSX. Setiap input juga sudah punya
+   aria-label sendiri (lihat perbaikan a11y), sehingga menyembunyikan <thead>
+   di sini tidak menghilangkan informasi bagi pembaca layar. */
+@media (max-width: 880px) {
+  .tbl-hpp { min-width: 0; display: block; }
+  .tbl-hpp thead { display: none; }
+  .tbl-hpp tbody { display: block; }
+
+  .tbl-hpp tbody tr {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    background: var(--card);
+  }
+  .tbl-hpp tbody tr.row-ai { border-color: var(--warn-line, var(--line)); }
+
+  .tbl-hpp tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left !important;
+  }
+  .tbl-hpp tbody td:last-child { border-bottom: 0; }
+
+  .tbl-hpp tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--slate);
+  }
+
+  /* Lebar sel yang dipatok untuk tampilan tabel (width: 84px, dst) akan
+     membuat kotaknya kerdil di mode kartu — dipaksa penuh di sini. */
+  .tbl-hpp tbody td > .input,
+  .tbl-hpp tbody td > input.input,
+  .tbl-hpp tbody td > select.input { width: 100% !important; min-width: 0 !important; }
+  .tbl-hpp tbody td > .flex { flex: 1; }
+
+  /* Sel biaya per periode memakai colSpan; di mode kartu isinya ditumpuk. */
+  .tbl-hpp tbody td[colspan] { display: block; }
+  .tbl-hpp tbody td[colspan]::before { display: block; margin-bottom: 6px; }
+
+  /* Tombol hapus baris: beri label supaya tidak jadi ikon menggantung. */
+  .tbl-hpp tbody td:last-child { justify-content: space-between; padding-top: 10px; }
+}
 
 /* ============================================================
    REDESIGN VISUAL: tombol tema, angka tabular, penyesuaian dark theme.

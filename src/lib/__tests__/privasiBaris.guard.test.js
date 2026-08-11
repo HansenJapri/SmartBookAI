@@ -38,21 +38,50 @@ const API = readFileSync(join(process.cwd(), 'src', 'lib', 'api.js'), 'utf8')
 // dari kode tanpa harus membuka dashboard database.
 const TABEL_PRIBADI = ['feedback']
 
-// Mengambil potongan kode satu rantai query mulai dari .from('<tabel>')
-// sampai akhir pernyataan, supaya filter yang menempel di rantai itu terbaca.
+// Mengambil potongan kode SATU rantai query, mulai dari .from('<tabel>') sampai
+// rantainya berhenti.
+//
+// Batasnya ditentukan bentuk rantai, bukan jumlah karakter. Versi pertama
+// mengambil 500 karakter dari titik .from(), dan itu merembes ke fungsi
+// berikutnya: begitu ada .insert( di sana, pemeriksaan mengambil cabang yang
+// salah dan menuduh query yang sebenarnya sudah benar. Kegagalan palsu pada
+// penjaga keamanan lebih berbahaya daripada tidak punya penjaga — ia mengajari
+// orang mengabaikan warna merahnya.
+//
+// Pemindaian sadar kedalaman kurung. Aturan "berhenti di baris yang tidak
+// diawali titik" saja tidak cukup: argumen .insert({ ... }) menyeberang beberapa
+// baris yang isinya `user_id: user.id,` — justru bagian yang harus terbaca.
+//
+// Jadi rantainya berakhir pada pergantian baris yang terjadi di kedalaman NOL
+// dan tidak disambung baris berikutnya dengan titik.
 function rantaiQuery(kode, tabel) {
   const out = []
   const re = new RegExp(`\\.from\\(\\s*['"\`]${tabel}['"\`]\\s*\\)`, 'g')
   let m
   while ((m = re.exec(kode)) !== null) {
-    // Ambil sampai baris kosong berikutnya atau 500 karakter — cukup untuk
-    // menampung rantai .select().eq().order().limit() terpanjang di berkas ini.
-    const potongan = kode.slice(m.index, m.index + 500)
-    const akhir = potongan.indexOf('\n\n')
+    let depth = 0
+    let quote = null
+    let i = m.index
+    for (; i < kode.length; i++) {
+      const c = kode[i]
+      if (quote) {
+        if (c === '\\') { i++; continue }
+        if (c === quote) quote = null
+        continue
+      }
+      if (c === '"' || c === "'" || c === '`') { quote = c; continue }
+      if (c === '(' || c === '[' || c === '{') { depth++; continue }
+      if (c === ')' || c === ']' || c === '}') { depth--; continue }
+      if (c === '\n' && depth <= 0) {
+        const lanjut = kode.slice(i + 1).match(/^\s*\./)
+        if (!lanjut) break
+      }
+    }
     out.push({
       baris: kode.slice(0, m.index).split('\n').length,
-      kode: akhir === -1 ? potongan : potongan.slice(0, akhir),
+      kode: kode.slice(m.index, i),
     })
+    re.lastIndex = Math.max(re.lastIndex, i)
   }
   return out
 }
