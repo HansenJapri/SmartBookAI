@@ -496,6 +496,17 @@ export default function Chatbot() {
                                   <option value="">(kosong)</option>
                                   {s.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
+                              ) : s.type === 'ref' ? (
+                                // Field ref TIDAK boleh jadi kotak teks bebas:
+                                // isinya UUID, dan apa pun yang diketik manusia
+                                // di situ pasti bukan UUID yang sah. Kalau
+                                // daftar pilihannya kosong (belum punya produk/
+                                // karyawan), yang benar adalah menampilkan nama
+                                // hasil resolusi sebagai teks, bukan mengundang
+                                // suntingan yang dijamin gagal.
+                                <div className="input" style={{ background: 'var(--bg)', display: 'flex', alignItems: 'center' }}>
+                                  {s.displayValue || <span className="muted-sm">(belum dipilih)</span>}
+                                </div>
                               ) : (
                                 <input id={`act-${i}-${s.field}`} className="input"
                                   type={s.type === 'money' || s.type === 'number' ? 'number' : s.type === 'date' ? 'date' : 'text'}

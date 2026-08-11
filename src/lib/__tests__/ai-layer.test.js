@@ -203,14 +203,36 @@ describe('crud slot-filling', () => {
     expect(missing).toContain('category')
   })
 
-  it('tetap menanyakan field opsional sekali agar data lengkap', () => {
+  // Kebijakan ini BERUBAH. Sebelumnya setiap field opsional yang kosong
+  // ditanyakan satu per satu "agar data selengkap input manual" — dan kalimat
+  // sesederhana "jual kopi 50rb" berubah menjadi delapan giliran percakapan
+  // sebelum satu baris pun tersimpan. Pengguna berhenti di tengah, sehingga
+  // yang tersimpan justru NIHIL: hasil yang lebih buruk daripada catatan yang
+  // beberapa kolomnya kosong. Kelengkapan tetap dijamin kartu ringkasan, yang
+  // menampilkan seluruh field dan bisa disunting sebelum Simpan.
+  it('hanya menanyakan field opsional yang salahnya merusak angka', () => {
     const d = validateDraft('create_transaksi', {
       direction: 'in', amount: 50000, description: 'Jual kopi', category: 'Penjualan',
     })
     const optional = d.optionalPrompts.map((q) => q.field)
-    expect(optional).toContain('channel')
+
+    // Ditanyakan: penjualan kredit yang tercatat lunas adalah tagihan yang
+    // tidak akan pernah ditagih.
     expect(optional).toContain('payment_status')
-    expect(optional).toContain('product_id')
+    // Tidak ditanyakan: punya nilai bawaan yang masuk akal, dan tetap bisa
+    // disunting di kartu ringkasan.
+    expect(optional).not.toContain('channel')
+    expect(optional).not.toContain('product_id')
+    expect(optional).not.toContain('customer_name')
+    expect(optional).toHaveLength(1)
+  })
+
+  it('field opsional yang tidak ditanyakan tetap diisi nilai bawaannya', () => {
+    const d = validateDraft('create_transaksi', {
+      direction: 'in', amount: 50000, description: 'Jual kopi', category: 'Penjualan',
+    })
+    // Kartu ringkasan harus memperlihatkan apa yang benar-benar akan tersimpan.
+    expect(d.values.channel).toBe('manual')
   })
 
   it('menolak field asing tanpa meneruskannya ke database', () => {
