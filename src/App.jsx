@@ -1,5 +1,6 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { lazyAman } from './lib/lazyAman'
 import { useAuth } from './context/AuthContext'
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext'
 import { canPath, firstAllowedPath } from './lib/rbac'
@@ -13,33 +14,35 @@ import Privacy from './pages/Privacy'
 import AppLayout from './components/AppLayout'
 import MfaChallenge from './components/MfaChallenge'
 
-// Halaman aplikasi dimuat sesuai kebutuhan (code-splitting → load awal lebih cepat)
-const Demo = lazy(() => import('./pages/Demo'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Transactions = lazy(() => import('./pages/Transactions'))
-const Struk = lazy(() => import('./pages/Struk'))
-const Import = lazy(() => import('./pages/Import'))
-const Stok = lazy(() => import('./pages/Stok'))
-const StokHistori = lazy(() => import('./pages/StokHistori'))
-const Supplier = lazy(() => import('./pages/Supplier'))
-const Reconciliation = lazy(() => import('./pages/Reconciliation'))
-const Reveal = lazy(() => import('./pages/Reveal'))
-const Reports = lazy(() => import('./pages/Reports'))
-const Settings = lazy(() => import('./pages/Settings'))
-const Feedback = lazy(() => import('./pages/Feedback'))
-const Radar = lazy(() => import('./pages/Radar'))
-const Hpp = lazy(() => import('./pages/Hpp'))
-const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'))
-const Opname = lazy(() => import('./pages/Opname'))
-const Receivables = lazy(() => import('./pages/Receivables'))
-const Team = lazy(() => import('./pages/Team'))
-const Audit = lazy(() => import('./pages/Audit'))
-const Tasks = lazy(() => import('./pages/Tasks'))
-const Employees = lazy(() => import('./pages/Employees'))
-const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'))
-const Attendance = lazy(() => import('./pages/Attendance'))
-const Payroll = lazy(() => import('./pages/Payroll'))
-const Kpi = lazy(() => import('./pages/Kpi'))
+// Halaman aplikasi dimuat sesuai kebutuhan (code-splitting → load awal lebih cepat).
+// lazyAman(), bukan lazy(): potongan berkas yang basi setelah rilis baru dimuat
+// ulang sekali secara otomatis alih-alih menjadi layar galat. Lihat lib/lazyAman.js.
+const Demo = lazyAman(() => import('./pages/Demo'))
+const Dashboard = lazyAman(() => import('./pages/Dashboard'))
+const Transactions = lazyAman(() => import('./pages/Transactions'))
+const Struk = lazyAman(() => import('./pages/Struk'))
+const Import = lazyAman(() => import('./pages/Import'))
+const Stok = lazyAman(() => import('./pages/Stok'))
+const StokHistori = lazyAman(() => import('./pages/StokHistori'))
+const Supplier = lazyAman(() => import('./pages/Supplier'))
+const Reconciliation = lazyAman(() => import('./pages/Reconciliation'))
+const Reveal = lazyAman(() => import('./pages/Reveal'))
+const Reports = lazyAman(() => import('./pages/Reports'))
+const Settings = lazyAman(() => import('./pages/Settings'))
+const Feedback = lazyAman(() => import('./pages/Feedback'))
+const Radar = lazyAman(() => import('./pages/Radar'))
+const Hpp = lazyAman(() => import('./pages/Hpp'))
+const PurchaseOrders = lazyAman(() => import('./pages/PurchaseOrders'))
+const Opname = lazyAman(() => import('./pages/Opname'))
+const Receivables = lazyAman(() => import('./pages/Receivables'))
+const Team = lazyAman(() => import('./pages/Team'))
+const Audit = lazyAman(() => import('./pages/Audit'))
+const Tasks = lazyAman(() => import('./pages/Tasks'))
+const Employees = lazyAman(() => import('./pages/Employees'))
+const EmployeeProfile = lazyAman(() => import('./pages/EmployeeProfile'))
+const Attendance = lazyAman(() => import('./pages/Attendance'))
+const Payroll = lazyAman(() => import('./pages/Payroll'))
+const Kpi = lazyAman(() => import('./pages/Kpi'))
 
 const Loader = () => <div className="full-center"><div className="spinner" /></div>
 

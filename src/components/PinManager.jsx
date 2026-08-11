@@ -19,7 +19,12 @@ export default function PinManager() {
     e.preventDefault()
     if (!/^\d{4,8}$/.test(p1)) return flash('⚠ PIN harus 4-8 angka.')
     if (p1 !== p2) return flash('⚠ Konfirmasi PIN tidak sama.')
-    await savePin(uid, p1)
+    // Kunci layar yang PIN-nya gagal tersimpan akan TAMPAK aktif namun tidak
+    // pernah mengunci apa pun — keamanan semu yang lebih buruk daripada tidak
+    // memasangnya sama sekali. Karena itu kegagalan penyimpanan dikatakan.
+    if (!await savePin(uid, p1)) {
+      return flash('⚠ Perangkat ini menolak menyimpan PIN (mode penyamaran atau penyimpanan penuh). Kunci layar belum aktif.')
+    }
     setOn(true); setP1(''); setP2(''); flash('PIN tersimpan ✓')
   }
   const disable = () => { clearPin(uid); setOn(false); flash('Kunci layar dimatikan.') }

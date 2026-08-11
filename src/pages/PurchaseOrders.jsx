@@ -10,6 +10,7 @@ import { nextDocNumber, PO_STATUS } from '../lib/gudang'
 import { rupiah, fmtDate } from '../lib/format'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import GagalMuat from '../components/GagalMuat'
 import { useAlert } from '../context/AlertContext'
 import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
@@ -28,6 +29,7 @@ export default function PurchaseOrders() {
   const { catNames } = useCatalog()
   const loc = useLocation()
   const [list, setList] = useState(null)
+  const [gagalMuat, setGagalMuat] = useState(null)
   const [products, setProducts] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [form, setForm] = useState(null)          // modal buat/edit draf
@@ -36,7 +38,9 @@ export default function PurchaseOrders() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
-  const load = () => fetchPurchaseOrders().then(setList).catch(() => setList([]))
+  const load = () => fetchPurchaseOrders()
+    .then((d) => { setList(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
   useEffect(() => {
     load()
     fetchProducts().then(setProducts).catch(() => {})
@@ -164,6 +168,7 @@ export default function PurchaseOrders() {
 
   const rows = useMemo(() => list || [], [list])
 
+  if (gagalMuat && !list) return <GagalMuat galat={gagalMuat} onRetry={load} />
   if (!list) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   return (

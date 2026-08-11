@@ -30,7 +30,12 @@ describe('hargaDaerah (facade -> harga-daerah edge fn)', () => {
       error: null,
     })
     const res = await ai.hargaDaerah(11)
-    expect(invoke).toHaveBeenCalledWith('harga-daerah', { body: { province_id: 11 } })
+    // `signal` selalu ikut sejak setiap panggilan Edge Function diberi batas
+    // waktu — tanpa itu, fungsi yang menggantung meninggalkan pengguna pada
+    // spinner tanpa akhir yang bahkan tidak bisa dibatalkan.
+    expect(invoke).toHaveBeenCalledWith('harga-daerah', {
+      body: { province_id: 11 }, signal: expect.any(AbortSignal),
+    })
     expect(res.prices[0].province_id).toBe(11)
   })
 
@@ -52,7 +57,7 @@ describe('makroRefresh (pemicu cadangan makro-harian)', () => {
   it('memanggil edge fn makro-harian tanpa body payload berarti', async () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, signals: 25 }, error: null })
     const res = await ai.makroRefresh()
-    expect(invoke).toHaveBeenCalledWith('makro-harian', { body: {} })
+    expect(invoke).toHaveBeenCalledWith('makro-harian', { body: {}, signal: expect.any(AbortSignal) })
     expect(res.ok).toBe(true)
   })
 })

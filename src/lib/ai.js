@@ -48,16 +48,51 @@ export function cleanReply(text) {
     .trim()
 }
 
+// Batas tunggu panggilan Edge Function.
+//
+// Sebelum ini tidak ada satu pun batas waktu di jalur jaringan aplikasi.
+// `functions.invoke` menunggu selamanya, jadi Edge Function yang menggantung —
+// cold start Deno yang bertumpuk dengan Gemini yang lambat, kuota yang habis
+// tanpa balasan, koneksi yang setengah mati — meninggalkan pengguna menatap
+// spinner tanpa akhir. Lebih buruk lagi: tombolnya `disabled` selama proses,
+// jadi dia bahkan tidak bisa membatalkan atau mencoba ulang. Satu-satunya jalan
+// keluar adalah menutup tab.
+//
+// 45 detik: cukup longgar untuk permintaan vision/OCR yang memang berat, cukup
+// ketat untuk tidak terasa seperti aplikasi yang mati.
+const BATAS_TUNGGU_MS = 45_000
+const BATAS_TUNGGU_STRUK_MS = 60_000
+
 // Helper umum: panggil Edge Function + angkat pesan error yang jelas.
-async function invokeFn(name, body, fallbackErr) {
-  const { data, error } = await supabase.functions.invoke(name, { body })
+async function invokeFn(name, body, fallbackErr, batasMs = BATAS_TUNGGU_MS) {
+  const ac = new AbortController()
+  const jam = setTimeout(() => ac.abort(), batasMs)
+  let data, error
+  try {
+    ({ data, error } = await supabase.functions.invoke(name, { body, signal: ac.signal }))
+  } catch (e) {
+    // AbortError bisa datang lewat lemparan, bukan lewat `error`, tergantung
+    // versi pustaka — keduanya ditangani supaya pesannya tetap satu macam.
+    if (e?.name === 'AbortError' || ac.signal.aborted) throw new Error(pesanKehabisanWaktu(batasMs))
+    throw e
+  } finally {
+    clearTimeout(jam)
+  }
   if (error) {
+    if (ac.signal.aborted) throw new Error(pesanKehabisanWaktu(batasMs))
     let detail = ''
     try { detail = (await error.context?.json())?.error } catch { /* abaikan */ }
     throw new Error(detail || fallbackErr)
   }
   if (data?.error) throw new Error(data.error)
   return data
+}
+
+// Selalu menawarkan jalan keluar manual: fitur AI yang gagal tidak boleh
+// menghentikan pencatatan, karena uangnya sudah terlanjur masuk atau keluar.
+function pesanKehabisanWaktu(batasMs) {
+  return `Asisten tidak merespons dalam ${Math.round(batasMs / 1000)} detik. `
+    + 'Coba lagi sebentar lagi, atau catat manual lewat menu Transaksi.'
 }
 
 // Mengirim pertanyaan ke Edge Function AI (mode Tanya). History hanya untuk
@@ -163,14 +198,10 @@ function fileToBase64(file) {
 // terstruktur: { merchant, date, total, legibility, items: [...] }.
 export async function readReceipt(file) {
   const { base64, mimeType } = await fileToBase64(file)
-  const { data, error } = await supabase.functions.invoke('BukuPencatatanStruk', {
-    body: { image: base64, mimeType },
-  })
-  if (error) {
-    let detail = ''
-    try { detail = (await error.context?.json())?.error } catch { /* abaikan */ }
-    throw new Error(detail || 'Fitur baca struk sedang tidak dapat dihubungi. Coba beberapa saat lagi.')
-  }
-  if (data?.error) throw new Error(data.error)
-  return data
+  // Batas lebih longgar: unggahan gambar + OCR vision memang lebih lambat
+  // daripada permintaan teks, dan memutusnya terlalu cepat berarti menyuruh
+  // pengguna memfoto ulang struk yang sebenarnya sudah terkirim.
+  return invokeFn('BukuPencatatanStruk', { image: base64, mimeType },
+    'Fitur baca struk sedang tidak dapat dihubungi. Coba beberapa saat lagi.',
+    BATAS_TUNGGU_STRUK_MS)
 }

@@ -15,6 +15,19 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [mfaPending, setMfaPending] = useState(false)
+  // Sesi yang berakhir DI TENGAH pemakaian, bukan saat membuka aplikasi.
+  //
+  // Ini penyebab keluhan "data saya hilang" yang paling sulit dilacak: saat
+  // refresh token gagal (perangkat lama menganggur semalam, login di dua HP,
+  // jam sistem melenceng), setiap query ke Supabase mulai ditolak. Halaman
+  // menangkap kegagalan itu dan menampilkan empty state, sementara AuthContext
+  // masih memegang `user` yang lama — jadi tidak ada satu pun pengalihan ke
+  // layar masuk. Yang dilihat pemilik usaha: aplikasi yang tampak normal
+  // dengan SELURUH catatannya lenyap.
+  //
+  // Dibedakan dari keluar-sendiri: `signOut()` menyetel penanda ini kembali ke
+  // false supaya orang yang sengaja keluar tidak disambut peringatan.
+  const [sesiBerakhir, setSesiBerakhir] = useState(false)
 
   // Apakah sesi perlu menyelesaikan 2FA (punya faktor terverifikasi namun belum
   // naik ke aal2 pada sesi ini).
@@ -32,11 +45,32 @@ export function AuthProvider({ children }) {
       await refreshAal()
       setLoading(false)
     })
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // Sesi hilang PADAHAL sebelumnya ada = kedaluwarsa, bukan keluar biasa.
+      // `setUser` dipanggil dengan bentuk fungsi supaya keputusan ini dibuat
+      // dari nilai user yang benar-benar terkini, bukan dari tangkapan closure
+      // yang dibekukan saat efek ini pertama kali dipasang.
+      setUser((sebelumnya) => {
+        const sekarang = session?.user ?? null
+        if (!sekarang && sebelumnya && event !== 'SIGNED_OUT') setSesiBerakhir(true)
+        return sekarang
+      })
+      if (session?.user) setSesiBerakhir(false)
       setTimeout(() => { refreshAal() }, 0)
     })
     return () => sub.subscription.unsubscribe()
+  }, [])
+
+  // Lapis kedua. `onAuthStateChange` adalah jalur utama, tetapi ia hanya
+  // berbunyi ketika pustaka Supabase sendiri yang menyadari sesinya jatuh.
+  // Kegagalan bisa juga muncul lebih dulu sebagai penolakan pada satu query
+  // biasa (JWT kedaluwarsa, 401). api.js menyiarkan kejadian itu ke sini
+  // supaya penyebabnya sampai ke pengguna pada saat ia terjadi — bukan
+  // beberapa menit kemudian, dalam bentuk halaman-halaman yang kosong.
+  useEffect(() => {
+    const h = () => setSesiBerakhir(true)
+    window.addEventListener('bp-sesi-berakhir', h)
+    return () => window.removeEventListener('bp-sesi-berakhir', h)
   }, [])
 
   // Cek ketersediaan email & telepon (sebelum daftar)
@@ -179,6 +213,9 @@ export function AuthProvider({ children }) {
   }
 
   const signOut = async () => {
+    // Ditutup lebih dulu: keluar atas kehendak sendiri tidak boleh memicu
+    // peringatan "sesi berakhir" dari pemantau di atas.
+    setSesiBerakhir(false)
     await supabase.auth.signOut()
     setUser(null); setMfaPending(false)
   }
@@ -187,6 +224,7 @@ export function AuthProvider({ children }) {
     <AuthCtx.Provider value={{
       user, loading, configured: isSupabaseConfigured, phoneOtpEnabled,
       mfaPending, verifyMfa, refreshAal,
+      sesiBerakhir, akuiSesiBerakhir: () => setSesiBerakhir(false),
       checkEmailAvailable, checkPhoneAvailable,
       signUp, verifyEmailOtp, resendSignupOtp, signOut,
       startLogin, verifyLoginOtp, resendLoginOtp, OTP_TTL_SECONDS,

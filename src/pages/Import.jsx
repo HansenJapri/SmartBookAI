@@ -105,13 +105,33 @@ export default function Import() {
   const totalOut = selected.filter((tt) => tt.direction === 'out').reduce((s, tt) => s + tt.amount, 0)
 
   const doImport = async () => {
+    if (busy) return
     setBusy(true); setErr('')
+    const terpilih = selected
     try {
-      const payload = selected.map(({ _id, _include, _dateUncertain, _dateReason, _dateRaw, ...tt }) => tt)
+      const payload = terpilih.map(({ _id, _include, _dateUncertain, _dateReason, _dateRaw, ...tt }) => tt)
       await addTransactionsBulk(payload)
       setDone(payload.length)
       setParsed(null)
-    } catch (e) { setErr(i.errSave + e.message) }
+    } catch (e) {
+      setErr(i.errSave + e.message)
+      // KEGAGALAN SEPARUH JALAN adalah kasus yang paling mahal di halaman ini.
+      // addTransactionsBulk() menyimpan per batch 200 baris, jadi gagal di baris
+      // ke-450 berarti 400 baris SUDAH masuk. Sebelumnya daftar pratinjau
+      // dibiarkan utuh dan tombol Impor menyala lagi — pengguna yang panik
+      // menekannya sekali lagi menggandakan 400 baris pertama, dan laporan
+      // bulanannya rusak dengan cara yang sangat sulit dibersihkan.
+      //
+      // `e.tersimpan` dikirim oleh api.js persis untuk ini: baris yang sudah
+      // masuk dibuang dari daftar, sehingga mengulang impor hanya mengirim
+      // sisanya. Batas sejati (kunci idempoten di database) masih pekerjaan
+      // terpisah; ini menutup jalur yang bisa ditempuh pengguna hari ini.
+      if (Number(e.tersimpan) > 0) {
+        const sisa = terpilih.slice(e.tersimpan)
+        setParsed(sisa.length ? sisa : null)
+        if (!sisa.length) setDone(e.tersimpan)
+      }
+    }
     finally { setBusy(false) }
   }
 

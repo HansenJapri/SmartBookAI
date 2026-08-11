@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { fetchSuppliers, addSupplier, updateSupplier, deleteSupplier } from '../lib/api'
 import { useLang } from '../context/LangContext'
 import { useAlert } from '../context/AlertContext'
+import GagalMuat from '../components/GagalMuat'
 
 const empty = { name: '', phone: '', email: '', address: '', note: '' }
 
@@ -14,18 +15,28 @@ export default function Supplier() {
   const [editId, setEditId] = useState(null)
   const [q, setQ] = useState('')
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [gagalMuat, setGagalMuat] = useState(null)
 
-  const load = useCallback(() => fetchSuppliers().then(setRows).catch(() => setRows([])), [])
+  const load = useCallback(() => fetchSuppliers()
+    .then((d) => { setRows(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e)), [])
   useEffect(() => { load() }, [load])
 
   const submit = async (e) => {
     e.preventDefault(); setErr('')
     if (!form.name.trim()) { setErr(s.errName); return }
+    // Di HP dengan koneksi lambat, tombol yang tidak memberi umpan balik selalu
+    // diketuk dua kali — dan dua ketukan di sini berarti dua baris pemasok
+    // kembar yang harus dibersihkan pengguna sendiri.
+    if (busy) return
+    setBusy(true)
     try {
       if (editId) await updateSupplier(editId, form)
       else await addSupplier(form)
       setForm(empty); setEditId(null); await load()
     } catch (e2) { setErr(e2.message) }
+    finally { setBusy(false) }
   }
   const startEdit = (row) => {
     setEditId(row.id)
@@ -35,6 +46,7 @@ export default function Supplier() {
   const cancel = () => { setEditId(null); setForm(empty) }
   const remove = async (row) => { if (!await showConfirm({ message: `${s.confirmDel} "${row.name}"?`, type: 'error' })) return; await deleteSupplier(row.id); await load() }
 
+  if (gagalMuat && !rows) return <GagalMuat galat={gagalMuat} onRetry={load} />
   if (!rows) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
   const filtered = rows.filter((r) => !q || `${r.name} ${r.phone || ''}`.toLowerCase().includes(q.toLowerCase()))
 
@@ -56,7 +68,7 @@ export default function Supplier() {
         <div className="field"><label htmlFor="sup-note">{s.note}</label>
           <input id="sup-note" className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={s.notePh} /></div>
         <div className="flex gap">
-          <button className="btn btn-primary">{editId ? s.saveBtn : s.addBtn}</button>
+          <button className="btn btn-primary" disabled={busy}>{editId ? s.saveBtn : s.addBtn}</button>
           {editId && <button type="button" className="btn btn-ghost" onClick={cancel}>{s.cancel}</button>}
         </div>
       </form>
