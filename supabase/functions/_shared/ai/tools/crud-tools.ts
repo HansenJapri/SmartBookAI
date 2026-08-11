@@ -53,6 +53,19 @@ export interface ValidatedDraft {
   requiresConfirmation: boolean
   /** Modul RBAC yang dibutuhkan. */
   module: string
+  /**
+   * Nama yang dapat dibaca manusia untuk tiap field `ref` yang sudah
+   * diresolusi, mis. { product_id: 'Nasi Goreng' }. Dipakai kartu ringkasan:
+   * menampilkan UUID kepada pemilik warung sama saja dengan tidak menampilkan
+   * apa-apa — ia tidak bisa memeriksa apakah produknya benar sebelum menyimpan.
+   */
+  refLabels?: Record<string, string>
+  /**
+   * Field yang pertanyaannya sudah pernah diajukan. Dipakai penyegaran
+   * pertanyaan bersyarat agar sesuatu yang sengaja dilewati pengguna tidak
+   * ditanyakan lagi begitu syaratnya kebetulan terpenuhi kembali.
+   */
+  sudahDitanya?: string[]
 }
 
 // ---------- 1. Bangun function-calling tools (whitelist saja) ----------
@@ -167,8 +180,12 @@ export function validateDraft(
       if (f.required && !filled) {
         missingRequired.push(toQuestion(f))
       } else if (!f.required && !filled) {
-        // Permintaan pengguna: field opsional tetap ditanyakan SEKALI.
-        optionalPrompts.push(toQuestion(f))
+        // Hanya field opsional yang kekosongannya merusak angka atau
+        // menghilangkan uang yang ditanyakan — lihat catatan panjang di kepala
+        // entity-schemas.ts. Sisanya diberi nilai bawaannya dan tetap bisa
+        // disunting di kartu ringkasan.
+        if (perluDitanya(f, values)) optionalPrompts.push(toQuestion(f))
+        else terapkanFallback(f, values)
       }
     }
   }
@@ -194,6 +211,72 @@ export function validateDraft(
     requiresConfirmation,
     module: spec.module,
   }
+}
+
+/** Apakah field opsional ini layak menghabiskan satu giliran percakapan. */
+function perluDitanya(f: FieldSpec, values: Record<string, unknown>): boolean {
+  if (!f.tanyaBilaKosong) return false
+  if (f.tanyaBila && !f.tanyaBila(values)) return false
+  return true
+}
+
+/**
+ * Nilai bawaan untuk field opsional yang TIDAK ditanyakan.
+ *
+ * Diisi di sini, bukan dibiarkan undefined, supaya kartu ringkasan menampilkan
+ * apa yang benar-benar akan tersimpan. Kartu yang memperlihatkan "Channel:
+ * (kosong)" lalu menyimpan "manual" membuat konfirmasi manusia kehilangan
+ * artinya — yang diperiksa bukan yang ditulis.
+ *
+ * 'today' adalah penanda, bukan nilai: pengisian tanggal hari ini ditangani
+ * occurredAtIso() di klien, yang tahu zona waktu perangkat.
+ */
+function terapkanFallback(f: FieldSpec, values: Record<string, unknown>) {
+  if (f.fallback === undefined || f.fallback === 'today') return
+  values[f.name] = f.fallback
+}
+
+/**
+ * Susun ulang pertanyaan opsional bersyarat setelah sebuah jawaban masuk.
+ *
+ * Dibutuhkan karena syaratnya bergantung pada jawaban yang BELUM ada saat
+ * daftar pertanyaan pertama kali disusun: jatuh tempo baru relevan setelah
+ * pengguna menjawab "belum lunas", dan jumlah baru relevan setelah produknya
+ * dipilih. Tanpa penyegaran ini, keduanya tidak akan pernah ditanyakan.
+ *
+ * `sudahDitanya` mencegah pertanyaan yang sengaja dilewati pengguna muncul
+ * kembali — tanpa itu, melewati jatuh tempo akan menghasilkan lingkaran tak
+ * berujung karena syaratnya masih terpenuhi dan nilainya masih kosong.
+ */
+function segarkanPertanyaanOpsional(draft: ValidatedDraft) {
+  if (draft.operation !== 'create') return
+  const spec = getEntitySpec(draft.entity)
+  if (!spec) return
+
+  const ditanya = new Set(draft.sudahDitanya || [])
+  for (const f of spec.fields) {
+    if (f.required || !f.tanyaBilaKosong) continue
+    if (ditanya.has(f.name)) continue
+    if (draft.values[f.name] !== undefined) continue
+    if (draft.optionalPrompts.some((q) => q.field === f.name)) continue
+    if (!perluDitanya(f, draft.values)) continue
+    draft.optionalPrompts.push(toQuestion(f))
+  }
+
+  // Syarat bisa berubah ke arah sebaliknya: pengguna mengoreksi "belum lunas"
+  // menjadi "lunas", dan jatuh tempo yang sempat mengantre kehilangan alasannya.
+  //
+  // Penarikan ini SENGAJA hanya menyentuh field ber-`tanyaBila`. Antrean
+  // pertanyaan juga memuat titipan dari resolveReferences() — nama produk yang
+  // ambigu atau tidak ditemukan, yang ditanyakan ulang justru karena pengguna
+  // menyebutnya. Field-field itu tidak punya `tanyaBilaKosong`, jadi aturan
+  // yang lebih luas ("buang yang tidak perlu ditanya") akan menghapusnya, dan
+  // produk yang gagal dikenali hilang tanpa pernah ditanyakan lagi.
+  draft.optionalPrompts = draft.optionalPrompts.filter((q) => {
+    const f = spec.fields.find((x) => x.name === q.field)
+    if (!f || !f.tanyaBila) return true
+    return perluDitanya(f, draft.values)
+  })
 }
 
 function toQuestion(f: FieldSpec): ClarificationQuestion {
@@ -256,7 +339,101 @@ function coerceField(f: FieldSpec, raw: unknown, issues: ValidationIssue[]): unk
   }
 }
 
-// ---------- 3. Validasi referensi (ID benar-benar ada) ----------
+// ---------- 3. Resolusi referensi (nama -> ID, lalu pastikan ID itu ada) ----------
+
+const POLA_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const adalahUuid = (v: unknown) => typeof v === 'string' && POLA_UUID.test(v.trim())
+
+/** Escape wildcard PostgREST agar nama ber-% atau _ dicocokkan harfiah. */
+const literal = (s: string) => s.replace(/([%_\\])/g, '\\$1')
+
+/**
+ * Nama yang dilihat model & pengguna DITERJEMAHKAN ke ID di sini.
+ *
+ * INI PENYEBAB UTAMA "AI CRUD error". Model tidak pernah diberi satu pun ID —
+ * prompt sistem hanya memuat NAMA ("Produk: [\"Nasi Goreng\"]"), dan daftar
+ * pilihan di kartu slot-filling juga berisi nama. Jadi `product_id` sampai ke
+ * sini berisi "Nasi Goreng", bukan UUID. Versi sebelumnya langsung menjalankan
+ *
+ *     supabase.from('products').select('id').eq('id', 'Nasi Goreng')
+ *
+ * pada kolom bertipe uuid. Postgres menolaknya dengan 22P02 ("invalid input
+ * syntax for type uuid"), cabang `if (error || !data)` menghapus nilainya, dan
+ * akibatnya berbeda-beda tergantung field:
+ *
+ *   - product_id pada transaksi (opsional) -> tautan produk RAIB diam-diam,
+ *     sehingga "catat penjualan 5 nasi goreng" tidak pernah memotong stok;
+ *   - employee_id / criteria_id / product_id PO (wajib) -> field wajib menjadi
+ *     kosong SETELAH daftar pertanyaan disusun, jadi tidak pernah ditanyakan
+ *     ulang. Draft dinyatakan `ready`, lalu penyimpanan gagal di database
+ *     dengan galat NOT NULL yang tidak berarti apa-apa bagi pengguna.
+ *
+ * Sekarang: UUID diverifikasi seperti biasa, sedangkan teks dicari berdasarkan
+ * kolom namanya. Nilai yang tidak juga terselesaikan dikembalikan ke antrean
+ * pertanyaan (lihat `resolveReferences`) — bukan dibuang lalu dilupakan.
+ */
+async function resolveSatuRef(
+  supabase: { from: (t: string) => any },
+  f: FieldSpec,
+  nilai: unknown,
+  ownerId?: string,
+): Promise<{ id?: string; issue?: ValidationIssue; kandidat?: string[] }> {
+  const kolomNama = f.refLabelColumn || 'name'
+  const scoped = (q: any) => (ownerId ? q.eq('user_id', ownerId) : q)
+
+  if (adalahUuid(nilai)) {
+    const { data, error } = await scoped(
+      supabase.from(f.refTable!).select(`id, ${kolomNama}`).eq('id', String(nilai).trim()),
+    ).maybeSingle()
+    if (error || !data) {
+      return { issue: { field: f.name, message: `${f.label} yang disebut tidak ditemukan di data Anda.` } }
+    }
+    return { id: (data as any).id }
+  }
+
+  const teks = String(nilai ?? '').trim()
+  if (!teks) return {}
+
+  // Cocok persis dulu (tanpa peduli huruf besar/kecil), baru cocok sebagian.
+  // Dua tahap, bukan satu `ilike %teks%`: pengguna yang mengetik "Kopi" saat
+  // punya "Kopi" dan "Kopi Susu" bermaksud yang pertama, dan menyodorkan
+  // pilihan untuk sesuatu yang sudah jelas hanya memperlambat.
+  const persis = await scoped(
+    supabase.from(f.refTable!).select(`id, ${kolomNama}`).ilike(kolomNama, literal(teks)).limit(5),
+  )
+  let baris: any[] = persis?.data ?? []
+
+  if (!baris.length) {
+    const sebagian = await scoped(
+      supabase.from(f.refTable!).select(`id, ${kolomNama}`).ilike(kolomNama, `%${literal(teks)}%`).limit(5),
+    )
+    baris = sebagian?.data ?? []
+  }
+
+  if (baris.length === 1) return { id: baris[0].id }
+
+  if (baris.length > 1) {
+    const kandidat = baris.map((b) => String(b[kolomNama]))
+    // Menebak salah satunya akan menautkan catatan ke baris yang keliru, dan
+    // kekeliruan itu baru ketahuan berbulan-bulan kemudian lewat stok yang
+    // tidak cocok. Lebih baik bertanya sekali.
+    return {
+      kandidat,
+      issue: {
+        field: f.name,
+        message: `Ada ${baris.length} ${f.label.toLowerCase()} yang cocok dengan "${teks}": ${kandidat.join(', ')}. Pilih salah satu.`,
+      },
+    }
+  }
+
+  return {
+    issue: {
+      field: f.name,
+      message: `${f.label} "${teks}" belum ada di data Anda. Pilih dari daftar, atau buat dulu lewat menunya.`,
+    },
+  }
+}
+
 export async function resolveReferences(
   supabase: { from: (t: string) => any },
   draft: ValidatedDraft,
@@ -274,28 +451,61 @@ export async function resolveReferences(
   const problems: ValidationIssue[] = []
   const scoped = (q: any) => (ownerId ? q.eq('user_id', ownerId) : q)
 
+  // Resolusi dijalankan ulang setiap putaran, jadi keluhan dari putaran
+  // sebelumnya harus dibuang — kalau tidak, nama produk yang sudah diperbaiki
+  // tetap membawa pesan "belum ada di data Anda" selamanya.
+  const namaRefField = new Set(spec.fields.filter((f) => f.type === 'ref').map((f) => f.name))
+  draft.issues = (draft.issues || []).filter((i) => !namaRefField.has(i.field))
+
   for (const f of spec.fields) {
     if (f.type !== 'ref' || !f.refTable) continue
-    const id = draft.values[f.name]
-    if (!id) continue
+    const nilai = draft.values[f.name]
+    if (!nilai) continue
 
-    const { data, error } = await scoped(
-      supabase.from(f.refTable).select('id').eq('id', id),
-    ).maybeSingle()
+    const hasil = await resolveSatuRef(supabase, f, nilai, ownerId)
+    if (hasil.id) {
+      draft.values[f.name] = hasil.id
+      // Label disimpan terpisah supaya kartu ringkasan di klien menampilkan
+      // "Nasi Goreng", bukan UUID yang tidak bisa diperiksa siapa pun.
+      draft.refLabels = { ...(draft.refLabels || {}), [f.name]: String(nilai) }
+      continue
+    }
 
-    if (error || !data) {
-      problems.push({ field: f.name, message: `${f.label} yang disebut tidak ditemukan di data Anda.` })
-      delete draft.values[f.name]
+    problems.push(hasil.issue!)
+    delete draft.values[f.name]
+
+    // Dikembalikan ke antrean pertanyaan. Tanpa ini, field WAJIB yang gagal
+    // diresolusi hilang dari daftar pertanyaan (daftar itu sudah disusun di
+    // validateDraft, sebelum resolusi berjalan) sehingga draft dinyatakan siap
+    // lalu gagal di database. Field opsional pun perlu ditanyakan lagi: pengguna
+    // menyebut nama produk dengan sengaja, dan mengabaikannya diam-diam berarti
+    // penjualannya tidak memotong stok tanpa ada yang tahu.
+    const antre = f.required ? draft.missingRequired : draft.optionalPrompts
+    if (!antre.some((q) => q.field === f.name)) {
+      const q = toQuestion(f)
+      if (hasil.kandidat?.length) q.options = hasil.kandidat
+      // Pertanyaan ulang menyebut SEBABNYA; mengulang pertanyaan yang sama
+      // persis membuat pengguna mengetik jawaban yang sama persis pula.
+      q.question = `${hasil.issue!.message}`
+      antre.unshift(q)
     }
   }
 
-  // Target update/delete juga harus ada.
+  draft.ok = draft.missingRequired.length === 0
+
+  // Target update/delete juga harus ada. `targetId` selalu berupa UUID (model
+  // hanya bisa menyebutkannya bila ia memang sudah melihat barisnya), jadi
+  // pencarian berdasarkan nama tidak berlaku di sini.
   if (draft.operation !== 'create' && draft.targetId) {
-    const { data, error } = await scoped(
-      supabase.from(spec.table).select('id').eq('id', draft.targetId),
-    ).maybeSingle()
-    if (error || !data) {
-      problems.push({ field: 'targetId', message: `${spec.label} yang ingin diubah/dihapus tidak ditemukan.` })
+    if (!adalahUuid(draft.targetId)) {
+      problems.push({ field: 'targetId', message: `${spec.label} yang ingin diubah/dihapus tidak dikenali.` })
+    } else {
+      const { data, error } = await scoped(
+        supabase.from(spec.table).select('id').eq('id', draft.targetId),
+      ).maybeSingle()
+      if (error || !data) {
+        problems.push({ field: 'targetId', message: `${spec.label} yang ingin diubah/dihapus tidak ditemukan.` })
+      }
     }
   }
 
@@ -332,6 +542,13 @@ export function computeClarifications(draft: ValidatedDraft): ClarificationPlan 
   }
 }
 
+// "tidak" SENGAJA tidak ada di daftar ini. Dulu ia termasuk, sehingga menjawab
+// "tidak" pada "Sudah lunas atau belum dibayar?" dibaca sebagai perintah
+// MELEWATI field itu — bukan sebagai jawaban — lalu diam-diam jatuh ke nilai
+// bawaan 'lunas'. Piutang yang tercatat lunas adalah tagihan yang tidak akan
+// pernah ditagih. Kata untuk melewati harus berarti melewati dan tidak lain.
+const POLA_LEWATI = /^(lewati|skip|kosong|kosongkan|nanti saja|nanti|-)$/i
+
 /** Terapkan jawaban pengguna untuk satu field ke draft yang sedang berjalan. */
 export function applyAnswer(
   draft: ValidatedDraft,
@@ -344,20 +561,55 @@ export function applyAnswer(
   const f = spec.fields.find((x) => x.name === field)
   if (!f) return draft
 
-  const skipped = typeof answer === 'string'
-    && /^(lewati|skip|tidak|nggak|gak|engga|enggak|kosong|-)$/i.test(answer.trim())
+  // Keluhan lama tentang field ini dibuang sebelum jawaban baru dinilai.
+  // Draft bolak-balik antara klien dan server tiap putaran, jadi tanpa ini
+  // pengguna terus melihat "Nominal harus berupa angka" untuk nominal yang
+  // baru saja ia perbaiki.
+  draft.issues = (draft.issues || []).filter((i) => i.field !== field)
 
+  const skipped = typeof answer === 'string' && POLA_LEWATI.test(answer.trim())
+
+  let diterima = false
   if (skipped) {
-    if (f.fallback !== undefined && f.fallback !== 'today') draft.values[f.name] = f.fallback
+    // Field WAJIB tidak bisa dilewati — itulah arti "wajib". Membiarkannya
+    // membuat draft dinyatakan siap dengan lubang di dalamnya, lalu gagal di
+    // database dengan pesan yang tidak menunjuk ke apa pun.
+    if (f.required) {
+      draft.issues.push({ field: f.name, message: `${f.label} wajib diisi dan tidak bisa dilewati.` })
+    } else {
+      if (f.fallback !== undefined && f.fallback !== 'today') draft.values[f.name] = f.fallback
+      diterima = true
+    }
   } else {
     const issues: ValidationIssue[] = []
     const parsed = coerceField(f, answer, issues)
-    if (parsed !== undefined) draft.values[f.name] = parsed
-    else draft.issues.push(...issues)
+    if (parsed !== undefined) {
+      draft.values[f.name] = parsed
+      diterima = true
+    } else {
+      draft.issues.push(...issues)
+    }
   }
 
-  draft.missingRequired = draft.missingRequired.filter((q) => q.field !== field)
-  draft.optionalPrompts = draft.optionalPrompts.filter((q) => q.field !== field)
+  // HANYA jawaban yang benar-benar diterima yang menutup pertanyaannya.
+  //
+  // Sebelumnya pertanyaan selalu dicoret, apa pun hasilnya. Akibatnya: jawaban
+  // yang ditolak coerceField — "seratus ribu" pada kolom nominal, satuan yang
+  // tidak ada di daftar, tanggal yang bukan YYYY-MM-DD — membuat field wajibnya
+  // tetap KOSONG sekaligus tidak pernah ditanyakan lagi. Draft lalu dinyatakan
+  // `ready`, dan yang tersimpan adalah transaksi Rp 0 atau kegagalan mentah
+  // dari database. Kegagalan diam yang paling mahal: pengguna sudah menekan
+  // Simpan dan mengira catatannya masuk.
+  if (diterima) {
+    draft.missingRequired = draft.missingRequired.filter((q) => q.field !== field)
+    draft.optionalPrompts = draft.optionalPrompts.filter((q) => q.field !== field)
+    draft.sudahDitanya = [...new Set([...(draft.sudahDitanya || []), field])]
+  }
+
+  // Jawaban barusan bisa MEMBUKA pertanyaan bersyarat ("belum lunas" -> jatuh
+  // tempo) atau menutupnya kembali. Dihitung ulang di sini, bukan sekali di awal.
+  segarkanPertanyaanOpsional(draft)
+
   draft.ok = draft.missingRequired.length === 0
 
   return draft

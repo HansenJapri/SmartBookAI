@@ -17,6 +17,7 @@ import { rupiah, rupiahShort, fmtDateTime, fmtDate } from '../lib/format'
 import { summarize, trendForRange, channelMix, expenseByCategory } from '../lib/analytics'
 import { useCatalog } from '../context/CatalogContext'
 import { useLang } from '../context/LangContext'
+import GagalMuat from '../components/GagalMuat'
 import AIDisclaimer from '../components/AIDisclaimer'
 import Reminders from '../components/Reminders'
 import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
@@ -88,9 +89,18 @@ export default function Dashboard() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [ownerName, setOwnerName] = useState('')
+  const [gagalMuat, setGagalMuat] = useState(null)
+
+  // Angka di dashboard adalah hal PERTAMA yang dilihat pemilik usaha setiap
+  // pagi. Kegagalan jaringan yang ditampilkan sebagai "Rp 0" di semua kartu
+  // adalah kabar buruk palsu tentang usahanya sendiri — jadi kegagalan tidak
+  // pernah menulis `tx`.
+  const muatTx = () => fetchTransactions()
+    .then((d) => { setTx(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
 
   useEffect(() => {
-    fetchTransactions().then(setTx).catch(() => setTx([]))
+    muatTx()
     fetchLowStock().then(setLowStock).catch(() => setLowStock([]))
     fetchTxCount().then(setTxTotal).catch(() => {})
     fetchProfile().then((p) => setOwnerName(p?.owner_name || p?.business_name || '')).catch(() => {})
@@ -135,11 +145,12 @@ export default function Dashboard() {
     return () => io.disconnect()
   }, [tx])
 
+  if (gagalMuat && !tx) return <GagalMuat galat={gagalMuat} onRetry={muatTx} />
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   const periodLabel = d.presets[preset] || d.periodFallback
   const enterDemo = () => { setTx(sampleTransactions()); setDemo(true); setPreset('all') }
-  const exitDemo = () => { setDemo(false); fetchTransactions().then(setTx).catch(() => setTx([])) }
+  const exitDemo = () => { setDemo(false); muatTx() }
 
   return (
     <div className="d2" ref={rootRef}>

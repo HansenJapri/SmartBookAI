@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { HandCoins, MessageCircle, CheckCircle2 } from 'lucide-react'
-import { fetchTransactions, updateTransaction, fetchProfile } from '../lib/api'
+import { fetchUnpaid, updateTransaction, fetchProfile } from '../lib/api'
+import GagalMuat from '../components/GagalMuat'
+import { useAsyncData } from '../lib/useAsyncData'
 import {
   daysOutstanding, isOverdue, agingBucketKey, buildAgingSummary, AGING_BUCKETS, waReminderLink,
 } from '../lib/aging'
@@ -16,18 +18,20 @@ export default function Receivables() {
   const { t } = useLang()
   const { showConfirm } = useAlert()
   const rc = t.receivables
-  const [tx, setTx] = useState(null)
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState('in') // 'in' = piutang, 'out' = utang
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
+  const [menandai, setMenandai] = useState('')
 
-  useEffect(() => {
-    fetchTransactions().then(setTx).catch(() => setTx([]))
-    fetchProfile().then(setProfile).catch(() => {})
-  }, [])
+  // Diambil TERFILTER dari server (fetchUnpaid), bukan seluruh transaksi lalu
+  // disaring di sini: plafon 5.000 baris memotong dari yang terbaru ke belakang,
+  // jadi cara lama membuat tagihan paling lama justru yang pertama hilang.
+  const { data: tx, galat, muatUlang, setData: setTx } = useAsyncData(fetchUnpaid, [])
 
-  const unpaid = useMemo(() => (tx || []).filter((t) => (t.payment_status || 'lunas') === 'belum'), [tx])
+  useEffect(() => { fetchProfile().then(setProfile).catch(() => {}) }, [])
+
+  const unpaid = useMemo(() => tx || [], [tx])
   const piutang = useMemo(() => unpaid.filter((t) => t.direction === 'in'), [unpaid])
   const utang = useMemo(() => unpaid.filter((t) => t.direction === 'out'), [unpaid])
   const rows = tab === 'in' ? piutang : utang
@@ -38,16 +42,22 @@ export default function Receivables() {
   const active = tab === 'in' ? sumIn : sumOut
 
   const markPaid = async (t) => {
+    if (menandai) return // penjaga ketukan ganda di layar sentuh
     const who = t.customer_name ? rc.fromWho.replace('{name}', t.customer_name) : ''
     if (!await showConfirm({ message: rc.confirmMarkPaid.replace('{amount}', rupiah(t.amount)).replace('{who}', who).replace('{desc}', t.description) })) return
-    setErr('')
+    setErr(''); setMenandai(t.id)
     try {
       const upd = await updateTransaction(t.id, { payment_status: 'lunas' })
-      setTx((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
+      // Baris yang sudah lunas keluar dari daftar ini menurut definisinya.
+      setTx((prev) => (prev || []).filter((x) => x.id !== upd.id))
       setMsg(rc.paidMsg.replace('{amount}', rupiah(t.amount)).replace('{desc}', t.description))
     } catch (e) { setErr(e.message) }
+    finally { setMenandai('') }
   }
 
+  // Gagal memuat TIDAK boleh tampil sebagai "tidak ada tagihan": pemilik usaha
+  // yang menyimpulkan piutangnya nol berhenti menagih.
+  if (galat && !tx) return <GagalMuat galat={galat} onRetry={muatUlang} />
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   return (
@@ -154,7 +164,7 @@ export default function Receivables() {
                             <MessageCircle size={13} style={{ verticalAlign: '-2px' }} /> {rc.remind}
                           </a>
                         )}
-                        <button className="linklike" onClick={() => markPaid(t)}
+                        <button className="linklike" onClick={() => markPaid(t)} disabled={menandai === t.id}
                           title={tab === 'in' ? rc.markPaidTitleIn : rc.markPaidTitleOut}>
                           {rc.markPaid}
                         </button>

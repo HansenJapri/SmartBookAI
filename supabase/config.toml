@@ -13,3 +13,12 @@ verify_jwt = true
 # WAJIB false — kalau terbalik jadi true, cron akan kena 401 & pipeline berhenti.
 [functions.makro-harian]
 verify_jwt = false
+
+# ai-crud: CRUD lewat prompt/suara. Menulis transaksi, stok, dan data karyawan
+# atas nama pengguna, jadi identitas pemanggil adalah syarat mutlak — seluruh
+# pengikatan workspace (resolve_owner) dan pemeriksaan modul RBAC bersandar
+# padanya. Nilai ini memang sama dengan bawaan CLI hari ini; ia dipin di sini
+# karena bergantung pada sebuah default untuk properti keamanan berarti satu
+# perubahan di hulu bisa membuka fungsi ini tanpa satu baris pun berubah di repo.
+[functions.ai-crud]
+verify_jwt = true

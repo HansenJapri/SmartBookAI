@@ -5,11 +5,48 @@
 // lengkap dengan mana yang wajib dan mana yang opsional. AI hanya boleh mengisi
 // field yang terdaftar di sini.
 //
-// Aturan slot-filling (permintaan pengguna):
+// Aturan slot-filling:
 //   - Field WAJIB yang kosong  -> harus ditanyakan ulang, tidak boleh ditebak.
-//   - Field OPSIONAL yang kosong -> tetap DITANYAKAN SEKALI ("mau diisi atau
-//     lewati?"), supaya data yang tersimpan selengkap input manual.
+//   - Field OPSIONAL yang kosong -> DIBIARKAN KOSONG, kecuali ditandai
+//     `tanyaBilaKosong`. Lihat alasannya di bawah.
 //   - Field finansial/destruktif -> wajib konfirmasi manual sebelum commit.
+//
+// ------------------------------------------------------------
+// KENAPA TIDAK SEMUA FIELD OPSIONAL DITANYAKAN
+//
+// Aturan lama menanyakan SETIAP field opsional yang kosong, satu per satu,
+// "supaya data yang tersimpan selengkap input manual". Niatnya benar; hasilnya
+// tidak. Kalimat sesederhana "jual nasi goreng 25rb" menghasilkan DELAPAN
+// pertanyaan beruntun (channel, tanggal, status bayar, jatuh tempo, nama
+// pelanggan, kontak, produk, jumlah) sebelum satu baris pun bisa disimpan.
+// Papan tugas lima, produk empat, pemasok dan pelanggan masing-masing empat.
+//
+// Itu menghapus satu-satunya alasan fitur ini ada. Mencatat lewat form manual
+// butuh satu layar; lewat asisten jadi butuh sembilan giliran percakapan.
+// Pengguna berhenti di pertanyaan ketiga, dan yang tersimpan justru NIHIL —
+// hasil yang lebih buruk daripada catatan yang beberapa kolomnya kosong.
+//
+// Lagipula kelengkapan itu sudah dijamin di tempat lain: kartu ringkasan
+// menampilkan SELURUH field dan bisa disunting sebelum Simpan. Bertanya satu
+// per satu lalu menampilkan formulir yang sama adalah pekerjaan dua kali.
+//
+// Jadi `tanyaBilaKosong` hanya dipasang bila membiarkan field itu kosong
+// DIAM-DIAM MERUSAK ANGKA atau MENGHILANGKAN UANG — bukan sekadar "sayang
+// kalau tidak diisi":
+//
+//   transaksi.payment_status  penjualan kredit yang tercatat lunas adalah
+//                             tagihan yang tidak akan pernah ditagih;
+//   transaksi.due_date        hanya bila belum lunas — tanpa jatuh tempo,
+//                             piutangnya tidak pernah masuk pengingat;
+//   transaksi.qty             hanya bila produknya dipilih — jumlah menentukan
+//                             berapa stok yang dipotong;
+//   produk.cost_price         tanpa HPP, seluruh margin & laba salah hitung;
+//   purchase_order.supplier_id  PO tanpa pemasok tidak bisa dikirim ke siapa pun.
+//
+// Sisanya (channel, tanggal, nama pelanggan, kontak, alamat, catatan, jabatan,
+// prioritas, ...) punya nilai bawaan yang masuk akal atau memang boleh kosong,
+// dan semuanya tetap bisa diisi di kartu ringkasan.
+// ------------------------------------------------------------
 // ============================================================
 
 export type FieldType = 'string' | 'text' | 'number' | 'money' | 'enum' | 'date' | 'ref' | 'boolean'
@@ -25,12 +62,27 @@ export interface FieldSpec {
   /** Untuk type 'ref': tabel & kolom yang dipakai memvalidasi keberadaan data. */
   refTable?: string
   refLabelColumn?: string
-  /** Nilai default bila pengguna memilih melewati field opsional. */
+  /** Nilai default bila pengguna melewati field opsional, atau bila field itu
+   *  memang tidak ditanyakan sama sekali. */
   fallback?: unknown
+  /**
+   * Field OPSIONAL yang tetap ditanyakan bila kosong. Tanpa penanda ini, field
+   * opsional dibiarkan kosong dan cukup disunting lewat kartu ringkasan.
+   * Dipasang hanya bila kekosongannya merusak angka atau menghilangkan uang —
+   * lihat catatan panjang di kepala berkas.
+   */
+  tanyaBilaKosong?: boolean
+  /**
+   * Syarat tambahan untuk `tanyaBilaKosong`. Dipakai field yang hanya relevan
+   * dalam keadaan tertentu: jatuh tempo hanya berarti bila belum lunas, jumlah
+   * hanya berarti bila ada produk yang dipilih. Tanpa syarat ini, keduanya
+   * kembali menjadi pertanyaan yang tidak ada gunanya dijawab.
+   */
+  tanyaBila?: (values: Record<string, unknown>) => boolean
   /** true = perubahan bersifat finansial, wajib konfirmasi manual. */
   financial?: boolean
   /** Sumber pilihan dinamis (kategori/channel/produk milik pengguna). */
-  optionsFrom?: 'categories_in' | 'categories_out' | 'channels' | 'products' | 'suppliers' | 'units' | 'product_categories' | 'employees'
+  optionsFrom?: 'categories_in' | 'categories_out' | 'channels' | 'products' | 'suppliers' | 'units' | 'product_categories' | 'employees' | 'kpi_criteria'
   max?: number
   min?: number
 }
@@ -89,11 +141,20 @@ const TRANSACTION: EntitySpec = {
     {
       name: 'payment_status', label: 'Status pembayaran', type: 'enum', required: false,
       enumValues: ['lunas', 'belum'], fallback: 'lunas',
+      // Satu-satunya field opsional transaksi yang selalu ditanyakan. Nilai
+      // bawaannya 'lunas', dan menebak salah di sini berarti penjualan kredit
+      // masuk sebagai uang yang sudah diterima: tidak muncul di Piutang, tidak
+      // pernah ditagih. Kesalahan yang tidak bisa dilihat dari laporan mana pun.
+      tanyaBilaKosong: true,
       ask: 'Sudah lunas atau belum dibayar?',
     },
     {
       name: 'due_date', label: 'Jatuh tempo', type: 'date', required: false,
-      ask: 'Kapan jatuh temponya? (hanya kalau belum lunas — boleh dilewati)',
+      // Hanya relevan untuk piutang/utang. Menanyakan jatuh tempo untuk
+      // transaksi tunai adalah pertanyaan yang tidak punya jawaban benar.
+      tanyaBilaKosong: true,
+      tanyaBila: (v) => v.payment_status === 'belum',
+      ask: 'Kapan jatuh temponya?',
     },
     {
       name: 'customer_name', label: 'Nama pelanggan', type: 'string', required: false, max: 120,
@@ -110,7 +171,12 @@ const TRANSACTION: EntitySpec = {
     },
     {
       name: 'qty', label: 'Jumlah', type: 'number', required: false, min: 0,
-      ask: 'Berapa jumlah/qty produknya?',
+      // Ditanyakan HANYA bila produk stok memang dipilih: angka inilah yang
+      // menentukan berapa banyak stok dipotong. Tanpa produk, jumlah tidak
+      // menggerakkan apa pun dan tidak perlu ditanyakan.
+      tanyaBilaKosong: true,
+      tanyaBila: (v) => Boolean(v.product_id),
+      ask: 'Berapa jumlah produknya?',
     },
   ],
 }
@@ -139,7 +205,11 @@ const PRODUCT: EntitySpec = {
     },
     {
       name: 'cost_price', label: 'Harga modal / HPP (Rp)', type: 'money', required: false, financial: true, min: 0,
-      ask: 'Harga modal (HPP) per satuan berapa? Penting untuk hitung margin — boleh dilewati.',
+      // Tanpa HPP, margin dan laba per produk dihitung dari modal nol —
+      // angkanya tampak wajar di layar dan salah sepenuhnya. Ia juga yang
+      // menentukan apakah penambahan stok ikut mencatat pengeluaran.
+      tanyaBilaKosong: true,
+      ask: 'Harga modal (HPP) per satuan berapa? Dipakai untuk hitung margin — boleh dilewati.',
     },
     {
       name: 'stock', label: 'Stok saat ini', type: 'number', required: true, min: 0,
@@ -277,6 +347,11 @@ const KPI_SCORE: EntitySpec = {
     {
       name: 'criteria_id', label: 'Kriteria', type: 'ref', required: true,
       refTable: 'kpi_criteria', refLabelColumn: 'name',
+      // Tanpa optionsFrom, pertanyaan ini diajukan TANPA satu pun pilihan yang
+      // bisa dipilih — dan karena field-nya wajib, tidak ada jalan maju sama
+      // sekali. Satu-satunya field ref yang terlewat saat sumber pilihan
+      // dinamis dipasang untuk yang lain.
+      optionsFrom: 'kpi_criteria',
       ask: 'Untuk kriteria penilaian yang mana?',
     },
     {
@@ -353,6 +428,10 @@ const PURCHASE_ORDER: EntitySpec = {
     {
       name: 'supplier_id', label: 'Pemasok', type: 'ref', required: false,
       refTable: 'suppliers', refLabelColumn: 'name', optionsFrom: 'suppliers',
+      // PO adalah dokumen yang dikirim ke seseorang. Tanpa pemasok, ia tidak
+      // bisa ditindaklanjuti sama sekali — dan riwayat pembelian kehilangan
+      // jawaban atas "stok ini dibeli dari siapa, harganya berapa waktu itu?".
+      tanyaBilaKosong: true,
       ask: 'Pesan ke pemasok yang mana? Boleh dilewati.',
     },
     { name: 'expected_date', label: 'Perkiraan tiba', type: 'date', required: false, ask: 'Perkiraan barang tiba kapan? Boleh dilewati.' },

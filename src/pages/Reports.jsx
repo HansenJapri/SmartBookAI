@@ -8,6 +8,7 @@ import Modal from '../components/Modal'
 import { Landmark, Receipt, FileText, AlertTriangle } from 'lucide-react'
 import { EDU } from '../lib/eduContent'
 import { useLang } from '../context/LangContext'
+import GagalMuat from '../components/GagalMuat'
 import {
   DISCLAIMER_KUR, DISCLAIMER_PAJAK, PDF_FOOTER_H,
   disclaimerAoa, refFile, stampPdfBadge, stampPdfDisclaimer,
@@ -28,9 +29,14 @@ export default function Reports() {
   const [txTotal, setTxTotal] = useState(0)
   // Unduhan yang tertahan menunggu pengakuan penafian: { jalankan, teks }.
   const [pendingUnduh, setPendingUnduh] = useState(null)
+  const [gagalMuat, setGagalMuat] = useState(null)
+
+  const muatTx = () => fetchTransactions()
+    .then((d) => { setTx(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
 
   useEffect(() => {
-    fetchTransactions().then(setTx).catch(() => setTx([]))
+    muatTx()
     fetchProfile().then(setProfile).catch(() => {})
     fetchTxCount().then(setTxTotal).catch(() => {})
   }, [])
@@ -73,6 +79,7 @@ export default function Reports() {
   const wpLabelOn = taxpayerType === 'pribadi' ? r.wpPribadi : r.wpBadan
   const yearLabel = taxYear === 'all' ? r.taxTotal : taxYear
 
+  if (gagalMuat && !tx) return <GagalMuat galat={gagalMuat} onRetry={muatTx} />
   if (!tx) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   if (tx.length === 0) {

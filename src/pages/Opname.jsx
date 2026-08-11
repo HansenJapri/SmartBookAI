@@ -7,6 +7,7 @@ import {
 import { nextDocNumber, buildOpnameItems, opnameDiff, opnameSummary, SO_STATUS } from '../lib/gudang'
 import { fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import GagalMuat from '../components/GagalMuat'
 import { useAlert } from '../context/AlertContext'
 
 // Stock Opname bersesi: Draf (isi hitung fisik, bisa disimpan berkali-kali)
@@ -17,13 +18,16 @@ export default function Opname() {
   const op = t.opname
   const soStatusLabel = (key) => ({ draft: op.statusDraft, posted: op.statusPosted, cancelled: op.statusCancelled }[key])
   const [list, setList] = useState(null)
+  const [gagalMuat, setGagalMuat] = useState(null)
   const [detail, setDetail] = useState(null)   // sesi yang sedang dibuka
   const [confirmPost, setConfirmPost] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
-  const load = () => fetchOpnames().then(setList).catch(() => setList([]))
+  const load = () => fetchOpnames()
+    .then((d) => { setList(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
   useEffect(() => { load() }, [])
 
   const draft = (list || []).find((s) => s.status === 'draft')
@@ -97,6 +101,7 @@ export default function Opname() {
     } catch (e2) { setErr(e2.message) }
   }
 
+  if (gagalMuat && !list) return <GagalMuat galat={gagalMuat} onRetry={load} />
   if (!list) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   // ---------- TAMPILAN DETAIL SESI ----------

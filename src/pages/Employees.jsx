@@ -6,6 +6,7 @@ import { fetchEmployees, addEmployee, updateEmployee, deleteEmployee } from '../
 import { SALARY_TYPES } from '../lib/hr'
 import { rupiah, fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import GagalMuat from '../components/GagalMuat'
 import { useAlert } from '../context/AlertContext'
 import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
 
@@ -22,12 +23,16 @@ export default function Employees() {
   const ee = t.employees
   const salaryTypeLabel = (key) => (key === 'harian' ? t.hr.salaryHarian : t.hr.salaryBulanan)
   const [list, setList] = useState(null)
+  const [gagalMuat, setGagalMuat] = useState(null)
   const [form, setForm] = useState(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
-  useEffect(() => { fetchEmployees().then(setList).catch(() => setList([])) }, [])
+  const load = () => fetchEmployees()
+    .then((d) => { setList(d); setGagalMuat(null) })
+    .catch((e) => setGagalMuat(e))
+  useEffect(() => { load() }, []) // eslint-disable-line
 
   const save = async (e) => {
     e.preventDefault()
@@ -76,6 +81,7 @@ export default function Employees() {
     } catch (e2) { setErr(e2.message) }
   }
 
+  if (gagalMuat && !list) return <GagalMuat galat={gagalMuat} onRetry={load} />
   if (!list) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
 
   return (
