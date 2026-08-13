@@ -558,7 +558,10 @@ export default function Stok() {
         )}
       </div>
 
-      {/* Log Pergerakan Stok — status ringkas untuk produk terbaru */}
+      {/* Ringkasan status stok — hanya-baca. Tidak ditampilkan saat daftarnya
+          kosong: tabel berisi judul kolom tanpa satu baris pun lebih
+          membingungkan daripada tidak ada panelnya sama sekali. */}
+      {filtered.length > 0 && (
       <div className="s2-log s2-rv">
         <div className="s2-log-head">
           <div>
@@ -581,7 +584,18 @@ export default function Stok() {
               </tr>
             </thead>
             <tbody>
-              {products.slice(0, 5).map((p) => {
+              {/* Panel ini RINGKASAN, bukan tempat mengubah data.
+                  Dulu ia memuat tombol Edit & Hapus, sehingga satu produk punya
+                  TIGA tempat untuk aksi yang sama (kartu grid, tabel daftar,
+                  dan di sini). Menghapus produk dari panel "ringkasan" juga
+                  mengejutkan: pengguna mengira sedang menutup baris ringkasan,
+                  bukan membuang produknya. Yang tersisa satu aksi non-destruktif
+                  — buka detail.
+
+                  Ikut disaring kindTab supaya tidak mencampur Bahan Baku dengan
+                  Produk Jual; mencampurnya di sini akan membatalkan pemisahan
+                  yang justru jadi inti halaman ini. */}
+              {filtered.slice(0, 5).map((p) => {
                 const Ic = iconFor(p.category)
                 const lv = stockLevel(p)
                 const tagCls = lv.variant === 'danger' ? 's2-tag-danger' : lv.variant === 'warn' ? 's2-tag-warn' : 's2-tag-ok'
@@ -600,8 +614,9 @@ export default function Stok() {
                     <td className={`s2-log-stock ${lv.variant === 'danger' ? 's2-log-stock-danger' : ''}`}>{Number(p.stock)} {p.unit || 'pcs'}</td>
                     <td>
                       <div className="s2-log-actions">
-                        <button className="s2-icon-btn" title={sk.edit} aria-label={sk.editAria.replace('{name}', p.name)} onClick={() => startEdit(p)}><Pencil size={18} /></button>
-                        <button className="s2-icon-btn s2-icon-btn-danger" title={sk.del} aria-label={sk.delAria.replace('{name}', p.name)} onClick={() => askDelete(p)}><Trash2 size={18} /></button>
+                        <button className="s2-icon-btn" title={sk.detailProduct}
+                          aria-label={sk.detailAria.replace('{name}', p.name)}
+                          onClick={() => bukaDetail(p)}><Info size={18} /></button>
                       </div>
                     </td>
                   </tr>
@@ -611,6 +626,7 @@ export default function Stok() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Modal detail produk (P9) */}
       {detail && (
