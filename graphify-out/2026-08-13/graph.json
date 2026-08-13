@@ -3123,8 +3123,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_dependencies_react_dom",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 218,
+      "community_name": "react-dom",
       "norm_label": "react-dom"
     },
     {
@@ -3134,8 +3134,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_json_react_dom",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 218,
+      "community_name": "react-dom",
       "norm_label": "react-dom"
     },
     {
@@ -3189,8 +3189,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "package_dependencies_xlsx",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "xlsx"
     },
     {
@@ -3200,8 +3200,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "xlsx",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "xlsx"
     },
     {
@@ -3612,6 +3612,50 @@
       "norm_label": "gagal"
     },
     {
+      "label": "ujiDbParse.mjs",
+      "file_type": "code",
+      "source_file": "scripts/ujiDbParse.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "scripts_ujidbparse",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
+      "norm_label": "ujidbparse.mjs"
+    },
+    {
+      "label": "uraikanKeluaran()",
+      "file_type": "code",
+      "source_file": "scripts/ujiDbParse.mjs",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "scripts_ujidbparse_uraikankeluaran",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
+      "norm_label": "uraikankeluaran()"
+    },
+    {
+      "label": "nilaiHasil()",
+      "file_type": "code",
+      "source_file": "scripts/ujiDbParse.mjs",
+      "source_location": "L48",
+      "_origin": "ast",
+      "id": "scripts_ujidbparse_nilaihasil",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
+      "norm_label": "nilaihasil()"
+    },
+    {
+      "label": "formatBaris()",
+      "file_type": "code",
+      "source_file": "scripts/ujiDbParse.mjs",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "scripts_ujidbparse_formatbaris",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
+      "norm_label": "formatbaris()"
+    },
+    {
       "label": "remediasi_keamanan_p0.sql",
       "file_type": "code",
       "source_file": "security/remediasi_keamanan_p0.sql",
@@ -3937,8 +3981,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_app_protected",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "protected()"
     },
     {
@@ -3948,8 +3992,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_app_guestonly",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "guestonly()"
     },
     {
@@ -3981,8 +4025,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_app_configonly",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "configonly()"
     },
     {
@@ -4003,8 +4047,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aidisclaimer",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "aidisclaimer.jsx"
     },
     {
@@ -4014,8 +4058,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_aidisclaimer_aidisclaimer",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "aidisclaimer()"
     },
     {
@@ -4025,8 +4069,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_accordion",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "accordion.jsx"
     },
     {
@@ -4036,8 +4080,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_components_accordion_accordion",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "accordion()"
     },
     {
@@ -4047,8 +4091,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_applayout",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "applayout.jsx"
     },
     {
@@ -4058,8 +4102,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_applayout_nav",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "nav"
     },
     {
@@ -4069,8 +4113,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_components_applayout_title_key",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "title_key"
     },
     {
@@ -4080,8 +4124,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_components_applayout_applayout",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "applayout()"
     },
     {
@@ -4135,8 +4179,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_baselineask",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "baselineask.jsx"
     },
     {
@@ -4157,8 +4201,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_baselineask_baselineask",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "baselineask()"
     },
     {
@@ -4168,8 +4212,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_chatbot",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "src/components/chatbot.jsx"
     },
     {
@@ -4179,8 +4223,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_chatbot_occurredatiso",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "occurredatiso()"
     },
     {
@@ -4190,8 +4234,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_chatbot_chatbot",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "chatbot()"
     },
     {
@@ -4201,8 +4245,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_crudlist",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "crudlist.jsx"
     },
     {
@@ -4212,8 +4256,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_components_crudlist_crudlist",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "crudlist()"
     },
     {
@@ -4289,8 +4333,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_gagalmuat",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "gagalmuat.jsx"
     },
     {
@@ -4300,8 +4344,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_gagalmuat_gagalmuat",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "gagalmuat()"
     },
     {
@@ -4421,8 +4465,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_mfachallenge",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "src/components/mfachallenge.jsx"
     },
     {
@@ -4432,8 +4476,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_mfachallenge_mfachallenge",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "mfachallenge()"
     },
     {
@@ -4443,8 +4487,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "modal.jsx"
     },
     {
@@ -4454,8 +4498,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "modal()"
     },
     {
@@ -4465,8 +4509,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_otpcountdown",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "otpcountdown.jsx"
     },
     {
@@ -4476,8 +4520,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_otpcountdown_otpcountdown",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "otpcountdown()"
     },
     {
@@ -4608,8 +4652,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_statuskoneksi",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "statuskoneksi.jsx"
     },
     {
@@ -4619,8 +4663,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_statuskoneksi_statuskoneksi",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "statuskoneksi()"
     },
     {
@@ -4630,8 +4674,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_components_statuskoneksi_pulihsebentar",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "pulihsebentar()"
     },
     {
@@ -4641,8 +4685,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_stokdialogs",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "stokdialogs.jsx"
     },
     {
@@ -4652,8 +4696,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_stokdialogs_confirmmodal",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "confirmmodal()"
     },
     {
@@ -4663,8 +4707,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_stokdialogs_kelolamodal",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "kelolamodal()"
     },
     {
@@ -4674,8 +4718,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_themetoggle",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "themetoggle.jsx"
     },
     {
@@ -4685,8 +4729,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_themetoggle_themetoggle",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "themetoggle()"
     },
     {
@@ -4696,8 +4740,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_transactionmodal",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "transactionmodal.jsx"
     },
     {
@@ -4707,8 +4751,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_components_transactionmodal_qtystepper",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "qtystepper()"
     },
     {
@@ -4718,8 +4762,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_transactionmodal_blankline",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "blankline()"
     },
     {
@@ -4729,8 +4773,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_transactionmodal_transactionmodal",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "transactionmodal()"
     },
     {
@@ -4740,8 +4784,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_twofactor",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "src/components/twofactor.jsx"
     },
     {
@@ -4751,8 +4795,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_components_twofactor_twofactor",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "twofactor()"
     },
     {
@@ -4762,7 +4806,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_voiceassistant",
-      "community": 154,
+      "community": 171,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "voiceassistant.jsx"
     },
@@ -4773,7 +4817,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_voiceassistant_voiceassistant",
-      "community": 154,
+      "community": 171,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "voiceassistant()"
     },
@@ -4784,8 +4828,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_workspaceswitcher",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "workspaceswitcher.jsx"
     },
     {
@@ -4795,8 +4839,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_workspaceswitcher_workspaceswitcher",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "workspaceswitcher()"
     },
     {
@@ -4872,8 +4916,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_tests_modal_test",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "modal.test.jsx"
     },
     {
@@ -4894,8 +4938,8 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_components_tests_modal_test_harness",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "harness()"
     },
     {
@@ -4993,8 +5037,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_alertcontext",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "alertcontext.jsx"
     },
     {
@@ -5004,8 +5048,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_context_alertcontext_alertctx",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "alertctx"
     },
     {
@@ -5015,8 +5059,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_context_alertcontext_icons",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "icons"
     },
     {
@@ -5026,8 +5070,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_context_alertcontext_tone",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "tone"
     },
     {
@@ -5037,8 +5081,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_context_alertcontext_alertprovider",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "alertprovider()"
     },
     {
@@ -5092,8 +5136,8 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "src_context_authcontext_useauth",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "useauth()"
     },
     {
@@ -5103,8 +5147,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_catalogcontext",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "catalogcontext.jsx"
     },
     {
@@ -5114,8 +5158,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_context_catalogcontext_catalogctx",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "catalogctx"
     },
     {
@@ -5125,8 +5169,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_context_catalogcontext_builtin_ch",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "builtin_ch"
     },
     {
@@ -5136,8 +5180,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_context_catalogcontext_palette",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "palette"
     },
     {
@@ -5147,8 +5191,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_context_catalogcontext_colorfor",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "colorfor()"
     },
     {
@@ -5158,8 +5202,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_context_catalogcontext_catalogprovider",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "catalogprovider()"
     },
     {
@@ -5180,8 +5224,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_langcontext",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "langcontext.jsx"
     },
     {
@@ -5191,8 +5235,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_context_langcontext_langctx",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "langctx"
     },
     {
@@ -5202,8 +5246,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_context_langcontext_langprovider",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 164,
+      "community_name": "useAuth",
       "norm_label": "langprovider()"
     },
     {
@@ -5213,8 +5257,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_context_langcontext_uselang",
-      "community": 30,
-      "community_name": "useLang",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "uselang()"
     },
     {
@@ -5224,8 +5268,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_workspacecontext",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "workspacecontext.jsx"
     },
     {
@@ -5235,8 +5279,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_context_workspacecontext_ctx",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "ctx"
     },
     {
@@ -5246,8 +5290,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_context_workspacecontext_workspaceprovider",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "workspaceprovider()"
     },
     {
@@ -5257,8 +5301,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_context_workspacecontext_useworkspace",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "useworkspace()"
     },
     {
@@ -5510,8 +5554,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_dateinput_test",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "dateinput.test.js"
     },
     {
@@ -5532,8 +5576,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_excelformat_test",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 215,
+      "community_name": "excelFormat.js",
       "norm_label": "excelformat.test.js"
     },
     {
@@ -5543,8 +5587,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_format_test",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "format.test.js"
     },
     {
@@ -5675,8 +5719,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_imagecompress_test",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "imagecompress.test.js"
     },
     {
@@ -5686,8 +5730,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_lib_tests_imagecompress_test_berkas",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "berkas()"
     },
     {
@@ -5697,8 +5741,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_tests_imagecompress_test_pasangkanvas",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "pasangkanvas()"
     },
     {
@@ -5708,8 +5752,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_importransaksi_test",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "importransaksi.test.js"
     },
     {
@@ -5818,8 +5862,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_legalrender_test",
-      "community": 0,
-      "community_name": "api.js",
+      "community": 216,
+      "community_name": "src/lib/legalRender.js",
       "norm_label": "legalrender.test.js"
     },
     {
@@ -5829,8 +5873,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_liveaudio_test",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "liveaudio.test.js"
     },
     {
@@ -6104,8 +6148,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_ops_test",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "ops.test.js"
     },
     {
@@ -6115,8 +6159,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_lib_tests_ops_test_today",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "today"
     },
     {
@@ -6291,8 +6335,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_reportdisclaimer_test",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "reportdisclaimer.test.js"
     },
     {
@@ -6302,8 +6346,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_tests_reportdisclaimer_test_fakedoc",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "fakedoc()"
     },
     {
@@ -6428,14 +6472,36 @@
       "norm_label": "uang.cabang.test.js"
     },
     {
+      "label": "ujiDbParse.test.js",
+      "file_type": "code",
+      "source_file": "src/lib/__tests__/ujiDbParse.test.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_lib_tests_ujidbparse_test",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
+      "norm_label": "ujidbparse.test.js"
+    },
+    {
+      "label": "KELUARAN_ASLI",
+      "file_type": "code",
+      "source_file": "src/lib/__tests__/ujiDbParse.test.js",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "src_lib_tests_ujidbparse_test_keluaran_asli",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
+      "norm_label": "keluaran_asli"
+    },
+    {
       "label": "useOtpLock.test.jsx",
       "file_type": "code",
       "source_file": "src/lib/__tests__/useOtpLock.test.jsx",
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "useotplock.test.jsx"
     },
     {
@@ -6445,8 +6511,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_statusotp",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "statusotp"
     },
     {
@@ -6456,8 +6522,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_catatotpgagal",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "catatotpgagal"
     },
     {
@@ -6467,8 +6533,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_resetotp",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "resetotp"
     },
     {
@@ -6478,8 +6544,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_status",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "status()"
     },
     {
@@ -6896,8 +6962,8 @@
       "source_location": "L188",
       "_origin": "ast",
       "id": "src_lib_ai_filetobase64",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "filetobase64()"
     },
     {
@@ -6907,8 +6973,8 @@
       "source_location": "L199",
       "_origin": "ast",
       "id": "src_lib_ai_readreceipt",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 2,
+      "community_name": "Hpp.jsx",
       "norm_label": "readreceipt()"
     },
     {
@@ -7116,8 +7182,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_analytics",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "analytics.js"
     },
     {
@@ -7138,8 +7204,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_lib_analytics_summarize",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "summarize()"
     },
     {
@@ -7149,8 +7215,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_lib_analytics_issameday",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "issameday()"
     },
     {
@@ -7160,8 +7226,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_lib_analytics_todaysummary",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "todaysummary()"
     },
     {
@@ -7171,8 +7237,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_lib_analytics_trenddaily",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "trenddaily()"
     },
     {
@@ -7182,8 +7248,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_lib_analytics_trendforrange",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "trendforrange()"
     },
     {
@@ -7204,8 +7270,8 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_lib_analytics_expensebycategory",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "expensebycategory()"
     },
     {
@@ -7215,8 +7281,8 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "src_lib_analytics_tax",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "tax"
     },
     {
@@ -7226,8 +7292,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_lib_analytics_taxyearly",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "taxyearly()"
     },
     {
@@ -7237,8 +7303,8 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "src_lib_analytics_monthlytaxrows",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "monthlytaxrows()"
     },
     {
@@ -7248,8 +7314,8 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_lib_analytics_taxsummaryforyear",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "taxsummaryforyear()"
     },
     {
@@ -7259,8 +7325,8 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "src_lib_analytics_monthlybreakdown",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "monthlybreakdown()"
     },
     {
@@ -7270,8 +7336,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_api",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "api.js"
     },
     {
@@ -7281,8 +7347,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_api_ismissingrpc",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "ismissingrpc()"
     },
     {
@@ -7292,8 +7358,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_lib_api_sesiberakhirerror",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 219,
+      "community_name": "SesiBerakhirError",
       "norm_label": "sesiberakhirerror"
     },
     {
@@ -7303,8 +7369,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_lib_api_sesiberakhirerror_constructor",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 219,
+      "community_name": "SesiBerakhirError",
       "norm_label": ".constructor()"
     },
     {
@@ -7347,8 +7413,8 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_lib_api_getselectedworkspace",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "getselectedworkspace()"
     },
     {
@@ -7358,8 +7424,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_lib_api_setselectedworkspace",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "setselectedworkspace()"
     },
     {
@@ -7402,8 +7468,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_lib_api_wsupdate",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "wsupdate()"
     },
     {
@@ -7413,8 +7479,8 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "src_lib_api_wsdelete",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "wsdelete()"
     },
     {
@@ -7468,8 +7534,8 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "src_lib_api_addtransaction",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "addtransaction()"
     },
     {
@@ -7479,8 +7545,8 @@
       "source_location": "L266",
       "_origin": "ast",
       "id": "src_lib_api_kolom_transaksi",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "kolom_transaksi"
     },
     {
@@ -7490,8 +7556,8 @@
       "source_location": "L273",
       "_origin": "ast",
       "id": "src_lib_api_bersihkanbaristransaksi",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "bersihkanbaristransaksi()"
     },
     {
@@ -7501,8 +7567,8 @@
       "source_location": "L285",
       "_origin": "ast",
       "id": "src_lib_api_addtransactionsbulk",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "addtransactionsbulk()"
     },
     {
@@ -7512,8 +7578,8 @@
       "source_location": "L309",
       "_origin": "ast",
       "id": "src_lib_api_updatetransaction",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updatetransaction()"
     },
     {
@@ -7523,8 +7589,8 @@
       "source_location": "L327",
       "_origin": "ast",
       "id": "src_lib_api_deletetransaction",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "deletetransaction()"
     },
     {
@@ -7567,8 +7633,8 @@
       "source_location": "L358",
       "_origin": "ast",
       "id": "src_lib_api_fetchcategories",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchcategories()"
     },
     {
@@ -7589,8 +7655,8 @@
       "source_location": "L370",
       "_origin": "ast",
       "id": "src_lib_api_updatecategory",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updatecategory()"
     },
     {
@@ -7600,8 +7666,8 @@
       "source_location": "L375",
       "_origin": "ast",
       "id": "src_lib_api_deletecategory",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "deletecategory()"
     },
     {
@@ -7611,8 +7677,8 @@
       "source_location": "L381",
       "_origin": "ast",
       "id": "src_lib_api_fetchchannels",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchchannels()"
     },
     {
@@ -7655,8 +7721,8 @@
       "source_location": "L405",
       "_origin": "ast",
       "id": "src_lib_api_default_cats",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "default_cats"
     },
     {
@@ -7666,8 +7732,8 @@
       "source_location": "L410",
       "_origin": "ast",
       "id": "src_lib_api_default_channels",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "default_channels"
     },
     {
@@ -7677,8 +7743,8 @@
       "source_location": "L422",
       "_origin": "ast",
       "id": "src_lib_api_ensureseeddata",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "ensureseeddata()"
     },
     {
@@ -7688,8 +7754,8 @@
       "source_location": "L447",
       "_origin": "ast",
       "id": "src_lib_api_receipt_types",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "receipt_types"
     },
     {
@@ -7699,8 +7765,8 @@
       "source_location": "L449",
       "_origin": "ast",
       "id": "src_lib_api_uploadreceipt",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "uploadreceipt()"
     },
     {
@@ -7721,8 +7787,8 @@
       "source_location": "L472",
       "_origin": "ast",
       "id": "src_lib_api_fetchprofile",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "fetchprofile()"
     },
     {
@@ -7765,8 +7831,8 @@
       "source_location": "L542",
       "_origin": "ast",
       "id": "src_lib_api_track",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "track()"
     },
     {
@@ -7787,8 +7853,8 @@
       "source_location": "L571",
       "_origin": "ast",
       "id": "src_lib_api_addfeedback",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "addfeedback()"
     },
     {
@@ -7809,8 +7875,8 @@
       "source_location": "L606",
       "_origin": "ast",
       "id": "src_lib_api_fetchsuppliers",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 213,
+      "community_name": "Supplier.jsx",
       "norm_label": "fetchsuppliers()"
     },
     {
@@ -7820,8 +7886,8 @@
       "source_location": "L611",
       "_origin": "ast",
       "id": "src_lib_api_addsupplier",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 213,
+      "community_name": "Supplier.jsx",
       "norm_label": "addsupplier()"
     },
     {
@@ -7831,8 +7897,8 @@
       "source_location": "L617",
       "_origin": "ast",
       "id": "src_lib_api_updatesupplier",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 213,
+      "community_name": "Supplier.jsx",
       "norm_label": "updatesupplier()"
     },
     {
@@ -7842,8 +7908,8 @@
       "source_location": "L622",
       "_origin": "ast",
       "id": "src_lib_api_deletesupplier",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 213,
+      "community_name": "Supplier.jsx",
       "norm_label": "deletesupplier()"
     },
     {
@@ -7875,8 +7941,8 @@
       "source_location": "L643",
       "_origin": "ast",
       "id": "src_lib_api_updatecustomer",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updatecustomer()"
     },
     {
@@ -7886,8 +7952,8 @@
       "source_location": "L650",
       "_origin": "ast",
       "id": "src_lib_api_deletecustomer",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "deletecustomer()"
     },
     {
@@ -7919,8 +7985,8 @@
       "source_location": "L721",
       "_origin": "ast",
       "id": "src_lib_api_tautkanpihaktransaksi",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "tautkanpihaktransaksi()"
     },
     {
@@ -7941,8 +8007,8 @@
       "source_location": "L745",
       "_origin": "ast",
       "id": "src_lib_api_addproduct",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "addproduct()"
     },
     {
@@ -7963,8 +8029,8 @@
       "source_location": "L758",
       "_origin": "ast",
       "id": "src_lib_api_deleteproduct",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "deleteproduct()"
     },
     {
@@ -7974,8 +8040,8 @@
       "source_location": "L765",
       "_origin": "ast",
       "id": "src_lib_api_uploadproductimage",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "uploadproductimage()"
     },
     {
@@ -7985,8 +8051,8 @@
       "source_location": "L783",
       "_origin": "ast",
       "id": "src_lib_api_deleteproductimage",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "deleteproductimage()"
     },
     {
@@ -7996,8 +8062,8 @@
       "source_location": "L803",
       "_origin": "ast",
       "id": "src_lib_api_addtransactionwithstock",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "addtransactionwithstock()"
     },
     {
@@ -8007,8 +8073,8 @@
       "source_location": "L822",
       "_origin": "ast",
       "id": "src_lib_api_fetchpurchaseorders",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchpurchaseorders()"
     },
     {
@@ -8018,8 +8084,8 @@
       "source_location": "L829",
       "_origin": "ast",
       "id": "src_lib_api_addpurchaseorder",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "addpurchaseorder()"
     },
     {
@@ -8029,8 +8095,8 @@
       "source_location": "L838",
       "_origin": "ast",
       "id": "src_lib_api_updatepurchaseorder",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updatepurchaseorder()"
     },
     {
@@ -8040,8 +8106,8 @@
       "source_location": "L845",
       "_origin": "ast",
       "id": "src_lib_api_deletepurchaseorder",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "deletepurchaseorder()"
     },
     {
@@ -8051,8 +8117,8 @@
       "source_location": "L854",
       "_origin": "ast",
       "id": "src_lib_api_receivepurchaseorder",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "receivepurchaseorder()"
     },
     {
@@ -8073,8 +8139,8 @@
       "source_location": "L896",
       "_origin": "ast",
       "id": "src_lib_api_fetchopnames",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchopnames()"
     },
     {
@@ -8084,8 +8150,8 @@
       "source_location": "L903",
       "_origin": "ast",
       "id": "src_lib_api_addopname",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "addopname()"
     },
     {
@@ -8095,8 +8161,8 @@
       "source_location": "L912",
       "_origin": "ast",
       "id": "src_lib_api_updateopname",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updateopname()"
     },
     {
@@ -8106,8 +8172,8 @@
       "source_location": "L919",
       "_origin": "ast",
       "id": "src_lib_api_deleteopname",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "deleteopname()"
     },
     {
@@ -8117,8 +8183,8 @@
       "source_location": "L928",
       "_origin": "ast",
       "id": "src_lib_api_postopname",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "postopname()"
     },
     {
@@ -8260,8 +8326,8 @@
       "source_location": "L1082",
       "_origin": "ast",
       "id": "src_lib_api_fetchmymemberships",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "fetchmymemberships()"
     },
     {
@@ -8271,8 +8337,8 @@
       "source_location": "L1096",
       "_origin": "ast",
       "id": "src_lib_api_fetchmymembership",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "fetchmymembership()"
     },
     {
@@ -8282,8 +8348,8 @@
       "source_location": "L1110",
       "_origin": "ast",
       "id": "src_lib_api_fetchpendinginvitations",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "fetchpendinginvitations()"
     },
     {
@@ -8293,8 +8359,8 @@
       "source_location": "L1129",
       "_origin": "ast",
       "id": "src_lib_api_acceptinvitation",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "acceptinvitation()"
     },
     {
@@ -8304,8 +8370,8 @@
       "source_location": "L1154",
       "_origin": "ast",
       "id": "src_lib_api_declineinvitation",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "declineinvitation()"
     },
     {
@@ -8348,8 +8414,8 @@
       "source_location": "L1188",
       "_origin": "ast",
       "id": "src_lib_api_updatetask",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updatetask()"
     },
     {
@@ -8359,8 +8425,8 @@
       "source_location": "L1193",
       "_origin": "ast",
       "id": "src_lib_api_deletetask",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "deletetask()"
     },
     {
@@ -8392,8 +8458,8 @@
       "source_location": "L1211",
       "_origin": "ast",
       "id": "src_lib_api_updateemployee",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updateemployee()"
     },
     {
@@ -8403,8 +8469,8 @@
       "source_location": "L1216",
       "_origin": "ast",
       "id": "src_lib_api_deleteemployee",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "deleteemployee()"
     },
     {
@@ -8447,8 +8513,8 @@
       "source_location": "L1245",
       "_origin": "ast",
       "id": "src_lib_api_deleteattendance",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "deleteattendance()"
     },
     {
@@ -8469,8 +8535,8 @@
       "source_location": "L1257",
       "_origin": "ast",
       "id": "src_lib_api_upsertattendancerule",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "upsertattendancerule()"
     },
     {
@@ -8491,8 +8557,8 @@
       "source_location": "L1275",
       "_origin": "ast",
       "id": "src_lib_api_addkpicriteria",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "addkpicriteria()"
     },
     {
@@ -8502,8 +8568,8 @@
       "source_location": "L1281",
       "_origin": "ast",
       "id": "src_lib_api_updatekpicriteria",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "updatekpicriteria()"
     },
     {
@@ -8513,8 +8579,8 @@
       "source_location": "L1286",
       "_origin": "ast",
       "id": "src_lib_api_deletekpicriteria",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "deletekpicriteria()"
     },
     {
@@ -8535,8 +8601,8 @@
       "source_location": "L1297",
       "_origin": "ast",
       "id": "src_lib_api_savekpiscores",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "savekpiscores()"
     },
     {
@@ -8557,8 +8623,8 @@
       "source_location": "L1314",
       "_origin": "ast",
       "id": "src_lib_api_addkpibonusrule",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "addkpibonusrule()"
     },
     {
@@ -8568,8 +8634,8 @@
       "source_location": "L1320",
       "_origin": "ast",
       "id": "src_lib_api_updatekpibonusrule",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "updatekpibonusrule()"
     },
     {
@@ -8579,8 +8645,8 @@
       "source_location": "L1325",
       "_origin": "ast",
       "id": "src_lib_api_deletekpibonusrule",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "deletekpibonusrule()"
     },
     {
@@ -8601,8 +8667,8 @@
       "source_location": "L1336",
       "_origin": "ast",
       "id": "src_lib_api_addpayroll",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 34,
+      "community_name": "Opname.jsx",
       "norm_label": "addpayroll()"
     },
     {
@@ -8612,8 +8678,8 @@
       "source_location": "L1342",
       "_origin": "ast",
       "id": "src_lib_api_updatepayroll",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updatepayroll()"
     },
     {
@@ -8623,8 +8689,8 @@
       "source_location": "L1347",
       "_origin": "ast",
       "id": "src_lib_api_deletepayroll",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "deletepayroll()"
     },
     {
@@ -8634,8 +8700,8 @@
       "source_location": "L1354",
       "_origin": "ast",
       "id": "src_lib_api_paypayroll",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "paypayroll()"
     },
     {
@@ -8645,8 +8711,8 @@
       "source_location": "L1373",
       "_origin": "ast",
       "id": "src_lib_api_fetchreminders",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchreminders()"
     },
     {
@@ -8656,8 +8722,8 @@
       "source_location": "L1379",
       "_origin": "ast",
       "id": "src_lib_api_addreminder",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "addreminder()"
     },
     {
@@ -8667,8 +8733,8 @@
       "source_location": "L1385",
       "_origin": "ast",
       "id": "src_lib_api_updatereminder",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updatereminder()"
     },
     {
@@ -8678,8 +8744,8 @@
       "source_location": "L1390",
       "_origin": "ast",
       "id": "src_lib_api_deletereminder",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "deletereminder()"
     },
     {
@@ -8689,8 +8755,8 @@
       "source_location": "L1396",
       "_origin": "ast",
       "id": "src_lib_api_fetchunits",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "fetchunits()"
     },
     {
@@ -8700,8 +8766,8 @@
       "source_location": "L1401",
       "_origin": "ast",
       "id": "src_lib_api_addunit",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "addunit()"
     },
     {
@@ -8711,8 +8777,8 @@
       "source_location": "L1407",
       "_origin": "ast",
       "id": "src_lib_api_updateunit",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "updateunit()"
     },
     {
@@ -8722,8 +8788,8 @@
       "source_location": "L1413",
       "_origin": "ast",
       "id": "src_lib_api_deleteunit",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "deleteunit()"
     },
     {
@@ -8733,8 +8799,8 @@
       "source_location": "L1419",
       "_origin": "ast",
       "id": "src_lib_api_fetchproductcategories",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "fetchproductcategories()"
     },
     {
@@ -8744,8 +8810,8 @@
       "source_location": "L1424",
       "_origin": "ast",
       "id": "src_lib_api_addproductcategory",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "addproductcategory()"
     },
     {
@@ -8755,8 +8821,8 @@
       "source_location": "L1430",
       "_origin": "ast",
       "id": "src_lib_api_updateproductcategory",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "updateproductcategory()"
     },
     {
@@ -8766,8 +8832,8 @@
       "source_location": "L1436",
       "_origin": "ast",
       "id": "src_lib_api_deleteproductcategory",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "deleteproductcategory()"
     },
     {
@@ -8777,8 +8843,8 @@
       "source_location": "L1442",
       "_origin": "ast",
       "id": "src_lib_api_default_units",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "default_units"
     },
     {
@@ -8788,8 +8854,8 @@
       "source_location": "L1443",
       "_origin": "ast",
       "id": "src_lib_api_default_product_cats",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "default_product_cats"
     },
     {
@@ -8799,8 +8865,8 @@
       "source_location": "L1445",
       "_origin": "ast",
       "id": "src_lib_api_ensureinventoryseed",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "ensureinventoryseed()"
     },
     {
@@ -8810,8 +8876,8 @@
       "source_location": "L1462",
       "_origin": "ast",
       "id": "src_lib_api_fetchlowstock",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchlowstock()"
     },
     {
@@ -8832,8 +8898,8 @@
       "source_location": "L1487",
       "_origin": "ast",
       "id": "src_lib_api_fetchbaseline",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchbaseline()"
     },
     {
@@ -8843,8 +8909,8 @@
       "source_location": "L1495",
       "_origin": "ast",
       "id": "src_lib_api_savebaseline",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "savebaseline()"
     },
     {
@@ -8854,8 +8920,8 @@
       "source_location": "L1503",
       "_origin": "ast",
       "id": "src_lib_api_fetchactivetarget",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchactivetarget()"
     },
     {
@@ -8865,8 +8931,8 @@
       "source_location": "L1519",
       "_origin": "ast",
       "id": "src_lib_api_fetchtargettransactions",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchtargettransactions()"
     },
     {
@@ -8876,8 +8942,8 @@
       "source_location": "L1536",
       "_origin": "ast",
       "id": "src_lib_api_normtargetamount",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "normtargetamount()"
     },
     {
@@ -8887,8 +8953,8 @@
       "source_location": "L1550",
       "_origin": "ast",
       "id": "src_lib_api_addtarget",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "addtarget()"
     },
     {
@@ -8898,8 +8964,8 @@
       "source_location": "L1579",
       "_origin": "ast",
       "id": "src_lib_api_deactivatetarget",
-      "community": 151,
-      "community_name": "Dashboard.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "deactivatetarget()"
     },
     {
@@ -8920,8 +8986,8 @@
       "source_location": "L1595",
       "_origin": "ast",
       "id": "src_lib_api_updateingredient",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "updateingredient()"
     },
     {
@@ -8931,8 +8997,8 @@
       "source_location": "L1602",
       "_origin": "ast",
       "id": "src_lib_api_deleteingredient",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "deleteingredient()"
     },
     {
@@ -8964,8 +9030,8 @@
       "source_location": "L1683",
       "_origin": "ast",
       "id": "src_lib_api_fetchproductyield",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "fetchproductyield()"
     },
     {
@@ -9426,8 +9492,8 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_lib_csvimport_parseimportfile",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 10,
+      "community_name": "csvImport.js",
       "norm_label": "parseimportfile()"
     },
     {
@@ -9437,8 +9503,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_dateinput",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "dateinput.js"
     },
     {
@@ -9448,8 +9514,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_lib_dateinput_batas_date",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "batas_date"
     },
     {
@@ -9459,8 +9525,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_dateinput_batas_datetime",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "batas_datetime"
     },
     {
@@ -9470,8 +9536,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_lib_dateinput_batas_month",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "batas_month"
     },
     {
@@ -9481,8 +9547,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_lib_dateinput_bersihkantanggal",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "bersihkantanggal()"
     },
     {
@@ -9492,8 +9558,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_educontent",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "educontent.jsx"
     },
     {
@@ -9503,8 +9569,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_lib_educontent_src",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "src()"
     },
     {
@@ -9514,8 +9580,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_lib_educontent_edu",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "edu"
     },
     {
@@ -9525,8 +9591,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_excelformat",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 215,
+      "community_name": "excelFormat.js",
       "norm_label": "excelformat.js"
     },
     {
@@ -9536,8 +9602,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_lib_excelformat_formatribuan",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 215,
+      "community_name": "excelFormat.js",
       "norm_label": "formatribuan()"
     },
     {
@@ -9547,8 +9613,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_lib_excelformat_formatribuandesimal",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 215,
+      "community_name": "excelFormat.js",
       "norm_label": "formatribuandesimal()"
     },
     {
@@ -9558,8 +9624,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_lib_excelformat_terapkanformatribuan",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 215,
+      "community_name": "excelFormat.js",
       "norm_label": "terapkanformatribuan()"
     },
     {
@@ -9569,8 +9635,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "src_lib_excelformat_sheetribuan",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 215,
+      "community_name": "excelFormat.js",
       "norm_label": "sheetribuan()"
     },
     {
@@ -9580,8 +9646,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "src/lib/format.js"
     },
     {
@@ -9591,8 +9657,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format_rupiah",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "rupiah()"
     },
     {
@@ -9602,8 +9668,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_lib_format_rupiahshort",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "rupiahshort()"
     },
     {
@@ -9613,8 +9679,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_format_months",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "months"
     },
     {
@@ -9624,8 +9690,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_format_sah",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "sah()"
     },
     {
@@ -9635,8 +9701,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_format_fmtdate",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -9646,8 +9712,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_lib_format_fmtdatetime",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "fmtdatetime()"
     },
     {
@@ -9657,8 +9723,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_lib_format_todateinput",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "todateinput()"
     },
     {
@@ -9668,8 +9734,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_lib_format_monthkey",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "monthkey()"
     },
     {
@@ -10075,8 +10141,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_imagecompress",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "imagecompress.js"
     },
     {
@@ -10086,8 +10152,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_lib_imagecompress_compressimage",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "compressimage()"
     },
     {
@@ -10636,8 +10702,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_legalrender",
-      "community": 0,
-      "community_name": "api.js",
+      "community": 216,
+      "community_name": "src/lib/legalRender.js",
       "norm_label": "src/lib/legalrender.js"
     },
     {
@@ -10647,8 +10713,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_legalrender_escapehtml",
-      "community": 0,
-      "community_name": "api.js",
+      "community": 216,
+      "community_name": "src/lib/legalRender.js",
       "norm_label": "escapehtml()"
     },
     {
@@ -10658,8 +10724,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_legalrender_inline",
-      "community": 0,
-      "community_name": "api.js",
+      "community": 216,
+      "community_name": "src/lib/legalRender.js",
       "norm_label": "inline()"
     },
     {
@@ -10669,8 +10735,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_legalrender_renderlegalmarkdown",
-      "community": 0,
-      "community_name": "api.js",
+      "community": 216,
+      "community_name": "src/lib/legalRender.js",
       "norm_label": "renderlegalmarkdown()"
     },
     {
@@ -10680,8 +10746,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_liveaudio",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "liveaudio.js"
     },
     {
@@ -10691,8 +10757,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_lib_liveaudio_floattopcm16",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "floattopcm16()"
     },
     {
@@ -10702,8 +10768,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_lib_liveaudio_pcm16tofloat",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "pcm16tofloat()"
     },
     {
@@ -10713,8 +10779,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_lib_liveaudio_downsampleto",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "downsampleto()"
     },
     {
@@ -10724,8 +10790,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "src_lib_liveaudio_pcm16tobase64",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "pcm16tobase64()"
     },
     {
@@ -10735,8 +10801,8 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "src_lib_liveaudio_base64topcm16",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "base64topcm16()"
     },
     {
@@ -10746,8 +10812,8 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_lib_liveaudio_shouldsendframe",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 115,
+      "community_name": "Supplier.jsx",
       "norm_label": "shouldsendframe()"
     },
     {
@@ -10757,8 +10823,8 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "src_lib_liveaudio_livevoicesupported",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "livevoicesupported()"
     },
     {
@@ -11241,8 +11307,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_ops",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "ops.js"
     },
     {
@@ -11252,8 +11318,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_lib_ops_task_statuses",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "task_statuses"
     },
     {
@@ -11263,8 +11329,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_lib_ops_task_priorities",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "task_priorities"
     },
     {
@@ -11274,8 +11340,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_lib_ops_priorityof",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "priorityof()"
     },
     {
@@ -11285,8 +11351,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_ops_nextstatus",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "nextstatus()"
     },
     {
@@ -11296,8 +11362,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_lib_ops_prevstatus",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "prevstatus()"
     },
     {
@@ -11307,8 +11373,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_lib_ops_istaskoverdue",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "istaskoverdue()"
     },
     {
@@ -11318,8 +11384,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_lib_ops_sorttasks",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "sorttasks()"
     },
     {
@@ -11340,8 +11406,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_lib_otpguard_otp_bucket",
-      "community": 181,
-      "community_name": "3. Dashboard",
+      "community": 41,
+      "community_name": "Register.jsx",
       "norm_label": "otp_bucket"
     },
     {
@@ -11747,8 +11813,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_lib_rbac_isownerview",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "isownerview()"
     },
     {
@@ -11945,8 +12011,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_reportdisclaimer",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "reportdisclaimer.js"
     },
     {
@@ -11956,8 +12022,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_lib_reportdisclaimer_reffile",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "reffile()"
     },
     {
@@ -11967,8 +12033,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_lib_reportdisclaimer_stamppdfdisclaimer",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "stamppdfdisclaimer()"
     },
     {
@@ -11978,8 +12044,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_lib_reportdisclaimer_stamppdfbadge",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "stamppdfbadge()"
     },
     {
@@ -11989,8 +12055,8 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_lib_reportdisclaimer_wrapkata",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "wrapkata()"
     },
     {
@@ -12000,8 +12066,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_lib_reportdisclaimer_disclaimeraoa",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "disclaimeraoa()"
     },
     {
@@ -12374,8 +12440,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_supabase",
-      "community": 164,
-      "community_name": "useAuth",
+      "community": 0,
+      "community_name": "api.js",
       "norm_label": "src/lib/supabase.js"
     },
     {
@@ -12429,7 +12495,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_uselivevoice",
-      "community": 171,
+      "community": 154,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "uselivevoice.js"
     },
@@ -12440,7 +12506,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_lib_uselivevoice_fetchlivetoken",
-      "community": 171,
+      "community": 154,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "fetchlivetoken()"
     },
@@ -12451,8 +12517,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "src_lib_uselivevoice_diagnosevoice",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "diagnosevoice()"
     },
     {
@@ -12462,7 +12528,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_lib_uselivevoice_reportusage",
-      "community": 171,
+      "community": 154,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "reportusage()"
     },
@@ -12484,8 +12550,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_usemodala11y",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "usemodala11y.js"
     },
     {
@@ -12495,8 +12561,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_lib_usemodala11y_focusable",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "focusable"
     },
     {
@@ -12506,8 +12572,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_lib_usemodala11y_usemodala11y",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "usemodala11y()"
     },
     {
@@ -12517,8 +12583,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_useonline",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "useonline.js"
     },
     {
@@ -12528,8 +12594,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_lib_useonline_useonline",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "useonline()"
     },
     {
@@ -12539,8 +12605,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_lib_useonline_sedangoffline",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "sedangoffline()"
     },
     {
@@ -13386,7 +13452,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_voiceinstruction",
-      "community": 171,
+      "community": 154,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "voiceinstruction.js"
     },
@@ -13397,7 +13463,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_voiceinstruction_voice_tools",
-      "community": 171,
+      "community": 154,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "voice_tools"
     },
@@ -13419,7 +13485,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "src_lib_voiceinstruction_voice_system_instruction",
-      "community": 171,
+      "community": 154,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "voice_system_instruction"
     },
@@ -13430,7 +13496,7 @@
       "source_location": "L165",
       "_origin": "ast",
       "id": "src_lib_voiceinstruction_buildsessioninstruction",
-      "community": 171,
+      "community": 154,
       "community_name": "15. Absensi & Cuti",
       "norm_label": "buildsessioninstruction()"
     },
@@ -13452,8 +13518,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_attendance",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "attendance.jsx"
     },
     {
@@ -13463,8 +13529,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_pages_attendance_toiso",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "toiso()"
     },
     {
@@ -13474,8 +13540,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_pages_attendance_todayiso",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "todayiso()"
     },
     {
@@ -13485,8 +13551,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_pages_attendance_adddays",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "adddays()"
     },
     {
@@ -13496,8 +13562,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_pages_attendance_weekrange",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "weekrange()"
     },
     {
@@ -13507,8 +13573,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_pages_attendance_listdates",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "listdates()"
     },
     {
@@ -13529,8 +13595,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_audit",
-      "community": 164,
-      "community_name": "useAuth",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "audit.jsx"
     },
     {
@@ -13540,8 +13606,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_pages_audit_action_cls",
-      "community": 164,
-      "community_name": "useAuth",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "action_cls"
     },
     {
@@ -13551,8 +13617,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_pages_audit_audit",
-      "community": 164,
-      "community_name": "useAuth",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "audit()"
     },
     {
@@ -13639,8 +13705,8 @@
       "source_location": "L401",
       "_origin": "ast",
       "id": "src_pages_dashboard_insightcard",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "insightcard()"
     },
     {
@@ -13661,8 +13727,8 @@
       "source_location": "L502",
       "_origin": "ast",
       "id": "src_pages_dashboard_targetmetric",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "targetmetric()"
     },
     {
@@ -13738,8 +13804,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_employees",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "employees.jsx"
     },
     {
@@ -13749,8 +13815,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_pages_employees_blankform",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "blankform()"
     },
     {
@@ -13760,8 +13826,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_pages_employees_employees",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "employees()"
     },
     {
@@ -13870,8 +13936,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_import",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "import.jsx"
     },
     {
@@ -13881,8 +13947,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_pages_import_import",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "import()"
     },
     {
@@ -13892,8 +13958,8 @@
       "source_location": "L380",
       "_origin": "ast",
       "id": "src_pages_import_downloadsample",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "downloadsample()"
     },
     {
@@ -13969,8 +14035,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 181,
-      "community_name": "3. Dashboard",
+      "community": 0,
+      "community_name": "api.js",
       "norm_label": "src/pages/login.jsx"
     },
     {
@@ -13980,8 +14046,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 181,
-      "community_name": "3. Dashboard",
+      "community": 0,
+      "community_name": "api.js",
       "norm_label": "login()"
     },
     {
@@ -14013,8 +14079,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_payroll",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "payroll.jsx"
     },
     {
@@ -14211,8 +14277,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_reports",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "reports.jsx"
     },
     {
@@ -14222,8 +14288,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_pages_reports_reports",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "reports()"
     },
     {
@@ -14233,8 +14299,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_reveal",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "reveal.jsx"
     },
     {
@@ -14244,8 +14310,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_reveal_reveal",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "reveal()"
     },
     {
@@ -14332,8 +14398,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_stok",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "stok.jsx"
     },
     {
@@ -14343,8 +14409,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_pages_stok_emptyform",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "emptyform"
     },
     {
@@ -14354,8 +14420,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_pages_stok_cat_icons",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "cat_icons"
     },
     {
@@ -14365,8 +14431,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_pages_stok_iconfor",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "iconfor()"
     },
     {
@@ -14376,8 +14442,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_pages_stok_stocklevel",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "stocklevel()"
     },
     {
@@ -14387,8 +14453,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_pages_stok_stok",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 44,
+      "community_name": "useLang",
       "norm_label": "stok()"
     },
     {
@@ -14398,8 +14464,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_stokhistori",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "stokhistori.jsx"
     },
     {
@@ -14409,8 +14475,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_pages_stokhistori_stokhistori",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "stokhistori()"
     },
     {
@@ -14420,8 +14486,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_struk",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "struk.jsx"
     },
     {
@@ -14431,8 +14497,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_pages_struk_blankitem",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "blankitem()"
     },
     {
@@ -14442,8 +14508,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_struk_struk",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "struk()"
     },
     {
@@ -14453,8 +14519,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_supplier",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 213,
+      "community_name": "Supplier.jsx",
       "norm_label": "supplier.jsx"
     },
     {
@@ -14464,8 +14530,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_supplier_empty",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 213,
+      "community_name": "Supplier.jsx",
       "norm_label": "empty"
     },
     {
@@ -14475,8 +14541,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_pages_supplier_supplier",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 213,
+      "community_name": "Supplier.jsx",
       "norm_label": "supplier()"
     },
     {
@@ -14486,8 +14552,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_tasks",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "tasks.jsx"
     },
     {
@@ -14497,8 +14563,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_pages_tasks_blankform",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "blankform()"
     },
     {
@@ -14508,8 +14574,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_pages_tasks_tasks",
-      "community": 34,
-      "community_name": "Opname.jsx",
+      "community": 205,
+      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
       "norm_label": "tasks()"
     },
     {
@@ -20470,8 +20536,8 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_3_modul_b_manajemen_pesanan",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 56,
+      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
       "norm_label": "3. modul b \u2014 manajemen pesanan"
     },
     {
@@ -20481,8 +20547,8 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_b_1_input_data_penjualan",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 56,
+      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
       "norm_label": "b.1 \u2014 input data penjualan"
     },
     {
@@ -20492,8 +20558,8 @@
       "source_location": "L218",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_b_2_riwayat_transaksi",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 56,
+      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
       "norm_label": "b.2 \u2014 riwayat transaksi"
     },
     {
@@ -20657,8 +20723,8 @@
       "source_location": "L420",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_8_modul_g_manajemen_staf",
-      "community": 56,
-      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
+      "community": 217,
+      "community_name": "8. Modul G \u2014 Manajemen Staf",
       "norm_label": "8. modul g \u2014 manajemen staf"
     },
     {
@@ -20668,8 +20734,8 @@
       "source_location": "L422",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_g_1_direktori_staf",
-      "community": 56,
-      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
+      "community": 217,
+      "community_name": "8. Modul G \u2014 Manajemen Staf",
       "norm_label": "g.1 \u2014 direktori staf"
     },
     {
@@ -20679,8 +20745,8 @@
       "source_location": "L440",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_g_2_manajemen_role_izin_akses",
-      "community": 56,
-      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
+      "community": 217,
+      "community_name": "8. Modul G \u2014 Manajemen Staf",
       "norm_label": "g.2 \u2014 manajemen role & izin akses"
     },
     {
@@ -36797,6 +36863,87 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "scripts/ujiDbParse.mjs",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_ujidbparse",
+      "target": "scripts_ujidbparse_formatbaris",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ujiDbParse.mjs",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_ujidbparse",
+      "target": "scripts_ujidbparse_nilaihasil",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/ujiDbParse.mjs",
+      "source_location": "L20",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_ujidbparse",
+      "target": "scripts_ujidbparse_uraikankeluaran",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/__tests__/ujiDbParse.test.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_tests_ujidbparse_test",
+      "target": "scripts_ujidbparse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/__tests__/ujiDbParse.test.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_tests_ujidbparse_test",
+      "target": "scripts_ujidbparse_uraikankeluaran",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/__tests__/ujiDbParse.test.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_tests_ujidbparse_test",
+      "target": "scripts_ujidbparse_nilaihasil",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/__tests__/ujiDbParse.test.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_tests_ujidbparse_test",
+      "target": "scripts_ujidbparse_formatbaris",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "src/App.jsx",
       "source_location": "L106",
       "weight": 1.0,
@@ -49238,6 +49385,17 @@
       "_origin": "ast",
       "source": "src_lib_tests_uang_cabang_test",
       "target": "src_lib_kpi_weightedtotal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/__tests__/ujiDbParse.test.js",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_tests_ujidbparse_test",
+      "target": "src_lib_tests_ujidbparse_test_keluaran_asli",
       "confidence_score": 1.0
     },
     {
@@ -93134,5 +93292,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "25f1e642c74eb55242595c0ef583d7f7aad90afb"
+  "built_at_commit": "8c6cff5976a7eba85709dce26ebac7ed422541fe"
 }

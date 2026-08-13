@@ -3596,20 +3596,20 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_uji_db",
-      "community": 208,
-      "community_name": "vitest",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
       "norm_label": "uji-db.mjs"
     },
     {
-      "label": "gagal",
+      "label": "hasil",
       "file_type": "code",
       "source_file": "scripts/uji-db.mjs",
-      "source_location": "L74",
+      "source_location": "L99",
       "_origin": "ast",
-      "id": "scripts_uji_db_gagal",
-      "community": 208,
-      "community_name": "vitest",
-      "norm_label": "gagal"
+      "id": "scripts_uji_db_hasil",
+      "community": 214,
+      "community_name": "ujiDbParse.test.js",
+      "norm_label": "hasil"
     },
     {
       "label": "ujiDbParse.mjs",
@@ -4333,8 +4333,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_gagalmuat",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "gagalmuat.jsx"
     },
     {
@@ -4344,8 +4344,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_gagalmuat_gagalmuat",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "gagalmuat()"
     },
     {
@@ -4355,8 +4355,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_invoicemodal",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoicemodal.jsx"
     },
     {
@@ -4366,8 +4366,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_invoicemodal_invoicemodal",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoicemodal()"
     },
     {
@@ -4509,8 +4509,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_otpcountdown",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "otpcountdown.jsx"
     },
     {
@@ -4520,8 +4520,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_otpcountdown_otpcountdown",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "otpcountdown()"
     },
     {
@@ -4630,8 +4630,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_reminders",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "reminders.jsx"
     },
     {
@@ -4641,8 +4641,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_components_reminders_reminders",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "reminders()"
     },
     {
@@ -4652,8 +4652,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_statuskoneksi",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "statuskoneksi.jsx"
     },
     {
@@ -4663,8 +4663,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_statuskoneksi_statuskoneksi",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "statuskoneksi()"
     },
     {
@@ -4674,8 +4674,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_components_statuskoneksi_pulihsebentar",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "pulihsebentar()"
     },
     {
@@ -4685,8 +4685,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_stokdialogs",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "stokdialogs.jsx"
     },
     {
@@ -4696,8 +4696,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_components_stokdialogs_confirmmodal",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "confirmmodal()"
     },
     {
@@ -4707,8 +4707,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_stokdialogs_kelolamodal",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "kelolamodal()"
     },
     {
@@ -5224,8 +5224,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_langcontext",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "langcontext.jsx"
     },
     {
@@ -5235,8 +5235,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_context_langcontext_langctx",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "langctx"
     },
     {
@@ -5257,8 +5257,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_context_langcontext_uselang",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "uselang()"
     },
     {
@@ -5587,8 +5587,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_format_test",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "format.test.js"
     },
     {
@@ -5598,8 +5598,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_gudang_test",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "gudang.test.js"
     },
     {
@@ -5719,8 +5719,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_imagecompress_test",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "imagecompress.test.js"
     },
     {
@@ -5730,8 +5730,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_lib_tests_imagecompress_test_berkas",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "berkas()"
     },
     {
@@ -5741,8 +5741,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_tests_imagecompress_test_pasangkanvas",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "pasangkanvas()"
     },
     {
@@ -6500,8 +6500,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "useotplock.test.jsx"
     },
     {
@@ -6511,8 +6511,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_statusotp",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "statusotp"
     },
     {
@@ -6522,8 +6522,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_catatotpgagal",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "catatotpgagal"
     },
     {
@@ -6533,8 +6533,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_resetotp",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "resetotp"
     },
     {
@@ -6544,8 +6544,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_status",
-      "community": 205,
-      "community_name": "3. Modul B \u2014 Manajemen Pesanan",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "status()"
     },
     {
@@ -7567,8 +7567,8 @@
       "source_location": "L285",
       "_origin": "ast",
       "id": "src_lib_api_addtransactionsbulk",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "addtransactionsbulk()"
     },
     {
@@ -7754,8 +7754,8 @@
       "source_location": "L447",
       "_origin": "ast",
       "id": "src_lib_api_receipt_types",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "receipt_types"
     },
     {
@@ -7765,8 +7765,8 @@
       "source_location": "L449",
       "_origin": "ast",
       "id": "src_lib_api_uploadreceipt",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "uploadreceipt()"
     },
     {
@@ -7787,8 +7787,8 @@
       "source_location": "L472",
       "_origin": "ast",
       "id": "src_lib_api_fetchprofile",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "fetchprofile()"
     },
     {
@@ -7842,8 +7842,8 @@
       "source_location": "L556",
       "_origin": "ast",
       "id": "src_lib_api_fetchfeedback",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "fetchfeedback()"
     },
     {
@@ -7864,8 +7864,8 @@
       "source_location": "L597",
       "_origin": "ast",
       "id": "src_lib_api_deletefeedback",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "deletefeedback()"
     },
     {
@@ -7996,8 +7996,8 @@
       "source_location": "L740",
       "_origin": "ast",
       "id": "src_lib_api_fetchproducts",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "fetchproducts()"
     },
     {
@@ -9646,8 +9646,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "src/lib/format.js"
     },
     {
@@ -9657,8 +9657,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format_rupiah",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "rupiah()"
     },
     {
@@ -9668,8 +9668,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_lib_format_rupiahshort",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "rupiahshort()"
     },
     {
@@ -9679,8 +9679,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_format_months",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "months"
     },
     {
@@ -9690,8 +9690,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_format_sah",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "sah()"
     },
     {
@@ -9701,8 +9701,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_format_fmtdate",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -9712,8 +9712,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_lib_format_fmtdatetime",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "fmtdatetime()"
     },
     {
@@ -9723,8 +9723,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_lib_format_todateinput",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "todateinput()"
     },
     {
@@ -9745,8 +9745,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_gudang",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "gudang.js"
     },
     {
@@ -9756,8 +9756,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_lib_gudang_nextdocnumber",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "nextdocnumber()"
     },
     {
@@ -9767,8 +9767,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_gudang_buildopnameitems",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "buildopnameitems()"
     },
     {
@@ -9778,8 +9778,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_lib_gudang_opnamediff",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "opnamediff()"
     },
     {
@@ -9789,8 +9789,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_lib_gudang_opnamesummary",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "opnamesummary()"
     },
     {
@@ -9800,8 +9800,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_lib_gudang_po_status",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "po_status"
     },
     {
@@ -9811,8 +9811,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_lib_gudang_so_status",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "so_status"
     },
     {
@@ -10141,8 +10141,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_imagecompress",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "imagecompress.js"
     },
     {
@@ -10152,8 +10152,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_lib_imagecompress_compressimage",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "compressimage()"
     },
     {
@@ -10163,8 +10163,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_invoice",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoice.js"
     },
     {
@@ -10174,8 +10174,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_lib_invoice_invoiceno",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoiceno()"
     },
     {
@@ -10185,8 +10185,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_lib_invoice_esc",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "esc()"
     },
     {
@@ -10196,8 +10196,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_lib_invoice_bukumark",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "bukumark()"
     },
     {
@@ -10207,8 +10207,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_lib_invoice_displayphone",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "displayphone()"
     },
     {
@@ -10218,8 +10218,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_lib_invoice_calctotals",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "calctotals()"
     },
     {
@@ -10229,8 +10229,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_lib_invoice_servedbytext",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "servedbytext()"
     },
     {
@@ -10240,8 +10240,8 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_lib_invoice_terbilang",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "terbilang()"
     },
     {
@@ -10251,8 +10251,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_lib_invoice_invoicehtml",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoicehtml()"
     },
     {
@@ -10262,8 +10262,8 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "src_lib_invoice_rendercanvas",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "rendercanvas()"
     },
     {
@@ -10273,8 +10273,8 @@
       "source_location": "L203",
       "_origin": "ast",
       "id": "src_lib_invoice_invoicepngblob",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoicepngblob()"
     },
     {
@@ -10284,8 +10284,8 @@
       "source_location": "L208",
       "_origin": "ast",
       "id": "src_lib_invoice_invoicepdfblob",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoicepdfblob()"
     },
     {
@@ -10295,8 +10295,8 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "src_lib_invoice_downloadblob",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "downloadblob()"
     },
     {
@@ -10306,8 +10306,8 @@
       "source_location": "L234",
       "_origin": "ast",
       "id": "src_lib_invoice_shareinvoicefile",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "shareinvoicefile()"
     },
     {
@@ -10317,8 +10317,8 @@
       "source_location": "L245",
       "_origin": "ast",
       "id": "src_lib_invoice_invoicecaption",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "invoicecaption()"
     },
     {
@@ -10328,8 +10328,8 @@
       "source_location": "L264",
       "_origin": "ast",
       "id": "src_lib_invoice_whatsapplink",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "whatsapplink()"
     },
     {
@@ -10339,8 +10339,8 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "src_lib_invoice_telegramlink",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "telegramlink()"
     },
     {
@@ -10350,8 +10350,8 @@
       "source_location": "L275",
       "_origin": "ast",
       "id": "src_lib_invoice_notahtmlbw",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "notahtmlbw()"
     },
     {
@@ -10361,8 +10361,8 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "src_lib_invoice_printnota",
-      "community": 166,
-      "community_name": "invoice.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "printnota()"
     },
     {
@@ -12583,8 +12583,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_useonline",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "useonline.js"
     },
     {
@@ -12594,8 +12594,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_lib_useonline_useonline",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "useonline()"
     },
     {
@@ -13518,8 +13518,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_attendance",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 166,
+      "community_name": "invoice.js",
       "norm_label": "attendance.jsx"
     },
     {
@@ -13529,8 +13529,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_pages_attendance_toiso",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 166,
+      "community_name": "invoice.js",
       "norm_label": "toiso()"
     },
     {
@@ -13540,8 +13540,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_pages_attendance_todayiso",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 166,
+      "community_name": "invoice.js",
       "norm_label": "todayiso()"
     },
     {
@@ -13551,8 +13551,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_pages_attendance_adddays",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 166,
+      "community_name": "invoice.js",
       "norm_label": "adddays()"
     },
     {
@@ -13562,8 +13562,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_pages_attendance_weekrange",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 166,
+      "community_name": "invoice.js",
       "norm_label": "weekrange()"
     },
     {
@@ -13573,8 +13573,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_pages_attendance_listdates",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 166,
+      "community_name": "invoice.js",
       "norm_label": "listdates()"
     },
     {
@@ -13595,8 +13595,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_audit",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "audit.jsx"
     },
     {
@@ -13606,8 +13606,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_pages_audit_action_cls",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "action_cls"
     },
     {
@@ -13617,8 +13617,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_pages_audit_audit",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "audit()"
     },
     {
@@ -13705,8 +13705,8 @@
       "source_location": "L401",
       "_origin": "ast",
       "id": "src_pages_dashboard_insightcard",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "insightcard()"
     },
     {
@@ -13727,8 +13727,8 @@
       "source_location": "L502",
       "_origin": "ast",
       "id": "src_pages_dashboard_targetmetric",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "targetmetric()"
     },
     {
@@ -13804,8 +13804,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_employees",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "employees.jsx"
     },
     {
@@ -13815,8 +13815,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_pages_employees_blankform",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "blankform()"
     },
     {
@@ -13826,8 +13826,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_pages_employees_employees",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "employees()"
     },
     {
@@ -13837,8 +13837,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_feedback",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "feedback.jsx"
     },
     {
@@ -13848,8 +13848,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_pages_feedback_status_cls",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "status_cls"
     },
     {
@@ -13859,8 +13859,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_pages_feedback_stars",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "stars()"
     },
     {
@@ -13870,8 +13870,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_pages_feedback_feedback",
-      "community": 27,
-      "community_name": "src/lib/applock.js",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "feedback()"
     },
     {
@@ -14057,8 +14057,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_opname",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "opname.jsx"
     },
     {
@@ -14068,8 +14068,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_pages_opname_opname",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "opname()"
     },
     {
@@ -14123,8 +14123,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_purchaseorders",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "purchaseorders.jsx"
     },
     {
@@ -14134,8 +14134,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_purchaseorders_blankform",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "blankform()"
     },
     {
@@ -14145,8 +14145,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_pages_purchaseorders_purchaseorders",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 27,
+      "community_name": "src/lib/applock.js",
       "norm_label": "purchaseorders()"
     },
     {
@@ -14299,8 +14299,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_reveal",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "reveal.jsx"
     },
     {
@@ -14310,8 +14310,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_reveal_reveal",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 151,
+      "community_name": "Dashboard.jsx",
       "norm_label": "reveal()"
     },
     {
@@ -14475,8 +14475,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_pages_stokhistori_stokhistori",
-      "community": 29,
-      "community_name": "Settings.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "stokhistori()"
     },
     {
@@ -14486,8 +14486,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_struk",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "struk.jsx"
     },
     {
@@ -14497,8 +14497,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_pages_struk_blankitem",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "blankitem()"
     },
     {
@@ -14508,8 +14508,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_struk_struk",
-      "community": 171,
-      "community_name": "15. Absensi & Cuti",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "struk()"
     },
     {
@@ -20536,8 +20536,8 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_3_modul_b_manajemen_pesanan",
-      "community": 56,
-      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
+      "community": 208,
+      "community_name": "vitest",
       "norm_label": "3. modul b \u2014 manajemen pesanan"
     },
     {
@@ -20547,8 +20547,8 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_b_1_input_data_penjualan",
-      "community": 56,
-      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
+      "community": 208,
+      "community_name": "vitest",
       "norm_label": "b.1 \u2014 input data penjualan"
     },
     {
@@ -20558,8 +20558,8 @@
       "source_location": "L218",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_b_2_riwayat_transaksi",
-      "community": 56,
-      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
+      "community": 208,
+      "community_name": "vitest",
       "norm_label": "b.2 \u2014 riwayat transaksi"
     },
     {
@@ -20723,8 +20723,8 @@
       "source_location": "L420",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_8_modul_g_manajemen_staf",
-      "community": 217,
-      "community_name": "8. Modul G \u2014 Manajemen Staf",
+      "community": 56,
+      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
       "norm_label": "8. modul g \u2014 manajemen staf"
     },
     {
@@ -20734,8 +20734,8 @@
       "source_location": "L422",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_g_1_direktori_staf",
-      "community": 217,
-      "community_name": "8. Modul G \u2014 Manajemen Staf",
+      "community": 56,
+      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
       "norm_label": "g.1 \u2014 direktori staf"
     },
     {
@@ -20745,8 +20745,8 @@
       "source_location": "L440",
       "_origin": "ast",
       "id": "fitur_sistem_smartbookai_g_2_manajemen_role_izin_akses",
-      "community": 217,
-      "community_name": "8. Modul G \u2014 Manajemen Staf",
+      "community": 56,
+      "community_name": "Spesifikasi Fitur Sistem \u2014 SmartBookAI",
       "norm_label": "g.2 \u2014 manajemen role & izin akses"
     },
     {
@@ -21163,8 +21163,8 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "fitur_3_dashboard",
-      "community": 174,
-      "community_name": "voiceFlow.js",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "3. dashboard"
     },
     {
@@ -21174,8 +21174,8 @@
       "source_location": "L129",
       "_origin": "ast",
       "id": "fitur_fungsi_tujuan",
-      "community": 174,
-      "community_name": "voiceFlow.js",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "fungsi & tujuan"
     },
     {
@@ -21185,8 +21185,8 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "fitur_yang_ditampilkan",
-      "community": 174,
-      "community_name": "voiceFlow.js",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "yang ditampilkan"
     },
     {
@@ -21196,8 +21196,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "fitur_cara_penggunaan_174",
-      "community": 174,
-      "community_name": "voiceFlow.js",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "cara penggunaan"
     },
     {
@@ -21207,8 +21207,8 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "fitur_4_transaksi",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "4. transaksi"
     },
     {
@@ -21218,8 +21218,8 @@
       "source_location": "L184",
       "_origin": "ast",
       "id": "fitur_fungsi_tujuan_184",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "fungsi & tujuan"
     },
     {
@@ -21229,8 +21229,8 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "fitur_yang_bisa_dilakukan",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "yang bisa dilakukan"
     },
     {
@@ -21240,8 +21240,8 @@
       "source_location": "L209",
       "_origin": "ast",
       "id": "fitur_cara_penggunaan_209",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "cara penggunaan"
     },
     {
@@ -21658,8 +21658,8 @@
       "source_location": "L411",
       "_origin": "ast",
       "id": "fitur_12_hpp_harga_pokok_produksi",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "12. hpp \u2014 harga pokok produksi"
     },
     {
@@ -21669,8 +21669,8 @@
       "source_location": "L413",
       "_origin": "ast",
       "id": "fitur_fungsi_tujuan_413",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "fungsi & tujuan"
     },
     {
@@ -21680,8 +21680,8 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "fitur_yang_bisa_dilakukan_416",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "yang bisa dilakukan"
     },
     {
@@ -21691,8 +21691,8 @@
       "source_location": "L435",
       "_origin": "ast",
       "id": "fitur_cara_penggunaan_435",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "cara penggunaan"
     },
     {
@@ -21823,8 +21823,8 @@
       "source_location": "L484",
       "_origin": "ast",
       "id": "fitur_15_absensi_cuti",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 174,
+      "community_name": "voiceFlow.js",
       "norm_label": "15. absensi & cuti"
     },
     {
@@ -21834,8 +21834,8 @@
       "source_location": "L486",
       "_origin": "ast",
       "id": "fitur_fungsi_tujuan_486",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 174,
+      "community_name": "voiceFlow.js",
       "norm_label": "fungsi & tujuan"
     },
     {
@@ -21845,8 +21845,8 @@
       "source_location": "L489",
       "_origin": "ast",
       "id": "fitur_status_absensi",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 174,
+      "community_name": "voiceFlow.js",
       "norm_label": "status absensi"
     },
     {
@@ -21856,8 +21856,8 @@
       "source_location": "L492",
       "_origin": "ast",
       "id": "fitur_yang_bisa_dilakukan_492",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 174,
+      "community_name": "voiceFlow.js",
       "norm_label": "yang bisa dilakukan"
     },
     {
@@ -21867,8 +21867,8 @@
       "source_location": "L497",
       "_origin": "ast",
       "id": "fitur_cara_penggunaan_497",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 174,
+      "community_name": "voiceFlow.js",
       "norm_label": "cara penggunaan"
     },
     {
@@ -36853,11 +36853,59 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/uji-db.mjs",
-      "source_location": "L74",
+      "source_location": "L99",
       "weight": 1.0,
       "_origin": "ast",
       "source": "scripts_uji_db",
-      "target": "scripts_uji_db_gagal",
+      "target": "scripts_uji_db_hasil",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/uji-db.mjs",
+      "source_location": "L30",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_uji_db",
+      "target": "scripts_ujidbparse",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/uji-db.mjs",
+      "source_location": "L30",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_uji_db",
+      "target": "scripts_ujidbparse_formatbaris",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/uji-db.mjs",
+      "source_location": "L30",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_uji_db",
+      "target": "scripts_ujidbparse_nilaihasil",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/uji-db.mjs",
+      "source_location": "L30",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_uji_db",
+      "target": "scripts_ujidbparse_uraikankeluaran",
       "confidence_score": 1.0
     },
     {
@@ -62369,7 +62417,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L718",
+      "source_location": "L734",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -62393,7 +62441,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L719",
+      "source_location": "L735",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -62417,7 +62465,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L720",
+      "source_location": "L736",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -62465,7 +62513,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L721",
+      "source_location": "L737",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -62489,7 +62537,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L722",
+      "source_location": "L738",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -62513,7 +62561,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L723",
+      "source_location": "L739",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -65676,7 +65724,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/Stok.jsx",
-      "source_location": "L657",
+      "source_location": "L673",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_stok_stok",
@@ -93292,5 +93340,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8c6cff5976a7eba85709dce26ebac7ed422541fe"
+  "built_at_commit": "50c8bde00eb8bbb9f163f788896a884d40c600fe"
 }
