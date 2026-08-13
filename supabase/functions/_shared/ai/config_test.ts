@@ -58,9 +58,16 @@ Deno.test('rute "catat" ada dan memakai penghitung kuota sendiri', () => {
   assert(r, 'rute "catat" hilang — ai-catat akan kehilangan routing')
   assertEquals(r.quotaFeature, 'catat')
   assertEquals(r.dailyCap, 40)
-  // Model dipertahankan persis seperti sebelum migrasi supaya kualitas
-  // keluaran tidak ikut berubah bersama perubahan routing.
-  assertEquals(r.model, 'gemini-2.5-flash')
+  // Paku model ini dulu berbunyi 'gemini-2.5-flash', "dipertahankan persis
+  // seperti sebelum migrasi supaya kualitas keluaran tidak ikut berubah".
+  // Alasan itu habis masa berlakunya: Google mendeprecate keluarga 2.5 dan
+  // memangkas kapasitasnya sebelum tanggal shutdown, sehingga mempertahankan
+  // nilai lama berarti mempertahankan fitur yang mati. Penggantinya sekelas
+  // menurut panduan migrasi resmi — Flash, bukan Flash-Lite, karena catat
+  // menyusun draf terstruktur. Pakunya tetap ada agar perubahan routing yang
+  // tidak disengaja tetap membuat test merah.
+  assertEquals(r.model, 'gemini-3.5-flash')
+  assert(r.fallbackModel && r.fallbackModel !== r.model, 'catat butuh model cadangan')
 })
 
 Deno.test('rute "hpp_draft" ada dan memakai penghitung kuota sendiri', () => {
@@ -68,7 +75,9 @@ Deno.test('rute "hpp_draft" ada dan memakai penghitung kuota sendiri', () => {
   assert(r, 'rute "hpp_draft" hilang — ai-hpp-draft akan kehilangan routing')
   assertEquals(r.quotaFeature, 'hpp_draft')
   assertEquals(r.dailyCap, 10)
-  assertEquals(r.model, 'gemini-2.5-flash')
+  // Lihat alasan pergantian paku model di test "catat" di atas.
+  assertEquals(r.model, 'gemini-3.5-flash')
+  assert(r.fallbackModel && r.fallbackModel !== r.model, 'hpp_draft butuh model cadangan')
 })
 
 Deno.test('catat & hpp_draft TIDAK berbagi penghitung dengan crud atau ocr', () => {
