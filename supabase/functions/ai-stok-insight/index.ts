@@ -13,7 +13,7 @@
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -165,6 +165,7 @@ serve(async (req) => {
 
     // ================= TAHAP 2: Gemini menarasikan =================
     let content = ''
+    let aiError: string | null = null
     if (metrics.total_products > 0) {
       try {
         const PROMPT = isEn ? `You are a practical stock-management assistant for a small Indonesian business (UMKM).
@@ -215,7 +216,11 @@ ATURAN KERAS:
         if (r.text && r.finishReason !== 'MAX_TOKENS' && !(isEn && looksIndonesian(r.text))) {
           content = r.text
         }
-      } catch { /* jatuh ke template */ }
+      } catch (e) {
+        // Sama seperti ai-narasi: template tetap tampil, tapi sebabnya dicatat.
+        aiError = payloadGagalAI(e).code
+        console.error(`[ai-stok-insight] Gemini gagal, memakai template: ${String(e).slice(0, 300)}`)
+      }
     }
     const usedAI = Boolean(content)
     // Kuota hanya naik bila AI benar-benar menghasilkan narasi.
@@ -229,7 +234,7 @@ ATURAN KERAS:
       }, { onConflict: 'user_id,insight_date,kind' })
     } catch { /* cache gagal bukan masalah fatal */ }
 
-    return json({ content, metrics, cached: false, ai: usedAI })
+    return json({ content, metrics, cached: false, ai: usedAI, aiError })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan saat membuat insight stok.', detail: String(e).slice(0, 300) }, 500)
   }

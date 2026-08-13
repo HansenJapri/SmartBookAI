@@ -41,29 +41,40 @@ export interface FeatureRoute {
 // keduanya bucket RPD terpisah, jadi retry tidak memakan kuota model pertama,
 // dan kita tidak perlu menyentuh Gemini 3.6 Flash yang RPD-nya jauh lebih kecil
 // (20/hari) dibanding Flash-Lite (500/hari).
+//
+// SETIAP rute WAJIB punya fallbackModel pada keluarga yang berbeda. Alasannya
+// bukan kenyamanan melainkan sejarah: 10 Agustus 2026 seluruh fitur AI mati
+// serentak tanpa satu baris kode pun berubah, karena Google memangkas kapasitas
+// keluarga Gemini 2.5 yang sudah deprecated (2.5-flash-lite membalas 503 terus
+// menerus menjelang shutdown 16 Oktober 2026). Rute bermodel tunggal berarti
+// jadwal deprecation Google adalah satu-satunya hal yang menentukan apakah
+// aplikasi ini hidup — fallback mengubahnya jadi degradasi, bukan kematian.
 export const FEATURE_ROUTES: Record<FeatureName, FeatureRoute> = {
   insight_dashboard: {
     key: 'A',
     model: 'gemini-3.5-flash-lite',
+    fallbackModel: 'gemini-3.1-flash-lite',
     quotaFeature: 'insight_dashboard',
     dailyCap: 10,
   },
   chat: {
     key: 'A',
-    model: 'gemini-3.1-flash-lite',
+    model: 'gemini-3.5-flash-lite',
+    fallbackModel: 'gemini-3.1-flash-lite',
     quotaFeature: 'chat',
     dailyCap: 10,
   },
   insight_stok: {
     key: 'B',
     model: 'gemini-3.5-flash-lite',
+    fallbackModel: 'gemini-3.1-flash-lite',
     quotaFeature: 'insight_stok',
     dailyCap: 10,
   },
   // Percakapan suara: model inilah yang mendengar dan menjawab dengan suara.
   voice_live: {
     key: 'B',
-    model: 'gemini-2.5-flash-native-audio-dialog',
+    model: 'gemini-3.1-flash-live-preview',
     quotaFeature: 'voice',
     dailyCap: 10 * 60, // 10 menit, disimpan sebagai DETIK
   },
@@ -79,13 +90,13 @@ export const FEATURE_ROUTES: Record<FeatureName, FeatureRoute> = {
   // dipatok berarti fitur mati diam-diam setiap Google mengganti namanya.
   voice_crud: {
     key: 'B',
-    model: 'gemini-3-flash-live',
+    model: 'gemini-3.1-flash-live-preview',
     quotaFeature: 'voice',
     dailyCap: 10 * 60,
   },
   voice_tts: {
     key: 'B',
-    model: 'gemini-2.5-flash-tts',
+    model: 'gemini-3.1-flash-tts-preview',
     quotaFeature: 'voice',
     dailyCap: 10 * 60,
   },
@@ -109,28 +120,64 @@ export const FEATURE_ROUTES: Record<FeatureName, FeatureRoute> = {
   // tidak pernah muncul di penghitung workspace, dan — karena RPC itu menaikkan
   // penghitung SEBELUM Gemini dipanggil — pengguna tetap tertagih saat AI gagal.
   //
-  // Model SENGAJA dipertahankan `gemini-2.5-flash` persis seperti sebelumnya:
-  // migrasi ini soal routing & kuota, bukan mengubah kualitas keluaran AI.
-  // Keduanya tidak diberi fallbackModel karena tidak ada validasi pasca-AI yang
-  // bisa memicu retry secara bermakna (berbeda dari OCR yang punya checksum).
+  // Keduanya dulu dipatok `gemini-2.5-flash` "persis seperti sebelumnya" agar
+  // migrasi routing tidak mengubah kualitas keluaran. Nilai itu tidak bisa
+  // dipertahankan lagi: keluarga 2.5 sudah deprecated dan kapasitasnya sedang
+  // dipangkas Google. Penggantinya yang setara menurut panduan migrasi resmi
+  // adalah Gemini 3.5 Flash — kelas yang sama, bukan Flash-Lite, karena kedua
+  // fitur ini menyusun draf terstruktur dan bukan sekadar merangkai kalimat.
   catat: {
     key: 'C',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
+    fallbackModel: 'gemini-3.5-flash-lite',
     quotaFeature: 'catat',
     dailyCap: 40,
   },
   hpp_draft: {
     key: 'C',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
+    fallbackModel: 'gemini-3.5-flash-lite',
     quotaFeature: 'hpp_draft',
     dailyCap: 10,
   },
 }
 
+/**
+ * Nilai yang BUKAN kunci sungguhan, walau secret-nya terisi.
+ *
+ * Pemeriksaan ini SENGAJA longgar dan hanya menyaring yang jelas-jelas bukan
+ * kunci. Google memakai lebih dari satu format ("AIza..." untuk kunci AI Studio
+ * biasa, "AQ.…" untuk token yang diterbitkan belakangan), jadi mencocokkan
+ * awalan tertentu justru berisiko menolak kunci yang sah — kegagalan yang jauh
+ * lebih membingungkan daripada yang hendak dicegah.
+ *
+ * Penjaga ini ada karena kejadian nyata: contoh perintah `supabase secrets set
+ * GEMINI_KEY_A=<key>` disalin apa adanya, sehingga ketiga slot terisi teks
+ * "<key>". Tanpa pemeriksaan, nilai itu TRUTHY — jadi ia menang atas
+ * GEMINI_API_KEY yang justru masih sah, dan seluruh fitur AI mati justru karena
+ * upaya memperbaikinya. Slot yang isinya jelas bukan kunci diperlakukan sama
+ * dengan slot kosong: mundur ke cadangan, bukan memaksakan yang salah.
+ */
+function kunciTakMasukAkal(nilai: string): boolean {
+  const v = nilai.trim()
+  if (!v) return true
+  if (v.length < 20) return true
+  if (/[<>]/.test(v)) return true               // placeholder <key>, <your-key>
+  if (/^(your|isi|ganti|xxx|todo)/i.test(v)) return true
+  return false
+}
+
 /** Ambil nilai API key untuk slot tertentu dari environment. */
 export function resolveKey(slot: KeySlot): string | undefined {
   const direct = Deno.env.get(`GEMINI_KEY_${slot}`)
-  if (direct) return direct
+  if (direct && !kunciTakMasukAkal(direct)) return direct
+  if (direct) {
+    console.error(
+      `[ai] GEMINI_KEY_${slot} terisi nilai yang bukan kunci API (mis. placeholder). `
+      + 'Slot diabaikan, memakai GEMINI_API_KEY. Perbaiki atau hapus secret ini.',
+    )
+  }
   // Cadangan: proyek lama hanya punya satu key project-wide.
-  return Deno.env.get('GEMINI_API_KEY') ?? undefined
+  const cadangan = Deno.env.get('GEMINI_API_KEY')
+  return cadangan && !kunciTakMasukAkal(cadangan) ? cadangan : undefined
 }

@@ -19,7 +19,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
 import { resolveScope, restrictionNote, scopedSelect } from '../_shared/ai/workspace-scope.ts'
 
@@ -259,7 +259,7 @@ serve(async (req) => {
     const { data: products } = scope.can('produk')
       ? await scopedSelect(supabase, scope, 'products', 'name, stock, min_stock, unit')
       : { data: [] }
-    const lowStock = (products || []).filter((p) => Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock))
+    const lowStock = (products || []).filter((p: any) => Number(p.min_stock) > 0 && Number(p.stock) <= Number(p.min_stock))
 
     // Baris ringkasan disusun PER MODUL. Modul yang tidak dipunyai pengguna
     // tidak menyumbang baris apa pun — bukan baris bernilai nol, yang akan
@@ -270,7 +270,16 @@ serve(async (req) => {
         `Total pemasukan (semua waktu): ${rupiah(income)}`,
         `Total pengeluaran (semua waktu): ${rupiah(expense)}`,
         `Laba bersih (semua waktu): ${rupiah(income - expense)}`,
+        // Laba bersih BULAN INI wajib disebut eksplisit, bukan dibiarkan
+        // "tinggal dikurangkan sendiri" dari dua baris di atasnya. Model
+        // dilarang keras menghitung atau memperkirakan angka — larangan yang
+        // memang benar — sehingga pertanyaan paling wajar seorang pemilik
+        // warung ("berapa laba bersih saya bulan ini?") dijawab "Data itu belum
+        // tercatat di aplikasi" padahal angkanya terpampang di Dashboard.
+        // Setiap angka yang boleh ditanyakan harus ADA di ringkasan ini.
         `Pemasukan bulan ini: ${rupiah(monthIncome)}; Pengeluaran bulan ini: ${rupiah(monthExpense)}`,
+        `Laba bersih bulan ini: ${rupiah(monthIncome - monthExpense)}`
+          + `${monthIncome > 0 ? `; margin bulan ini: ${Math.round(((monthIncome - monthExpense) / monthIncome) * 100)}%` : ''}`,
         `Pemasukan 7 hari terakhir: ${rupiah(wk1Income)}; 7 hari sebelumnya: ${rupiah(wk2Income)}${wow === null ? '' : `; perubahan minggu-ke-minggu: ${wow}%`}`,
         `Jumlah transaksi tercatat: ${(txs || []).length}`,
         `Penjualan belum lunas: ${unpaidCount} (total ${rupiah(unpaidTotal)})`,
@@ -278,7 +287,7 @@ serve(async (req) => {
       )
     }
     if (scope.can('produk')) {
-      lines.push(`Jumlah produk: ${(products || []).length}; Produk stok menipis: ${lowStock.length}${lowStock.length ? ' (' + lowStock.slice(0, 8).map((p) => p.name).join(', ') + ')' : ''}`)
+      lines.push(`Jumlah produk: ${(products || []).length}; Produk stok menipis: ${lowStock.length}${lowStock.length ? ' (' + lowStock.slice(0, 8).map((p: any) => p.name).join(', ') + ')' : ''}`)
     }
     if (!lines.length) lines.push('(Tidak ada data yang boleh ditampilkan untuk hak akses pengguna ini.)')
     lines.push(`Perangkat: ${dev}`)
@@ -308,7 +317,7 @@ serve(async (req) => {
       })
       reply = r.text
     } catch (e) {
-      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: String(e).slice(0, 300) }, 502)
+      return json(payloadGagalAI(e), 502)
     }
 
     // Kuota naik hanya setelah jawaban benar-benar diterima.

@@ -493,7 +493,12 @@ export default function Chatbot() {
                               {s.options?.length ? (
                                 <select id={`act-${i}-${s.field}`} className="input" value={s.value ?? ''}
                                   onChange={(e) => patchAction(i, s.field, e.target.value)}>
-                                  <option value="">(kosong)</option>
+                                  {/* "(kosong)" hanya untuk field OPSIONAL. Menawarkannya
+                                      pada field wajib — jenis transaksi, kategori — adalah
+                                      pilihan yang dijamin ditolak saat disimpan, dan form
+                                      manual memang tidak pernah menawarkannya. */}
+                                  {!s.required && <option value="">(kosong)</option>}
+                                  {s.value == null && s.required && <option value="">— pilih —</option>}
                                   {s.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                               ) : s.type === 'ref' ? (
