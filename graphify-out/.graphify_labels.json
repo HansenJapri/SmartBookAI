@@ -211,5 +211,12 @@
   "209": "migration_feedback_privasi.sql",
   "210": "migration_rls_lint.sql",
   "211": "migration_pembatalan_stok.sql",
-  "212": "migration_test_bom_harness.sql"
+  "212": "migration_test_bom_harness.sql",
+  "213": "Supplier.jsx",
+  "214": "ujiDbParse.test.js",
+  "215": "excelFormat.js",
+  "216": "src/lib/legalRender.js",
+  "217": "8. Modul G — Manajemen Staf",
+  "218": "react-dom",
+  "219": "SesiBerakhirError"
 }
