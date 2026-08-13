@@ -207,7 +207,6 @@
   "205": "3. Modul B — Manajemen Pesanan",
   "206": "ragPrice.js",
   "207": "otpGuard.test.js",
-  "208": "GagalMuat.jsx",
   "209": "migration_feedback_privasi.sql",
   "210": "privasiBaris.guard.test.js",
   "211": "4. Transaksi",
@@ -215,6 +214,5 @@
   "213": "SesiBerakhirError",
   "214": "migration_rls_lint.sql",
   "215": "migration_pembatalan_stok.sql",
-  "216": "migration_test_bom_harness.sql",
-  "217": "excelFormat.js"
+  "216": "migration_test_bom_harness.sql"
 }
