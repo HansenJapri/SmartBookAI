@@ -18,12 +18,13 @@
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
 import {
   buildCrudTools,
   validateDraft,
   resolveReferences,
+  resolveTarget,
   computeClarifications,
   applyAnswer,
   type ValidatedDraft,
@@ -155,7 +156,25 @@ function normalizeChannel(values: Record<string, unknown>, ctx: any) {
 function buildSummary(d: ValidatedDraft, ctx: any) {
   const spec = getEntitySpec(d.entity)
   if (!spec) return []
-  return spec.fields.map((f) => {
+
+  // Baris yang sedang diubah/dihapus ditampilkan PALING ATAS sebagai teks.
+  // Kartu konfirmasi untuk sebuah update yang tidak menyebutkan apa yang diubah
+  // tidak bisa dikonfirmasi secara bermakna — pengguna menyetujui perubahan
+  // pada baris yang tidak pernah disebut namanya. Sengaja hanya-baca: memilih
+  // ulang target berarti operasi yang berbeda, dan itu urusan prompt baru.
+  const barisTarget = d.operation !== 'create' && spec.targetLabelColumn
+    ? [{
+      field: 'targetId',
+      label: `${spec.label} yang diubah`,
+      type: 'ref' as const,
+      required: true,
+      value: d.targetId ?? null,
+      displayValue: d.refLabels?.targetId ?? undefined,
+      options: undefined,
+    }]
+    : []
+
+  return [...barisTarget, ...spec.fields.map((f) => {
     // Pilihan dikirim sebagai pasangan value/label karena keduanya sering
     // BERBEDA: channel menampilkan "QRIS" tapi menyimpan slug `qris`, dan field
     // `ref` menampilkan "Nasi Goreng" tapi menyimpan UUID.
@@ -171,7 +190,14 @@ function buildSummary(d: ValidatedDraft, ctx: any) {
       ? ctx.channels.map((c: any) => ({ value: c.value, label: c.label }))
       : f.type === 'ref'
         ? pasanganRef(f, ctx)
-        : (optionsFor(f, d.values, ctx) ?? []).map((s: string) => ({ value: s, label: s }))
+        // `enumLabels` menerjemahkan nilai database ke istilah yang dipakai form
+        // manual: "in" -> "Pemasukan". Tanpa itu kartu konfirmasi berbicara
+        // bahasa skema, dan pengguna diminta menyetujui sesuatu yang tidak bisa
+        // dia baca.
+        : (optionsFor(f, d.values, ctx) ?? []).map((s: string) => ({
+          value: s,
+          label: f.enumLabels?.[s] ?? s,
+        }))
 
     const nilai = d.values[f.name] ?? null
     // Field `ref` menyimpan UUID setelah resolusi. Menampilkan UUID di kartu
@@ -193,7 +219,7 @@ function buildSummary(d: ValidatedDraft, ctx: any) {
       displayValue: tampil,
       options: pairs.length ? pairs : undefined,
     }
-  })
+  })]
 }
 
 /** Daftar {id, name} milik pengguna untuk satu field ref. */
@@ -273,6 +299,11 @@ serve(async (req) => {
       d = applyAnswer(d, field, answer)
       normalizeChannel(d.values, ctx)
 
+      // Target dulu, baru field lain: prefill dari baris lama bisa MENGISI
+      // field yang kalau tidak akan ditanyakan percuma (harga jual produk yang
+      // sudah tersimpan, misalnya).
+      const targetIssues = await resolveTarget(supabase, d, scope.owner)
+      if (targetIssues.length) d.issues.push(...targetIssues)
       const refIssues = await resolveReferences(supabase, d, scope.owner)
       if (refIssues.length) d.issues.push(...refIssues)
 
@@ -346,7 +377,7 @@ ATURAN KERAS:
       })
       calls = r.functionCalls
     } catch (e) {
-      return json({ error: 'Layanan AI sedang tidak tersedia. Coba lagi sebentar lagi, atau pakai form manual.', detail: String(e).slice(0, 200) }, 502)
+      return json(payloadGagalAI(e), 502)
     }
 
     if (!calls.length) {
@@ -396,6 +427,8 @@ ATURAN KERAS:
 
       // Pastikan ID yang disebut AI benar-benar ada di database pengguna.
       normalizeChannel(d.values, ctx)
+      const targetIssues = await resolveTarget(supabase, d, scope.owner)
+      if (targetIssues.length) d.issues.push(...targetIssues)
       const refIssues = await resolveReferences(supabase, d, scope.owner)
       if (refIssues.length) d.issues.push(...refIssues)
 

@@ -22,3 +22,20 @@ verify_jwt = false
 # perubahan di hulu bisa membuka fungsi ini tanpa satu baris pun berubah di repo.
 [functions.ai-crud]
 verify_jwt = true
+
+# BukuPencatatan / BukuPencatatanStruk: nama folder SENGAJA sama dengan nama
+# fungsi di Supabase, bukan `ai` / `ai-struk` seperti dulu.
+#
+# Perbedaan nama itulah akar padamnya Chat Tanya: `supabase functions deploy`
+# mencari folder yang namanya sama dengan slug, jadi folder `ai/` tidak pernah
+# ikut ter-deploy. Yang berjalan di produksi tertinggal di versi 19 Juli 2026 —
+# tanpa isolasi workspace, dan memakai model gemini-2.5-flash-lite yang
+# kemudian dipangkas kapasitasnya oleh Google. Kode di repo terlihat benar dan
+# terus diperbaiki selama tiga minggu tanpa satu pun perbaikan itu sampai ke
+# pengguna. Menyamakan nama membuat "sudah diperbaiki di repo" dan "sudah
+# diperbaiki di produksi" tidak bisa lagi berbeda diam-diam.
+[functions.BukuPencatatan]
+verify_jwt = true
+
+[functions.BukuPencatatanStruk]
+verify_jwt = true

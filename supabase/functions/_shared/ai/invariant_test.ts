@@ -14,6 +14,7 @@
 // ============================================================
 import { assert, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 import { dirname, fromFileUrl, join } from 'https://deno.land/std@0.224.0/path/mod.ts'
+import { FEATURE_ROUTES } from './config.ts'
 
 const FUNCTIONS_DIR = dirname(dirname(dirname(fromFileUrl(import.meta.url))))
 
@@ -161,4 +162,40 @@ Deno.test('tidak ada nama model Gemini yang di-hardcode di Edge Function', () =>
     if (cocok) pelanggar.push(`${f.nama} (${[...new Set(cocok)].join(', ')})`)
   }
   assertEquals(pelanggar, [], `Model harus datang dari FEATURE_ROUTES di config.ts. Pelanggar: ${pelanggar.join('; ')}`)
+})
+
+// ---------- Invarian 6: rute tidak boleh menunjuk model yang dipensiunkan ----------
+
+/**
+ * Keluarga model yang sudah deprecated di Gemini API. Google memangkas
+ * kapasitasnya JAUH sebelum tanggal shutdown resmi — gemini-2.5-flash-lite
+ * membalas 503 terus-menerus sejak awal Agustus 2026 padahal shutdown-nya
+ * 16 Oktober 2026. Menunggu tanggal resmi berarti menunggu fitur mati duluan.
+ */
+const KELUARGA_PENSIUN = ['gemini-1.', 'gemini-2.0', 'gemini-2.5']
+
+Deno.test('tidak ada rute AI yang memakai keluarga model yang sudah deprecated', () => {
+  const pelanggar: string[] = []
+  for (const [fitur, rute] of Object.entries(FEATURE_ROUTES)) {
+    for (const m of [rute.model, rute.fallbackModel].filter(Boolean) as string[]) {
+      if (KELUARGA_PENSIUN.some((p) => m.startsWith(p))) pelanggar.push(`${fitur} -> ${m}`)
+    }
+  }
+  assertEquals(pelanggar, [], `Rute menunjuk model deprecated: ${pelanggar.join('; ')}`)
+})
+
+Deno.test('setiap rute teks punya fallbackModel di model yang berbeda', () => {
+  // Rute suara dikecualikan: voice-live-token menanyakan model yang benar-benar
+  // mendukung bidiGenerateContent ke API saat token diterbitkan, jadi ia sudah
+  // punya mekanisme pemulihannya sendiri dan tidak bergantung pada nilai statis.
+  const rutaSuara = ['voice_live', 'voice_crud', 'voice_tts']
+  const tanpaCadangan = Object.entries(FEATURE_ROUTES)
+    .filter(([fitur]) => !rutaSuara.includes(fitur))
+    .filter(([, r]) => !r.fallbackModel || r.fallbackModel === r.model)
+    .map(([fitur]) => fitur)
+  assertEquals(
+    tanpaCadangan,
+    [],
+    `Rute bermodel tunggal mati total begitu Google memensiunkan modelnya: ${tanpaCadangan.join(', ')}`,
+  )
 })

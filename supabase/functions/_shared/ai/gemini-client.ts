@@ -19,6 +19,99 @@ export class GeminiKeyMissingError extends Error {
   }
 }
 
+/**
+ * Sebab kegagalan yang BERBEDA PENANGANANNYA. Sebelum ini semua kegagalan
+ * Gemini berakhir jadi satu kalimat "Layanan AI sedang tidak tersedia", dan
+ * kalimat itulah yang membuat pemadaman 10 Agustus 2026 tidak terdiagnosis
+ * berhari-hari: kunci yang dicabut, kuota harian yang habis, dan model yang
+ * dipensiunkan Google tampak identik dari layar pengguna maupun dari log.
+ */
+export type GeminiFailureCode =
+  /** Kunci ditolak/dicabut/dibatasi — hanya pemilik akun yang bisa memperbaiki. */
+  | 'INVALID_KEY'
+  /** Kuota di sisi Google habis (RPD/RPM), bukan kuota aplikasi. */
+  | 'QUOTA'
+  /** Nama model tidak dikenal atau sudah dipensiunkan. */
+  | 'MODEL_UNAVAILABLE'
+  /** Google sedang bermasalah/kapasitas dipangkas (5xx). */
+  | 'UPSTREAM'
+  /** Payload kita sendiri yang salah — bug aplikasi, bukan gangguan Google. */
+  | 'BAD_REQUEST'
+  /** Jaringan putus sebelum sempat dapat status HTTP. */
+  | 'NETWORK'
+
+export class GeminiCallError extends Error {
+  readonly code: GeminiFailureCode
+  readonly status: number | null
+  readonly model: string
+  readonly detail: string
+
+  constructor(code: GeminiFailureCode, status: number | null, model: string, detail: string) {
+    super(`Gemini ${model} gagal (${code}${status ? ` HTTP ${status}` : ''}): ${detail.slice(0, 300)}`)
+    this.name = 'GeminiCallError'
+    this.code = code
+    this.status = status
+    this.model = model
+    this.detail = detail
+  }
+
+  /** Layak dicoba ke model lain? Salah payload tidak akan membaik di model lain. */
+  get retryable(): boolean {
+    return this.code === 'MODEL_UNAVAILABLE' || this.code === 'UPSTREAM'
+      || this.code === 'QUOTA' || this.code === 'NETWORK'
+  }
+}
+
+function classify(status: number, body: string): GeminiFailureCode {
+  const teks = body.toUpperCase()
+  if (status === 401 || status === 403) return 'INVALID_KEY'
+  if (status === 400 && (teks.includes('API_KEY_INVALID') || teks.includes('API KEY NOT VALID'))) return 'INVALID_KEY'
+  if (status === 429) return 'QUOTA'
+  if (status === 404) return 'MODEL_UNAVAILABLE'
+  if (status >= 500) return 'UPSTREAM'
+  return 'BAD_REQUEST'
+}
+
+/**
+ * Kalimat untuk PENGGUNA AKHIR. Pemilik warung tidak bisa berbuat apa-apa
+ * dengan "HTTP 429 RESOURCE_EXHAUSTED", tapi dia sangat bisa berbuat sesuatu
+ * dengan "jatah AI hari ini habis, besok normal lagi" — dan dia berhak tahu
+ * yang mana dari keduanya yang sedang terjadi.
+ */
+export function pesanUntukPengguna(code: GeminiFailureCode): string {
+  switch (code) {
+    case 'INVALID_KEY':
+      return 'Layanan AI belum aktif: kunci API Gemini ditolak Google. '
+        + 'Hubungi admin aplikasi untuk memperbarui kunci di pengaturan server.'
+    case 'QUOTA':
+      return 'Jatah pemakaian AI di Google untuk hari ini sudah habis. '
+        + 'Coba lagi besok, atau pakai form manual untuk sekarang.'
+    case 'MODEL_UNAVAILABLE':
+      return 'Model AI yang dipakai aplikasi sudah tidak dilayani Google. '
+        + 'Hubungi admin aplikasi — pengaturan model perlu diperbarui.'
+    case 'BAD_REQUEST':
+      return 'Permintaan ke layanan AI ditolak. Ini kesalahan aplikasi, '
+        + 'bukan kesalahan Anda — silakan laporkan lewat menu Feedback.'
+    default:
+      return 'Layanan AI sedang tidak tersedia. Coba lagi sebentar lagi, atau pakai form manual.'
+  }
+}
+
+/** Ubah error apa pun jadi payload JSON yang seragam untuk Edge Function. */
+export function payloadGagalAI(e: unknown): { error: string; code: string; detail: string } {
+  if (e instanceof GeminiCallError) {
+    return { error: pesanUntukPengguna(e.code), code: e.code, detail: e.detail.slice(0, 300) }
+  }
+  if (e instanceof GeminiKeyMissingError) {
+    return {
+      error: 'Layanan AI belum dikonfigurasi di server (kunci API belum diatur).',
+      code: 'KEY_MISSING',
+      detail: String(e).slice(0, 300),
+    }
+  }
+  return { error: pesanUntukPengguna('UPSTREAM'), code: 'UNKNOWN', detail: String(e).slice(0, 300) }
+}
+
 export interface GenerateOptions {
   prompt?: string
   /** Bagian mentah (mis. untuk kiriman gambar/PDF pada OCR). */
@@ -94,15 +187,20 @@ async function callModel(
     body.systemInstruction = { parts: [{ text: opts.systemInstruction }] }
   }
 
-  const res = await fetch(`${API_BASE}/${model}:generateContent`, {
-    method: 'POST',
-    headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch (e) {
+    throw new GeminiCallError('NETWORK', null, model, String(e))
+  }
 
   if (!res.ok) {
     const detail = await res.text()
-    throw new Error(`Gemini ${model} HTTP ${res.status}: ${detail.slice(0, 300)}`)
+    throw new GeminiCallError(classify(res.status, detail), res.status, model, detail)
   }
 
   const data = await res.json()
@@ -137,7 +235,40 @@ export function getGeminiClient(feature: FeatureName): GeminiClient {
   const apiKey = resolveKey(route.key)
   if (!apiKey) throw new GeminiKeyMissingError(route.key)
 
-  const generate = (opts: GenerateOptions) => callModel(apiKey, route.model, opts)
+  const chain = [route.model, ...(route.fallbackModel ? [route.fallbackModel] : [])]
+
+  /**
+   * Jalankan rantai model sampai ada yang berhasil.
+   *
+   * Kegagalan TRANSPOR (model dipensiunkan, kuota Google habis, 5xx) pindah ke
+   * model berikutnya; kegagalan payload (400) tidak, karena permintaan yang
+   * salah bentuk akan ditolak sama persis oleh model mana pun dan retry hanya
+   * menggandakan latensi. Setiap kegagalan DICATAT ke log Edge Function: log
+   * yang sunyi adalah alasan pemadaman kemarin baru ketahuan setelah pengguna
+   * yang mengeluh, bukan setelah grafik yang berubah.
+   */
+  async function jalankanRantai(
+    opts: GenerateOptions,
+    contents: ChatTurn[] | undefined,
+    mulaiDari = 0,
+  ): Promise<GenerateResult> {
+    let terakhir: unknown
+    for (let i = mulaiDari; i < chain.length; i++) {
+      const model = chain[i]
+      try {
+        const result = await callModel(apiKey!, model, opts, contents)
+        result.usedFallback = i > 0
+        if (i > 0) console.warn(`[ai:${feature}] berhasil dengan model cadangan ${model}`)
+        return result
+      } catch (e) {
+        terakhir = e
+        const bisaLanjut = e instanceof GeminiCallError && e.retryable && i < chain.length - 1
+        console.error(`[ai:${feature}] ${model} gagal: ${String(e).slice(0, 300)}`)
+        if (!bisaLanjut) throw e
+      }
+    }
+    throw terakhir
+  }
 
   return {
     feature,
@@ -146,27 +277,29 @@ export function getGeminiClient(feature: FeatureName): GeminiClient {
     fallbackModel: route.fallbackModel,
     quotaFeature: route.quotaFeature,
     dailyCap: route.dailyCap,
-    generate,
+
+    generate: (opts) => jalankanRantai(opts, undefined),
 
     generateChat(contents, opts = {}) {
-      return callModel(apiKey, route.model, opts, contents)
+      return jalankanRantai(opts, contents)
     },
 
     async generateWithFallback(opts, validate) {
-      // Percobaan 1 — model utama.
-      let firstErr: unknown
+      // Percobaan 1 — rantai model normal (sudah menangani kegagalan transpor).
+      let result = await jalankanRantai(opts, undefined)
       try {
-        const result = await callModel(apiKey, route.model, opts)
         return { value: validate(result), result }
-      } catch (e) {
-        firstErr = e
+      } catch (gagalValidasi) {
+        // Model menjawab, tapi jawabannya tidak lolos schema/checksum. Ini kasus
+        // yang berbeda dari kegagalan transpor: yang perlu diganti bukan
+        // saluran, melainkan model yang menyusun jawabannya.
+        const berikutnya = chain.indexOf(result.modelUsed) + 1
+        if (berikutnya <= 0 || berikutnya >= chain.length) throw gagalValidasi
+        console.warn(`[ai:${feature}] hasil ${result.modelUsed} gagal validasi, coba ${chain[berikutnya]}`)
+        result = await jalankanRantai(opts, undefined, berikutnya)
+        result.usedFallback = true
+        return { value: validate(result), result }
       }
-
-      // Percobaan 2 — model fallback (maksimal 1x, sesuai spesifikasi).
-      if (!route.fallbackModel) throw firstErr
-      const result = await callModel(apiKey, route.fallbackModel, opts)
-      result.usedFallback = true
-      return { value: validate(result), result }
     },
   }
 }
