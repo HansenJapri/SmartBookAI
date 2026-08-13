@@ -208,5 +208,8 @@
   "206": "ragPrice.js",
   "207": "otpGuard.test.js",
   "208": "vitest",
-  "209": "migration_feedback_privasi.sql"
+  "209": "migration_feedback_privasi.sql",
+  "210": "migration_rls_lint.sql",
+  "211": "migration_pembatalan_stok.sql",
+  "212": "migration_test_bom_harness.sql"
 }

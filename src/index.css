@@ -1178,6 +1178,66 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .tbl-hpp td { vertical-align: middle; }
 .tbl-hpp select.input, .tbl-hpp input.input { font-size: 13px; padding: 8px 9px; }
 
+/* ---- Tabel HPP di layar sempit: tiap baris jadi KARTU ----
+   Kolomnya tumbuh jadi 14 sejak komposisi mendapat harga kemasan, dasar biaya
+   per periode, dan tautan stok. Di ponsel itu berarti menggeser tabel jauh ke
+   kanan sambil kehilangan judul kolomnya — pengguna tidak lagi tahu kotak yang
+   sedang diisi itu apa.
+
+   Judul kolom dibawa turun ke tiap sel lewat atribut data-label pada <td>,
+   jadi tidak ada teks yang digandakan di JSX. Setiap input juga sudah punya
+   aria-label sendiri (lihat perbaikan a11y), sehingga menyembunyikan <thead>
+   di sini tidak menghilangkan informasi bagi pembaca layar. */
+@media (max-width: 880px) {
+  .tbl-hpp { min-width: 0; display: block; }
+  .tbl-hpp thead { display: none; }
+  .tbl-hpp tbody { display: block; }
+
+  .tbl-hpp tbody tr {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    background: var(--card);
+  }
+  .tbl-hpp tbody tr.row-ai { border-color: var(--warn-line, var(--line)); }
+
+  .tbl-hpp tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left !important;
+  }
+  .tbl-hpp tbody td:last-child { border-bottom: 0; }
+
+  .tbl-hpp tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--slate);
+  }
+
+  /* Lebar sel yang dipatok untuk tampilan tabel (width: 84px, dst) akan
+     membuat kotaknya kerdil di mode kartu — dipaksa penuh di sini. */
+  .tbl-hpp tbody td > .input,
+  .tbl-hpp tbody td > input.input,
+  .tbl-hpp tbody td > select.input { width: 100% !important; min-width: 0 !important; }
+  .tbl-hpp tbody td > .flex { flex: 1; }
+
+  /* Sel biaya per periode memakai colSpan; di mode kartu isinya ditumpuk. */
+  .tbl-hpp tbody td[colspan] { display: block; }
+  .tbl-hpp tbody td[colspan]::before { display: block; margin-bottom: 6px; }
+
+  /* Tombol hapus baris: beri label supaya tidak jadi ikon menggantung. */
+  .tbl-hpp tbody td:last-child { justify-content: space-between; padding-top: 10px; }
+}
+
 /* ============================================================
    REDESIGN VISUAL: tombol tema, angka tabular, penyesuaian dark theme.
    Murni tampilan — tidak mengubah fungsi apa pun.
