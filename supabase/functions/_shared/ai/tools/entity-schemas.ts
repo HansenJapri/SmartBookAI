@@ -59,6 +59,17 @@ export interface FieldSpec {
   /** Pertanyaan yang diajukan ke pengguna bila field ini kosong. */
   ask: string
   enumValues?: string[]
+  /**
+   * Label yang DILIHAT pengguna untuk tiap `enumValues`, mis.
+   * { in: 'Pemasukan', out: 'Pengeluaran' }.
+   *
+   * Tanpa ini kartu draf menampilkan istilah database mentah — "in", "out",
+   * "belum" — sementara form manual untuk field yang sama menampilkan
+   * "Pemasukan", "Pengeluaran", "Belum Lunas". Pemilik warung tidak punya cara
+   * menebak bahwa "out" berarti pengeluaran, dan perbedaan itu sendiri yang
+   * melanggar aturan bahwa alur AI wajib sama persis dengan alur manual.
+   */
+  enumLabels?: Record<string, string>
   /** Untuk type 'ref': tabel & kolom yang dipakai memvalidasi keberadaan data. */
   refTable?: string
   refLabelColumn?: string
@@ -96,6 +107,19 @@ export interface EntitySpec {
   fields: FieldSpec[]
   /** Aksi yang diizinkan lewat AI untuk entitas ini. */
   allow: Array<'create' | 'update' | 'delete'>
+  /**
+   * Kolom yang dipakai MENCARI baris target saat update/delete, mis. 'name'
+   * untuk produk, 'title' untuk tugas.
+   *
+   * Tanpa ini `targetId` tidak punya cara terisi sama sekali. Model dilarang
+   * keras mengarang UUID (dan itu benar — ia memang tidak pernah diberi satu
+   * pun), tapi tidak ada apa pun yang menerjemahkan "indomie goreng" menjadi id
+   * barisnya. Akibatnya SETIAP update dan delete lewat asisten berakhir dengan
+   * `invalid input syntax for type uuid: "undefined"` — pesan yang tidak berarti
+   * apa-apa bagi pemilik warung, untuk kegagalan yang sebenarnya tidak pernah
+   * punya peluang berhasil.
+   */
+  targetLabelColumn?: string
   /** true = CREATE pun butuh konfirmasi (karena menyentuh uang/stok). */
   confirmOnCreate: boolean
 }
@@ -107,11 +131,13 @@ const TRANSACTION: EntitySpec = {
   module: 'transaksi',
   table: 'transactions',
   allow: ['create', 'update', 'delete'],
+  targetLabelColumn: 'description',
   confirmOnCreate: true, // menyentuh uang
   fields: [
     {
       name: 'direction', label: 'Jenis transaksi', type: 'enum', required: true,
       enumValues: ['in', 'out'],
+      enumLabels: { in: 'Pemasukan', out: 'Pengeluaran' },
       ask: 'Ini pemasukan (penjualan) atau pengeluaran (belanja)?',
     },
     {
@@ -141,6 +167,7 @@ const TRANSACTION: EntitySpec = {
     {
       name: 'payment_status', label: 'Status pembayaran', type: 'enum', required: false,
       enumValues: ['lunas', 'belum'], fallback: 'lunas',
+      enumLabels: { lunas: 'Lunas', belum: 'Belum Lunas' },
       // Satu-satunya field opsional transaksi yang selalu ditanyakan. Nilai
       // bawaannya 'lunas', dan menebak salah di sini berarti penjualan kredit
       // masuk sebagai uang yang sudah diterima: tidak muncul di Piutang, tidak
@@ -188,6 +215,7 @@ const PRODUCT: EntitySpec = {
   module: 'produk',
   table: 'products',
   allow: ['create', 'update', 'delete'],
+  targetLabelColumn: 'name',
   confirmOnCreate: false, // membuat produk baru reversible & tidak langsung menyentuh uang
   fields: [
     {
@@ -239,6 +267,7 @@ const EMPLOYEE: EntitySpec = {
   module: 'hr',
   table: 'employees',
   allow: ['create', 'update', 'delete'],
+  targetLabelColumn: 'name',
   confirmOnCreate: true, // gaji = data finansial
   fields: [
     {
@@ -248,6 +277,7 @@ const EMPLOYEE: EntitySpec = {
     {
       name: 'salary_type', label: 'Tipe gaji', type: 'enum', required: true,
       enumValues: ['bulanan', 'harian'],
+      enumLabels: { bulanan: 'Bulanan', harian: 'Harian' },
       ask: 'Gajinya bulanan atau harian (per hari hadir)?',
     },
     {
@@ -296,6 +326,7 @@ const ATTENDANCE: EntitySpec = {
     {
       name: 'status', label: 'Status kehadiran', type: 'enum', required: true,
       enumValues: ['hadir', 'izin', 'sakit', 'cuti', 'alpa'],
+      enumLabels: { hadir: 'Hadir', izin: 'Izin', sakit: 'Sakit', cuti: 'Cuti', alpa: 'Alpa' },
       ask: 'Statusnya apa: hadir, izin, sakit, cuti, atau alpa?',
     },
     {
@@ -312,6 +343,7 @@ const KPI_CRITERIA: EntitySpec = {
   module: 'hr',
   table: 'kpi_criteria',
   allow: ['create', 'update', 'delete'],
+  targetLabelColumn: 'name',
   confirmOnCreate: false,
   fields: [
     {
@@ -325,6 +357,7 @@ const KPI_CRITERIA: EntitySpec = {
     {
       name: 'source', label: 'Sumber nilai', type: 'enum', required: true,
       enumValues: ['kehadiran', 'tugas', 'manual'],
+      enumLabels: { kehadiran: 'Kehadiran', tugas: 'Tugas', manual: 'Manual' },
       ask: 'Nilainya diambil otomatis dari kehadiran, dari papan tugas, atau diisi manual?',
     },
   ],
@@ -372,6 +405,7 @@ const SUPPLIER: EntitySpec = {
   module: 'produk',
   table: 'suppliers',
   allow: ['create', 'update', 'delete'],
+  targetLabelColumn: 'name',
   confirmOnCreate: false,
   fields: [
     { name: 'name', label: 'Nama pemasok', type: 'string', required: true, max: 120, ask: 'Nama pemasoknya apa?' },
@@ -396,6 +430,7 @@ const CUSTOMER: EntitySpec = {
   module: 'transaksi',
   table: 'customers',
   allow: ['create', 'update', 'delete'],
+  targetLabelColumn: 'name',
   confirmOnCreate: false,
   fields: [
     { name: 'name', label: 'Nama pelanggan', type: 'string', required: true, max: 120, ask: 'Nama pelanggannya siapa?' },
@@ -413,6 +448,7 @@ const PURCHASE_ORDER: EntitySpec = {
   module: 'produk',
   table: 'purchase_orders',
   allow: ['create', 'update'],
+  targetLabelColumn: 'po_number',
   confirmOnCreate: true, // menyentuh uang & stok
   fields: [
     {
@@ -446,6 +482,7 @@ const TASK: EntitySpec = {
   module: 'operasional',
   table: 'tasks',
   allow: ['create', 'update', 'delete'],
+  targetLabelColumn: 'title',
   confirmOnCreate: false,
   fields: [
     { name: 'title', label: 'Judul tugas', type: 'string', required: true, max: 160, ask: 'Tugasnya apa?' },
@@ -460,11 +497,13 @@ const TASK: EntitySpec = {
       // di database (antre/dikerjakan/selesai). Nilai Inggris ditolak Postgres.
       name: 'status', label: 'Status', type: 'enum', required: false,
       enumValues: ['antre', 'dikerjakan', 'selesai'], fallback: 'antre',
+      enumLabels: { antre: 'Antre', dikerjakan: 'Dikerjakan', selesai: 'Selesai' },
       ask: 'Statusnya apa (antre, dikerjakan, atau selesai)?',
     },
     {
       name: 'priority', label: 'Prioritas', type: 'enum', required: false,
       enumValues: ['rendah', 'normal', 'tinggi'], fallback: 'normal',
+      enumLabels: { rendah: 'Rendah', normal: 'Normal', tinggi: 'Tinggi' },
       ask: 'Seberapa penting tugas ini (rendah, normal, tinggi)? Boleh dilewati.',
     },
     { name: 'note', label: 'Catatan', type: 'text', required: false, max: 300, ask: 'Ada detail tambahan? Boleh dilewati.' },
@@ -478,6 +517,7 @@ const REMINDER: EntitySpec = {
   module: 'operasional',
   table: 'reminders',
   allow: ['create', 'delete'],
+  targetLabelColumn: 'title',
   confirmOnCreate: false,
   fields: [
     { name: 'title', label: 'Judul', type: 'string', required: true, max: 160, ask: 'Mau diingatkan tentang apa?' },

@@ -14,7 +14,7 @@
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -267,6 +267,9 @@ serve(async (req) => {
 
     // ================= TAHAP 2: Gemini menarasikan =================
     let content = ''
+    // Sebab kegagalan AI, bila ada. Ikut dikirim ke klien supaya "narasi ini
+    // template" bisa dibedakan dari "narasi ini memang sedang tidak menarik".
+    let aiError: string | null = null
     if (metrics.tx_count > 0) {
       try {
         const PROMPT = isEn ? `You are a down-to-earth, to-the-point financial advisor for a small Indonesian business (UMKM).
@@ -323,7 +326,16 @@ ATURAN KERAS:
         if (r.text && r.finishReason !== 'MAX_TOKENS' && !(isEn && looksIndonesian(r.text))) {
           content = r.text
         }
-      } catch { /* jatuh ke template */ }
+      } catch (e) {
+        // Template cadangan tetap dipakai — pengguna tidak boleh melihat
+        // dashboard kosong hanya karena Gemini bermasalah. Tapi kegagalannya
+        // WAJIB tercatat: menelan error di sini membuat pemadaman AI
+        // 7-10 Agustus 2026 terlihat seperti dashboard yang sehat selama tiga
+        // hari, karena satu-satunya gejalanya adalah narasi yang mendadak
+        // terdengar kaku — sesuatu yang tidak muncul di grafik mana pun.
+        aiError = payloadGagalAI(e).code
+        console.error(`[ai-narasi] Gemini gagal, memakai template: ${String(e).slice(0, 300)}`)
+      }
     }
     const usedAI = Boolean(content)
     // Penghitung kuota HANYA naik saat panggilan AI benar-benar menghasilkan narasi.
@@ -344,7 +356,7 @@ ATURAN KERAS:
       }, { onConflict: 'user_id,insight_date,kind' })
     } catch { /* cache gagal bukan masalah fatal */ }
 
-    return json({ content, metrics, cached: false, ai: usedAI })
+    return json({ content, metrics, cached: false, ai: usedAI, aiError })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan saat membuat insight.', detail: String(e).slice(0, 300) }, 500)
   }

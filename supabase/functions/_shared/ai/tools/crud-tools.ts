@@ -434,6 +434,107 @@ async function resolveSatuRef(
   }
 }
 
+/**
+ * Terjemahkan `targetId` update/delete dari NAMA menjadi id baris, lalu isi
+ * field yang tidak disebut pengguna dengan nilai baris itu.
+ *
+ * Dua pekerjaan sekaligus karena keduanya jawaban atas keluhan yang sama:
+ * asisten memperlakukan "ubah" seolah-olah "buat baru". Ia tidak tahu baris
+ * mana yang dimaksud (targetId kosong → gagal di Postgres), dan ia menanyakan
+ * ulang harga jual yang SUDAH tersimpan di produk itu. Form manual tidak pernah
+ * begitu: menekan ikon pensil memuat data lama dulu, dan pengguna hanya
+ * mengubah yang perlu. Aturan itu yang ditiru di sini.
+ */
+export async function resolveTarget(
+  supabase: { from: (t: string) => any },
+  draft: ValidatedDraft,
+  ownerId?: string,
+): Promise<ValidationIssue[]> {
+  if (draft.operation === 'create') return []
+  const spec = getEntitySpec(draft.entity)
+  if (!spec?.targetLabelColumn) return []
+
+  const kolom = spec.targetLabelColumn
+  // Nama target boleh datang lewat `targetId` (model diminta menaruh nama di
+  // sana) atau lewat field nama di values — mis. "ubah stok indomie goreng"
+  // sering menaruh "indomie goreng" di `name`, bukan di targetId.
+  const petunjuk = draft.targetId ?? draft.values[kolom] ?? draft.values.name
+  const semu: FieldSpec = {
+    name: 'targetId',
+    label: spec.label,
+    type: 'ref',
+    required: true,
+    ask: `${spec.label} mana yang dimaksud?`,
+    refTable: spec.table,
+    refLabelColumn: kolom,
+  }
+
+  const hasil = await resolveSatuRef(supabase, semu, petunjuk, ownerId)
+  draft.issues = (draft.issues || []).filter((i) => i.field !== 'targetId')
+
+  if (!hasil.id) {
+    delete draft.targetId
+    const issue = hasil.issue ?? {
+      field: 'targetId',
+      message: `Sebutkan ${spec.label.toLowerCase()} mana yang ingin diubah.`,
+    }
+    draft.issues.push(issue)
+    if (!draft.missingRequired.some((q) => q.field === 'targetId')) {
+      draft.missingRequired.push({
+        field: 'targetId',
+        label: spec.label,
+        question: semu.ask,
+        required: true,
+        type: 'ref',
+        ...(hasil.kandidat?.length ? { options: hasil.kandidat } : {}),
+      })
+    }
+    return [issue]
+  }
+
+  draft.targetId = hasil.id
+  draft.refLabels = { ...(draft.refLabels || {}), targetId: String(petunjuk ?? '') }
+
+  // ---- Prefill: baris lama jadi nilai awal, bukan pertanyaan baru ----
+  const kolomField = spec.fields.map((f) => f.name)
+  const { data: lama } = await supabase
+    .from(spec.table)
+    .select(['id', ...kolomField].join(', '))
+    .eq('id', hasil.id)
+    .maybeSingle()
+
+  if (lama) {
+    for (const f of spec.fields) {
+      const disebut = draft.values[f.name]
+      if (disebut !== undefined && disebut !== null && disebut !== '') continue
+      const nilaiLama = (lama as Record<string, unknown>)[f.name]
+      if (nilaiLama === undefined || nilaiLama === null || nilaiLama === '') continue
+      draft.values[f.name] = nilaiLama
+      // Field yang sudah terisi dari baris lama tidak perlu ditanyakan lagi.
+      draft.missingRequired = draft.missingRequired.filter((q) => q.field !== f.name)
+      draft.optionalPrompts = draft.optionalPrompts.filter((q) => q.field !== f.name)
+    }
+    // Label ref ikut diperbarui supaya kartu menampilkan nama, bukan UUID.
+    for (const f of spec.fields) {
+      if (f.type !== 'ref' || !draft.values[f.name]) continue
+      if (draft.refLabels?.[f.name]) continue
+      const { data: ref } = await supabase
+        .from(f.refTable!)
+        .select(`id, ${f.refLabelColumn || 'name'}`)
+        .eq('id', draft.values[f.name])
+        .maybeSingle()
+      if (ref) {
+        draft.refLabels = {
+          ...(draft.refLabels || {}),
+          [f.name]: String((ref as any)[f.refLabelColumn || 'name']),
+        }
+      }
+    }
+  }
+
+  return []
+}
+
 export async function resolveReferences(
   supabase: { from: (t: string) => any },
   draft: ValidatedDraft,

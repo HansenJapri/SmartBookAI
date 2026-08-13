@@ -13,7 +13,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-import { getGeminiClient } from '../_shared/ai/gemini-client.ts'
+import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
 import { parseAndValidateReceipt, ChecksumMismatchError } from '../_shared/ai/tools/ocr-parser.ts'
 
@@ -104,7 +104,7 @@ serve(async (req) => {
           detail: e.message,
         }, 422)
       }
-      return json({ error: 'Layanan AI sedang tidak tersedia.', detail: String(e).slice(0, 300) }, 502)
+      return json(payloadGagalAI(e), 502)
     }
 
     // Kuota naik hanya setelah pembacaan sukses & lolos validasi.
