@@ -3,7 +3,8 @@
   "nodeModulesDir": "none",
   "lock": false,
   "tasks": {
-    "test": "deno test --allow-import _shared/ai/"
+    "//test": "--allow-read dibutuhkan invariant_test.ts, yang menelusuri folder Edge Function untuk memastikan tiap fungsi memakai rate-limiter. Tanpa flag ini seluruh berkas itu gagal dengan NotCapable sebelum satu assert pun jalan.",
+    "test": "deno test --allow-import --allow-read _shared/ai/"
   },
   "compilerOptions": {
     "lib": ["deno.window", "dom"],

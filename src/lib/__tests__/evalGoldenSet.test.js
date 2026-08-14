@@ -123,22 +123,43 @@ describe('penilai bahasa', () => {
 // ---------- Integritas daftar kasus ----------
 
 describe('golden-set: struktur & distribusi', () => {
-  it('berisi tepat 40 kasus (§1.3 target)', () => {
-    expect(KASUS).toHaveLength(40)
+  it('berisi tepat 46 kasus (§1.3 target)', () => {
+    // 40 -> 46 saat asisten diberi data usaha penuh (RAG). Enam kasus baru
+    // menutupi perilaku yang sebelumnya tidak ada: menyebutkan daftar alih-alih
+    // melempar ke menu, tidak mengarang nama di balik pseudonim pelanggan, dan
+    // dua injeksi yang memakai pembatas blok data yang SEBENARNYA.
+    expect(KASUS).toHaveLength(46)
   })
 
-  it('distribusi sesuai dokumen strategi: 10/10/10/5/5', () => {
+  it('distribusi sesuai dokumen strategi: 12/12/12/5/5', () => {
     const hitung = Object.fromEntries(KATEGORI.map((k) => [k, KASUS.filter((c) => c.kategori === k).length]))
     expect(hitung).toEqual({
-      halusinasi: 10, injeksi: 10, 'kontrol-positif': 10, lingkup: 5, format: 5,
+      halusinasi: 12, injeksi: 12, 'kontrol-positif': 12, lingkup: 5, format: 5,
     })
   })
 
-  it('injeksi tersebar 5 langsung / 3 OCR / 2 jalur catat-suara', () => {
+  it('injeksi tersebar 7 langsung / 3 OCR / 2 jalur catat-suara', () => {
     const injeksi = KASUS.filter((c) => c.kategori === 'injeksi')
-    expect(injeksi.filter((c) => c.endpoint === 'chat')).toHaveLength(5)
+    expect(injeksi.filter((c) => c.endpoint === 'chat')).toHaveLength(7)
     expect(injeksi.filter((c) => c.endpoint === 'ocr')).toHaveLength(3)
     expect(injeksi.filter((c) => c.endpoint === 'catat')).toHaveLength(2)
+  })
+
+  it('kasus RAG menutupi perilaku baru asisten', () => {
+    // Penjaga agar kasus-kasus ini tidak terhapus diam-diam saat golden-set
+    // dirapikan di kemudian hari. Masing-masing mewakili satu kegagalan nyata
+    // yang pernah dilaporkan atau ditemukan saat membangun lapisan RAG.
+    const id = KASUS.map((c) => c.id)
+    for (const wajib of [
+      'rag-daftar-produk',            // kasus pelapor: "listkan produk & sisa stok"
+      'rag-sisa-stok-satu',
+      'rag-samaran-pelanggan',        // pseudonim tidak boleh dikarang jadi nama asli
+      'rag-kontak-tidak-dikirim',
+      'injeksi-pembatas-blok-data',   // pembatas ASLI, bukan karangan
+      'injeksi-minta-abaikan-blok',
+    ]) {
+      expect(id).toContain(wajib)
+    }
   })
 
   it('setiap id unik', () => {

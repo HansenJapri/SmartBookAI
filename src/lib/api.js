@@ -1158,7 +1158,7 @@ export async function declineInvitation(id) {
 
 // ---------- AUDIT LOG (baca-saja; ditulis trigger database) ----------
 // audit_logs memakai kolom owner_id (bukan user_id), jadi filternya eksplisit.
-export async function fetchAuditLogs({ table = '', action = '', limit = 200 } = {}) {
+export async function fetchAuditLogs({ table = '', action = '', via = '', employeeId = '', limit = 200 } = {}) {
   // Owner di-resolve LEBIH DULU, sebelum builder dibuat: `await` di tengah
   // rantai membuat urutan panggilan jaringan sulit ditelusuri.
   const owner = await wsOwner()
@@ -1167,6 +1167,33 @@ export async function fetchAuditLogs({ table = '', action = '', limit = 200 } = 
     .order('created_at', { ascending: false }).limit(limit)
   if (table) q = q.eq('table_name', table)
   if (action) q = q.eq('action', action)
+  // Baris yang ditulis SEBELUM penandaan asal ada bernilai NULL — asalnya
+  // tidak tercatat, bukan diketahui manual. Datanya sengaja dibiarkan jujur
+  // begitu; tapi untuk penyaringan, satu-satunya pembedaan yang bisa
+  // ditindaklanjuti adalah "AI atau bukan", jadi NULL ikut ke sisi 'manual'.
+  // Tanpa ini, memfilter Manual menyembunyikan seluruh riwayat lama.
+  if (via === 'ai') q = q.eq('via', 'ai')
+  else if (via === 'manual') q = q.or('via.eq.manual,via.is.null')
+  // employee_id diisi trigger dari baris yang berubah (employee_id atau
+  // assignee_id, atau id baris itu sendiri untuk tabel employees). Tanpa kolom
+  // itu penyaringan ini mustahil: `changed` pada UPDATE hanya memuat field yang
+  // berubah, jadi employee_id sering tidak ada di sana.
+  if (employeeId) q = q.eq('employee_id', employeeId)
+  const { data, error } = await q
+  if (error) periksaGalat(error)
+  return data || []
+}
+
+// ---------- LOG AKTIVITAS AI ----------
+//
+// Terpisah dari audit_logs karena mode Tanya tidak mengubah data apa pun.
+// TIDAK memuat teks pertanyaan — lihat alasannya di supabase/migration_audit_ai.sql.
+export async function fetchAiActivity({ feature = '', limit = 200 } = {}) {
+  const owner = await wsOwner()
+  let q = supabase.from('ai_activity_log').select('*')
+    .eq('owner_id', owner)
+    .order('created_at', { ascending: false }).limit(limit)
+  if (feature) q = q.eq('feature', feature)
   const { data, error } = await q
   if (error) periksaGalat(error)
   return data || []

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollText, RefreshCw } from 'lucide-react'
-import { fetchAuditLogs, fetchStaff } from '../lib/api'
+import { ScrollText, RefreshCw, Sparkles } from 'lucide-react'
+import { fetchAuditLogs, fetchAiActivity, fetchStaff } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
 import { fmtDateTime, rupiah } from '../lib/format'
@@ -33,13 +33,19 @@ export default function Audit() {
   const [me, setMe] = useState(null)
   const [table, setTable] = useState('')
   const [action, setAction] = useState('')
+  const [via, setVia] = useState('')
+  const [aiRows, setAiRows] = useState([])
   const [err, setErr] = useState('')
 
   const load = () => {
     setErr('')
-    fetchAuditLogs({ table, action }).then(setLogs).catch((e) => { setLogs([]); setErr(e.message) })
+    fetchAuditLogs({ table, action, via }).then(setLogs).catch((e) => { setLogs([]); setErr(e.message) })
+    // Aktivitas AI dimuat terpisah: ia BUKAN perubahan data, jadi ia tabel
+    // tersendiri dengan bentuk baris yang berbeda. Lihat alasannya di
+    // supabase/migration_audit_ai.sql.
+    fetchAiActivity({ limit: 200 }).then(setAiRows).catch(() => setAiRows([]))
   }
-  useEffect(() => { load() }, [table, action]) // eslint-disable-line
+  useEffect(() => { load() }, [table, action, via]) // eslint-disable-line
   useEffect(() => {
     fetchStaff().then(setStaff).catch(() => {})
     supabase.auth.getUser().then(({ data }) => setMe(data?.user?.id || null))
@@ -66,6 +72,11 @@ export default function Audit() {
           <option value="">{a.allActions}</option>
           {Object.entries(a.actions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        <select className="input" style={{ maxWidth: 170 }} value={via} onChange={(e) => setVia(e.target.value)} aria-label={a.allVia}>
+          <option value="">{a.allVia}</option>
+          <option value="manual">{a.viaManual}</option>
+          <option value="ai">{a.viaAi}</option>
+        </select>
         <div style={{ flex: 1 }} />
         <button className="btn btn-ghost" onClick={load}>
           <RefreshCw size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} />{a.reload}
@@ -89,7 +100,15 @@ export default function Audit() {
                 return (
                   <tr key={l.id}>
                     <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(l.created_at)}</td>
-                    <td><span className={`badge ${cls}`}>{label}</span></td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <span className={`badge ${cls}`}>{label}</span>
+                      {l.via === 'ai' && (
+                        <span className="badge badge-indigo" style={{ marginLeft: 6 }} title={a.viaAiHint}>
+                          <Sparkles size={11} style={{ verticalAlign: '-1px', marginRight: 3 }} />
+                          {a.viaAi}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ whiteSpace: 'nowrap' }}>{a.tables[l.table_name] || l.table_name}</td>
                     <td style={{ maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis' }}>{summarize(l)}</td>
                     <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{actorLabel(l.actor_id)}</td>
@@ -101,6 +120,51 @@ export default function Audit() {
         </div>
       )}
       <p className="muted-sm mt">{a.footNote}</p>
+
+      {/* ---- Aktivitas asisten AI ----
+          Bagian TERPISAH, bukan baris tambahan di tabel atas. Mode Tanya tidak
+          mengubah data apa pun: ia tidak punya table_name, action, atau baris
+          yang berubah. Memaksanya masuk tabel di atas berarti mengarang nilai
+          untuk kolom-kolom itu. */}
+      <div className="card card-pad mt">
+        <h3 className="card-title">
+          <Sparkles size={17} style={{ verticalAlign: '-3px', marginRight: 6 }} />
+          {a.aiTitle}
+        </h3>
+        <p className="muted-sm" style={{ marginTop: -4 }}>{a.aiHint}</p>
+        {!aiRows.length ? (
+          <p className="muted-sm">{a.aiEmpty}</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead><tr><th>{a.thTime}</th><th>{a.aiThFeature}</th><th>{a.aiThOutcome}</th><th>{a.thActor}</th></tr></thead>
+              <tbody>
+                {aiRows.slice(0, 100).map((r) => (
+                  <tr key={r.id}>
+                    <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(r.created_at)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{a.aiFeatures[r.feature] || r.feature}</td>
+                    <td>
+                      <span className={`badge ${r.outcome === 'ok' ? 'badge-green' : r.outcome === 'limit' ? 'badge-amber' : 'badge-red'}`}>
+                        {a.aiOutcomes[r.outcome] || r.outcome}
+                      </span>
+                      {/* Domain yang DITOLAK hak akses ikut ditampilkan: itu
+                          justru informasi audit yang paling berguna di sini —
+                          ada yang mencoba menanyakan modul di luar haknya. */}
+                      {Array.isArray(r.meta?.ditolak) && r.meta.ditolak.length > 0 && (
+                        <span className="badge badge-red" style={{ marginLeft: 6 }}>
+                          {a.aiDenied.replace('{modules}', r.meta.ditolak.join(', '))}
+                        </span>
+                      )}
+                    </td>
+                    <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{actorLabel(r.actor_id)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="muted-sm mt">{a.aiFootNote}</p>
+      </div>
     </>
   )
 }

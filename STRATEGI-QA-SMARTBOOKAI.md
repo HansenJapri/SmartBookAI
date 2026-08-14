@@ -112,7 +112,7 @@ Folder `supabase/functions/ai/` di-deploy dengan nama `BukuPencatatan` (dirujuk 
 | Integration test facade AI | ✅ Ada | `radar.ai.integration.test.js`, `api.integration.test.js` |
 | E2E Playwright | ✅ Ada | 7 spec + 1 setup di `e2e/` (2 spec sengaja stub/skip), dijalankan atas build produksi via `vite preview` |
 | Kontrak API | ✅ Ada | `postman/` — 3 folder, 11 request, 25 assertion |
-| Eval AI golden-set | ✅ Ada (diperluas 5 Agt) | `eval/chatbot-eval.mjs` — **40 kasus**, 3 endpoint, live Gemini. Penilainya diuji 30 unit test |
+| Eval AI golden-set | ✅ Ada (diperluas 5 Agt) | `eval/chatbot-eval.mjs` — **46 kasus**, 3 endpoint, live Gemini. Penilainya diuji 30 unit test |
 | **Component test (UI)** | ✅ **Ada** (5 Agt) | 40 test di `src/components/__tests__/` — Modal (focus trap), TransactionModal, OtpInput, PasswordChecklist, AppLock, ErrorBoundary. `environment: 'jsdom'` + `src/test/setup.js` |
 | **Pengukuran coverage** | ✅ **Ada** (5 Agt) | `@vitest/coverage-v8`, di-scope ke `src/lib/**` di `vite.config.js` |
 | **Accessibility otomatis** | ✅ **Ada** (5 Agt) | `@axe-core/playwright` — `e2e/a11y.spec.js` (publik) + `e2e/a11y.authenticated.spec.js` (dalam `/app`), helper `e2e/helpers/axe.js` |
@@ -260,7 +260,7 @@ Uji *guard* dan *kontrak*, bukan kualitas bahasa. Tidak membakar kuota.
   > `package.json` frontend dan type-check gagal mencari `npm:@types/node`.
 
 **Lapis 2 — Golden-set eval terhadap model live (di luar CI).**
-`npm run eval:ai` → `eval/chatbot-eval.mjs`. **Diperluas 7 → 40 kasus (5 Agt 2026)**
+`npm run eval:ai` → `eval/chatbot-eval.mjs`. **Diperluas 7 → 40 kasus (5 Agt 2026), lalu 40 → 46 saat asisten diberi data usaha penuh (14 Agt 2026)**
 dengan distribusi persis seperti yang diusulkan dokumen ini:
 
 | Kategori | Jumlah | Endpoint |
@@ -278,7 +278,7 @@ dengan distribusi persis seperti yang diusulkan dokumen ini:
 
 > ### ⚠️ Suite penuh tidak muat dalam kuota satu hari
 >
-> 33 dari 40 kasus memakai endpoint `chat` yang capnya **10/hari/workspace**.
+> 39 dari 46 kasus memakai endpoint `chat` yang capnya **10/hari/workspace**.
 > Ini konsekuensi cap biaya yang memang disengaja, bukan cacat harness. Karena itu:
 >
 > - Anggaran kuota dicetak **sebelum** ada panggilan: `npm run eval:ai:list`.
@@ -335,7 +335,7 @@ Pola yang sudah dipakai `chatbot.authenticated.spec.js` **[REPO]**: `page.route(
 | Waktu ke token/respons pertama (p95) | **< 8 detik** | Sejalan assertion Postman "< 8000ms" **[REPO]** |
 | Crash/layar putih saat AI gagal | **0** | `ErrorBoundary.jsx` wajib menangkap |
 
-> Batas jujur: LLM bersifat non-deterministik. Lulus 40 kasus **tidak** membuktikan kasus ke-41 aman. Golden-set adalah deteksi regresi, bukan bukti kebenaran. Pertahanan sesungguhnya ada di guard deterministik (Lapis 1) — di situlah anggaran uji harus terbesar.
+> Batas jujur: LLM bersifat non-deterministik. Lulus 46 kasus **tidak** membuktikan kasus ke-47 aman. Golden-set adalah deteksi regresi, bukan bukti kebenaran. Pertahanan sesungguhnya ada di guard deterministik (Lapis 1) — di situlah anggaran uji harus terbesar.
 
 ---
 
@@ -857,7 +857,7 @@ pekerjaan besar — satu mengisi kontak, satu memutuskan nasib 3 fungsi sisa.
 | Q-04 | Pelanggaran axe critical/serious | 0 di 6 halaman kritis | ✅ **LULUS** untuk halaman publik (3 engine). Halaman `/app` menunggu kredensial |
 | Q-05 | Waktu muat awal | < 3 detik | ✅ **LULUS*** — Landing 249 ms · Login 186 ms. Bundle awal 222,1 KB gzip / anggaran 300 KB |
 | Q-06 | LCP / CLS | < 2.5s / < 0.1 | ✅ **LULUS*** — Landing LCP 828 ms · CLS 0,0055 · Login LCP 264 ms · CLS 0,001 |
-| Q-07 | Assertion golden-set AI lulus | ≥ 90% | 🔑 ⬜ — 40 kasus siap; harness mencetak persentasenya |
+| Q-07 | Assertion golden-set AI lulus | ≥ 90% | 🔑 ⬜ — 46 kasus siap; harness mencetak persentasenya |
 | Q-08 | Kontrol positif AI dijawab | ≥ 95% | 🔑 ⬜ — 10 kasus siap; dilaporkan terpisah sebagai penjaga over-refusal |
 | Q-09 | Test flaky | 0 (3× berturut) | ✅ **LULUS** — Vitest 3× berturut 827/827; E2E 3× berturut 36/36 |
 | Q-10 | Firefox + viewport mobile lulus | Alur P0 | ✅ **LULUS** — chromium + firefox + Pixel 5 hijau |
@@ -916,7 +916,7 @@ Status per **5 Agustus 2026**.
 | P-3 | Pasang `@axe-core/playwright` + integrasi E2E | Q-04 | ✅ **Selesai** — publik + ter-login, animasi dibekukan sebelum axe |
 | P-4 | Tambah project Playwright `firefox` + `Mobile Chrome` | Q-10 | ✅ **Selesai** |
 | P-5 | Tulis `deno test` untuk guard AI | G-09 | ✅ **Selesai** — 148 test |
-| P-6 | Perluas golden-set eval 7 → 40 kasus | G-08, Q-07 | ✅ **Selesai** — 40 kasus, 3 endpoint, distribusi 10/10/10/5/5. Menjalankannya butuh `EVAL_EMAIL`/`EVAL_PASSWORD` |
+| P-6 | Perluas golden-set eval 7 → 40 kasus | G-08, Q-07 | ✅ **Selesai** — 46 kasus, 3 endpoint, distribusi 12/12/12/5/5 (6 kasus RAG ditambahkan 14 Agt 2026). Menjalankannya butuh `EVAL_EMAIL`/`EVAL_PASSWORD` |
 | P-7 | Buat `.github/workflows/test.yml` | Konsistensi semua | ✅ **Selesai** — 5 gerbang |
 | P-8 | Perbarui `QA.md` (klaim 22/22 usang; tambah Suite AI/HR/Gudang/Voice/RBAC) | G-01 | ✅ **Selesai** — v2.0: §10 dikoreksi + 5 suite baru (I, J, L, M, N) = 78 kasus baru, total 142 |
 | P-9 | Migrasikan `ai-catat` & `ai-hpp-draft` (temuan T-1) | G-18 | ✅ **Selesai** — tapi G-18 belum lulus: 3 fungsi lain ternyata juga melanggar |
@@ -975,7 +975,7 @@ Lampiran wajib: rekap P0/P1 (lulus/total), daftar bug terbuka + severity, hasil 
 Bagian ini ada supaya tidak ada yang salah paham tentang apa yang dijamin pengujian.
 
 1. **Pengujian tidak membuktikan ketiadaan bug.** Semua gerbang lulus berarti *kelas kesalahan yang diuji tidak ditemukan* — bukan bahwa aplikasi bebas cacat. Frasa "100% aman dan bebas bug" adalah sasaran kerja, bukan pernyataan yang bisa diverifikasi.
-2. **Output LLM non-deterministik.** Golden-set 40 kasus mendeteksi regresi; ia tidak memvalidasi kasus ke-41. Pertahanan yang benar-benar mengikat adalah guard deterministik (blocklist, whitelist PII, kuota, human-in-the-loop) — bukan kepatuhan model.
+2. **Output LLM non-deterministik.** Golden-set 46 kasus mendeteksi regresi; ia tidak memvalidasi kasus ke-47. Pertahanan yang benar-benar mengikat adalah guard deterministik (blocklist, whitelist PII, kuota, human-in-the-loop) — bukan kepatuhan model.
 3. **Angka [TARGET] belum diukur.** Semua ambang bertanda [TARGET] adalah keputusan risiko tim, bukan benchmark industri terverifikasi. Yang berasal dari sumber publik hanya LCP < 2.5s dan CLS < 0.1 (Core Web Vitals).
 4. **Bukan pengganti audit independen.** Dokumen ini bukan penetration test dan bukan audit kepatuhan UU PDP. Untuk produk berbayar yang menyimpan data keuangan pelanggan, keduanya layak dianggarkan.
 5. **Coverage bukan kualitas.** Coverage 85% berarti 85% baris dieksekusi, bukan 85% perilaku benar. Test buruk juga menaikkan coverage.

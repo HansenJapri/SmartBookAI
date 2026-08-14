@@ -20,6 +20,14 @@ vi.mock('../api', () => ({
   updateTask: vi.fn(), deleteTask: vi.fn(), addReminder: vi.fn(), deleteReminder: vi.fn(),
 }))
 
+// setAsalAI menyalakan header penanda asal aksi. Dipalsukan supaya urutan
+// nyala/matinya bisa diamati tanpa jaringan.
+const jejakAsal = []
+vi.mock('../supabase', () => ({
+  supabase: null,
+  setAsalAI: vi.fn((nyala) => { jejakAsal.push(Boolean(nyala)) }),
+}))
+
 const { toTransactionRow, toTaskRow, remindAtIso, occurredAtIso, saveDraftAction } = await import('../aiActions')
 const api = await import('../api')
 
@@ -149,5 +157,39 @@ describe('waktu pengingat', () => {
 
   it('nilai rusak tidak menghasilkan Invalid Date', () => {
     expect(Number.isNaN(new Date(remindAtIso('xx')).getTime())).toBe(false)
+  })
+})
+
+
+// ---------- Penanda asal aksi (audit log) ----------
+//
+// Bendera ini menentukan apakah baris audit tercatat via = 'ai' atau 'manual'.
+// Bendera yang tertinggal menyala akan MELABELI AKSI MANUAL BERIKUTNYA sebagai
+// aksi AI — kesalahan yang tidak akan disadari siapa pun sampai ada sengketa
+// dan jejaknya ternyata bohong.
+describe('penanda asal aksi AI', () => {
+  beforeEach(() => { jejakAsal.length = 0 })
+
+  it('menyala sebelum menyimpan dan padam sesudahnya', async () => {
+    api.addTask.mockResolvedValueOnce({ id: 't1' })
+    await saveDraftAction({ entity: 'tugas', operation: 'create', values: { title: 'Cek stok' } })
+    expect(jejakAsal).toEqual([true, false])
+  })
+
+  it('PADAM meski penyimpanan gagal', async () => {
+    // Tanpa blok finally, satu kegagalan menyimpan membuat setiap aksi manual
+    // sesudahnya tercatat sebagai "dilakukan oleh AI".
+    api.addTask.mockRejectedValueOnce(new Error('jaringan putus'))
+    await expect(
+      saveDraftAction({ entity: 'tugas', operation: 'create', values: { title: 'Cek stok' } }),
+    ).rejects.toThrow('jaringan putus')
+    expect(jejakAsal).toEqual([true, false])
+  })
+
+  it('padam juga saat draft ditolak validasi sebelum menyentuh jaringan', async () => {
+    await expect(
+      saveDraftAction({ entity: 'transaksi', operation: 'create', values: { product_id: 'bukan-uuid' } }),
+    ).rejects.toThrow()
+    expect(jejakAsal[jejakAsal.length - 1]).toBe(false)
   })
 })

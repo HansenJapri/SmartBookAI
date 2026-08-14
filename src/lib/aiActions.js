@@ -25,6 +25,7 @@ import {
   addReminder, deleteReminder,
 } from './api'
 import { nextDocNumber } from './gudang'
+import { setAsalAI } from './supabase'
 
 /**
  * Gabungkan tanggal (YYYY-MM-DD) dengan jam SAAT INI, dibangun dari komponen
@@ -197,9 +198,24 @@ function pastikanRefBerupaId(values = {}) {
 
 /**
  * Simpan satu draft yang sudah dikonfirmasi pengguna.
+ *
+ * Pembungkus ini yang menyalakan penanda asal aksi, sehingga baris audit yang
+ * dihasilkan penulisan di bawahnya tercatat `via = 'ai'`. Ia dimatikan di blok
+ * finally, termasuk saat penyimpanan melempar — bendera yang tertinggal menyala
+ * akan salah melabeli aksi manual berikutnya sebagai aksi AI.
+ *
  * @returns {Promise<string>} kalimat ringkas untuk ditampilkan di percakapan.
  */
 export async function saveDraftAction(draft) {
+  setAsalAI(true)
+  try {
+    return await simpanDraft(draft)
+  } finally {
+    setAsalAI(false)
+  }
+}
+
+async function simpanDraft(draft) {
   const { entity, operation = 'create', targetId, values = {} } = draft || {}
   if (operation !== 'delete') pastikanRefBerupaId(values)
 

@@ -62,8 +62,20 @@ export async function resolveScope(supabase: any, requestedOwner?: string | null
  * SELECT yang terikat workspace aktif.
  * Semua pembacaan tabel ber-user_id di Edge Function AI harus lewat sini.
  */
-export function scopedSelect(supabase: any, scope: WorkspaceScope, table: string, columns = '*') {
-  return supabase.from(table).select(columns).eq('user_id', scope.owner)
+export function scopedSelect(
+  supabase: any,
+  scope: WorkspaceScope,
+  table: string,
+  columns = '*',
+  // Diteruskan apa adanya ke .select(). Dipakai lapisan RAG dengan
+  // { count: 'exact' } untuk mengetahui JUMLAH SEBENARNYA baris, bukan hanya
+  // berapa yang terbawa oleh limit. Tanpa angka itu, daftar 50 produk dari 137
+  // disajikan model seolah daftar lengkap — jawaban salah yang tidak bisa
+  // dideteksi pengguna. Opsional, jadi pemanggil lama tidak berubah.
+  opsi?: Record<string, unknown>,
+) {
+  const q = opsi ? supabase.from(table).select(columns, opsi) : supabase.from(table).select(columns)
+  return q.eq('user_id', scope.owner)
 }
 
 /**

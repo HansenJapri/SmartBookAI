@@ -392,12 +392,28 @@ export default function Chatbot() {
             dan mencatat transaksi dari {VOICE_TAB_ENABLED ? 'ketikan atau suara' : 'ketikan'}.
           </p>
           <ul>
+            {/* Teks ini HARUS mencerminkan apa yang benar-benar dikirim
+                supabase/functions/_shared/ai/rag/domains.ts. Sejak asisten
+                diberi data usaha (bukan lagi hanya ringkasan angka), kalimat
+                lama "yang dikirim hanya ringkasan angka" tidak lagi benar —
+                dan teks izin adalah hal terakhir yang boleh meleset. */}
             <li>
-              Yang dikirim ke layanan AI hanya <b>ringkasan angka</b> dan{' '}
-              <b>kalimat yang Anda {VOICE_TAB_ENABLED ? 'ketik/ucapkan' : 'ketik'}</b> — bukan
-              data pelanggan atau nomor rekening.
+              Yang dikirim ke layanan AI: <b>ringkasan angka</b>,{' '}
+              <b>kalimat yang Anda {VOICE_TAB_ENABLED ? 'ketik/ucapkan' : 'ketik'}</b>, dan{' '}
+              <b>data usaha yang relevan dengan pertanyaan Anda</b> — misalnya nama produk
+              beserta sisa stoknya, atau nama karyawan beserta gajinya.
+            </li>
+            <li>
+              <b>Tidak dikirim:</b> nomor telepon, email, alamat, nomor rekening, dan nomor
+              identitas. <b>Nama pelanggan disamarkan</b> lebih dulu. Data di luar hak akses
+              Anda <b>tidak dibaca sama sekali</b>.
             </li>
             <li>Percakapan <b>tidak disimpan</b>. Transaksi hasil mode Catat baru tersimpan <b>setelah Anda tekan Simpan</b>.</li>
+            <li>
+              Pemakaian fitur AI (waktu &amp; hasilnya, <b>tanpa isi pertanyaan</b>) dicatat di
+              Audit Log usaha, dan perubahan data lewat asisten ditandai <b>&ldquo;lewat AI&rdquo;</b>.
+              Pada usaha bersama staf, catatan ini terlihat oleh pemilik usaha.
+            </li>
             <li>Saat ini memakai layanan AI gratis, jadi <b>jangan mengetik informasi yang sangat rahasia</b>.</li>
           </ul>
           <p className="muted-sm">Selengkapnya pada Kebijakan Privasi.</p>

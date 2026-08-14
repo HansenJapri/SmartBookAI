@@ -396,6 +396,16 @@ export const translations = {
       refModalOk: 'Saya mengerti', refModalCancel: 'Batal',
     },
     audit: {
+      allVia: 'Semua asal aksi', viaManual: 'Manual', viaAi: 'lewat AI',
+      viaAiHint: 'Perubahan ini berasal dari alur asisten AI, bukan diketik langsung di form.',
+      aiTitle: 'Aktivitas Asisten AI',
+      aiHint: 'Siapa memakai fitur AI, kapan, dan berhasil atau tidak. Isi pertanyaan TIDAK disimpan.',
+      aiEmpty: 'Belum ada aktivitas asisten AI tercatat.',
+      aiThFeature: 'Fitur', aiThOutcome: 'Hasil',
+      aiFeatures: { chat: 'Tanya (chat)', crud: 'Catat (draf AI)', catat: 'Catat', struk: 'Baca struk' },
+      aiOutcomes: { ok: 'Berhasil', gagal: 'Gagal', limit: 'Kuota habis' },
+      aiDenied: 'ditolak: {modules}',
+      aiFootNote: 'Catatan ini menyimpan metadata saja — waktu, fitur, hasil, dan modul yang ditolak. Kalimat yang diketik pengguna tidak ikut disimpan.',
       tables: { transactions: 'Transaksi', products: 'Produk/Stok', suppliers: 'Pemasok', purchase_orders: 'Purchase Order', stock_opnames: 'Stock Opname', categories: 'Kategori', employees: 'Karyawan', payrolls: 'Penggajian', tasks: 'Tugas Operasional', attendance_rules: 'Aturan Absensi', kpi_bonus_rules: 'Jenjang KPI' },
       actions: { INSERT: 'Tambah', UPDATE: 'Ubah', DELETE: 'Hapus' },
       moreCols: '(+{n} kolom lain)', noColChange: '(tanpa perubahan kolom)',
@@ -536,6 +546,14 @@ export const translations = {
     },
     // Halaman profil karyawan per periode (P15)
     employeeProfile: {
+      auditTitle: 'Riwayat Perubahan Data', auditHint: 'Siapa mengubah data karyawan ini, dan kapan. Termasuk perubahan lewat asisten AI.',
+      auditEmpty: 'Belum ada perubahan tercatat untuk karyawan ini.',
+      byAi: 'lewat AI', toAudit: 'Lihat seluruh Audit Log',
+      auditTables: {
+        employees: 'Data karyawan', attendance: 'Absensi & cuti', payrolls: 'Penggajian',
+        kpi_scores: 'Skor KPI', tasks: 'Papan tugas',
+      },
+      auditActions: { INSERT: 'ditambahkan', UPDATE: 'diubah', DELETE: 'dihapus' },
       back: 'Kembali ke Data Karyawan', notFound: 'Karyawan tidak ditemukan atau sudah dihapus.',
       periodNav: 'Navigasi periode', prevMonth: 'Bulan sebelumnya', nextMonth: 'Bulan berikutnya', thisMonth: 'Bulan ini',
       noRole: 'Tanpa jabatan', joined: 'bergabung', active: 'Aktif', inactive: 'Nonaktif',
@@ -1300,6 +1318,16 @@ export const translations = {
       refModalOk: 'I understand', refModalCancel: 'Cancel',
     },
     audit: {
+      allVia: 'All origins', viaManual: 'Manual', viaAi: 'via AI',
+      viaAiHint: 'This change came from the AI assistant flow, not typed directly into a form.',
+      aiTitle: 'AI Assistant Activity',
+      aiHint: 'Who used AI features, when, and whether they succeeded. Question text is NOT stored.',
+      aiEmpty: 'No AI assistant activity recorded yet.',
+      aiThFeature: 'Feature', aiThOutcome: 'Outcome',
+      aiFeatures: { chat: 'Ask (chat)', crud: 'Record (AI draft)', catat: 'Record', struk: 'Receipt scan' },
+      aiOutcomes: { ok: 'Success', gagal: 'Failed', limit: 'Quota reached' },
+      aiDenied: 'denied: {modules}',
+      aiFootNote: 'This log stores metadata only — time, feature, outcome, and denied modules. Text typed by the user is not stored.',
       tables: { transactions: 'Transactions', products: 'Products/Stock', suppliers: 'Suppliers', purchase_orders: 'Purchase Orders', stock_opnames: 'Stock Take', categories: 'Categories', employees: 'Employees', payrolls: 'Payroll', tasks: 'Operational Tasks', attendance_rules: 'Attendance Rules', kpi_bonus_rules: 'KPI Tiers' },
       actions: { INSERT: 'Add', UPDATE: 'Edit', DELETE: 'Delete' },
       moreCols: '(+{n} more columns)', noColChange: '(no column changes)',
@@ -1437,6 +1465,14 @@ export const translations = {
     },
     // Employee monthly profile page (P15)
     employeeProfile: {
+      auditTitle: 'Change History', auditHint: 'Who changed this employee’s data, and when. Includes changes made via the AI assistant.',
+      auditEmpty: 'No recorded changes for this employee yet.',
+      byAi: 'via AI', toAudit: 'View full Audit Log',
+      auditTables: {
+        employees: 'Employee record', attendance: 'Attendance & leave', payrolls: 'Payroll',
+        kpi_scores: 'KPI scores', tasks: 'Task board',
+      },
+      auditActions: { INSERT: 'added', UPDATE: 'updated', DELETE: 'deleted' },
       back: 'Back to Employees', notFound: 'Employee not found or already deleted.',
       periodNav: 'Period navigation', prevMonth: 'Previous month', nextMonth: 'Next month', thisMonth: 'This month',
       noRole: 'No role set', joined: 'joined', active: 'Active', inactive: 'Inactive',

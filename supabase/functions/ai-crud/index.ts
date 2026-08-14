@@ -29,6 +29,7 @@ import {
   applyAnswer,
   type ValidatedDraft,
 } from '../_shared/ai/tools/crud-tools.ts'
+import { catatAktivitasAI } from '../_shared/ai/activity-log.ts'
 import { logBlockedAttempt } from '../_shared/ai/guards/action-blocklist.ts'
 import { getEntitySpec } from '../_shared/ai/tools/entity-schemas.ts'
 import { resolveScope, type WorkspaceScope } from '../_shared/ai/workspace-scope.ts'
@@ -446,6 +447,24 @@ ATURAN KERAS:
         summary: buildSummary(d, ctx),
       })
     }
+
+    // Jejak aktivitas: entitas & operasi yang DIUSULKAN, bukan kalimat
+    // pengguna. Perhatikan bahwa ini mencatat pembuatan DRAF — belum ada data
+    // yang berubah. Perubahannya sendiri tercatat di audit_logs dengan
+    // via = 'ai' saat pengguna menekan Simpan.
+    await catatAktivitasAI(supabase, {
+      owner: scope.owner,
+      feature: 'crud',
+      outcome: 'ok',
+      meta: {
+        aksi: (actions as any[]).map((a) => ({
+          entity: a?.draft?.entity,
+          operation: a?.draft?.operation,
+          perluKonfirmasi: Boolean(a?.requiresConfirmation),
+        })),
+        terpotong: calls.length > MAX_ACTIONS,
+      },
+    })
 
     // `actions` adalah sumber kebenaran. Bidang aksi pertama tetap disalin ke
     // level atas supaya pemanggil lama (dan asisten suara nanti) yang hanya tahu
