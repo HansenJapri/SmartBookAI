@@ -1,16 +1,16 @@
 # Graph Report - SmartBookAI  (2026-08-14)
 
 ## Corpus Check
-- 368 files · ~559,434 words
+- 368 files · ~563,286 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2858 nodes · 5761 edges · 223 communities (184 shown, 39 thin omitted)
+- 2858 nodes · 5761 edges · 222 communities (183 shown, 39 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 33 edges (avg confidence: 0.75)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `772f9553`
+- Built from commit: `52979592`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -212,7 +212,6 @@
 - Opname.jsx
 - ai-stok-insight/index.ts
 - 12. HPP — Harga Pokok Produksi
-- 3. Dashboard
 
 ## God Nodes (most connected - your core abstractions)
 1. `periksaGalat()` - 121 edges
@@ -241,7 +240,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (223 total, 39 thin omitted)
+## Communities (222 total, 39 thin omitted)
 
 ### Community 0 - "api.js"
 Cohesion: 0.33
@@ -261,7 +260,7 @@ Nodes (19): Analytics, App(), FeedbackAdmin, GuestOnly(), LegalAdmin, Overview, 
 
 ### Community 4 - "adminApi.js"
 Cohesion: 0.20
-Nodes (26): deleteTransaction(), deleteUser(), getMetrics(), listEvents(), listFeedback(), listTransactions(), listUsers(), logAdminAction() (+18 more)
+Nodes (26): deleteTransaction(), deleteUser(), getMetrics(), listEvents(), listTransactions(), listUsers(), logAdminAction(), subscribe() (+18 more)
 
 ### Community 5 - "[DESKRIPSI LENGKAP SEMUA FITUR SMARTBOOKAI]"
 Cohesion: 0.04
@@ -352,8 +351,8 @@ Cohesion: 0.10
 Nodes (43): AGING_BUCKETS, agingBucketKey(), buildAgingSummary(), daysOutstanding(), isOverdue(), normalizePhone(), waReminderLink(), applyAdjustments() (+35 more)
 
 ### Community 27 - "src/lib/applock.js"
-Cohesion: 0.26
-Nodes (8): Modal(), Reminders(), addReminder(), deleteReminder(), fetchReminders(), updateReminder(), FOCUSABLE, useModalA11y()
+Cohesion: 0.40
+Nodes (5): 15. Absensi & Cuti, Cara Penggunaan, Fungsi & Tujuan, Status Absensi, Yang Bisa Dilakukan
 
 ### Community 28 - "useAuth"
 Cohesion: 0.12
@@ -365,7 +364,7 @@ Nodes (66): loadContext(), ALLOWED_ORIGINS, catatAktivitasAI(), HasilAktivitas, 
 
 ### Community 30 - "useLang"
 Cohesion: 0.19
-Nodes (13): Kpi(), Modal(), Spinner(), Stars(), STATUS, StatusBadge(), deleteFeedback(), replyFeedback() (+5 more)
+Nodes (13): Kpi(), Modal(), Stars(), STATUS, StatusBadge(), deleteFeedback(), listFeedback(), replyFeedback() (+5 more)
 
 ### Community 31 - "2. Bukti & Analisis per Temuan"
 Cohesion: 0.12
@@ -384,8 +383,8 @@ Cohesion: 0.11
 Nodes (53): fetchAttendanceRange(), fetchAttendanceRules(), fetchEmployees(), fetchKpiBonusRules(), fetchKpiCriteria(), fetchKpiScores(), fetchPayrolls(), fetchTasks() (+45 more)
 
 ### Community 35 - "BukuPintar AI — Dokumentasi Fitur Lengkap"
-Cohesion: 0.13
-Nodes (14): 15. Absensi & Cuti, 2. Autentikasi & Keamanan Akun, 4. Transaksi, BukuPintar AI — Dokumentasi Fitur Lengkap, Cara Penggunaan, Cara Penggunaan, Cara Penggunaan, Daftar Isi (+6 more)
+Cohesion: 0.14
+Nodes (13): 24. Pengaturan, 2. Autentikasi & Keamanan Akun, 3. Dashboard, BukuPintar AI — Dokumentasi Fitur Lengkap, Cara Penggunaan, Cara Penggunaan, Cara Penggunaan, Daftar Isi (+5 more)
 
 ### Community 36 - "26. Rencana Testing"
 Cohesion: 0.14
@@ -420,8 +419,8 @@ Cohesion: 0.08
 Nodes (80): adalahGalatSesi(), addCategory(), addChannel(), addKpiBonusRule(), addPayroll(), addProduct(), addProductCategory(), addRule() (+72 more)
 
 ### Community 44 - "useLang"
-Cohesion: 0.38
-Nodes (8): getLegalDocs(), saveLegalDoc(), fmtDateTime(), escapeHtml(), inline(), renderLegalMarkdown(), LegalAdmin(), TABS
+Cohesion: 0.36
+Nodes (8): Spinner(), getLegalDocs(), saveLegalDoc(), escapeHtml(), inline(), renderLegalMarkdown(), LegalAdmin(), TABS
 
 ### Community 45 - "Mom Test — Validasi Pasar: SmartBookAI vs Automation Workflow"
 Cohesion: 0.20
@@ -761,7 +760,7 @@ Nodes (5): buildSetupFrame(), LIVE_EVENT, LiveSession, liveSocketUrl(), parseSer
 
 ### Community 173 - "LiveSession"
 Cohesion: 0.50
-Nodes (4): 24. Pengaturan, Cara Penggunaan, Fungsi & Tujuan, Yang Bisa Dikonfigurasi
+Nodes (4): 4. Transaksi, Cara Penggunaan, Fungsi & Tujuan, Yang Bisa Dilakukan
 
 ### Community 174 - "voiceFlow.js"
 Cohesion: 0.38
@@ -824,8 +823,8 @@ Cohesion: 0.67
 Nodes (3): api, semuaPenulis(), tidakAdaYangDitulis()
 
 ### Community 194 - "WorkspaceContext.jsx"
-Cohesion: 0.13
-Nodes (33): AIDisclaimer(), Chatbot(), occurredAtIso(), blankLine(), TransactionModal(), catatAI(), saveDraftAction(), addPurchaseOrder() (+25 more)
+Cohesion: 0.12
+Nodes (33): Modal(), Reminders(), blankLine(), TransactionModal(), addPurchaseOrder(), addReminder(), deletePurchaseOrder(), deleteReminder() (+25 more)
 
 ### Community 195 - "package.json"
 Cohesion: 0.29
@@ -856,8 +855,8 @@ Cohesion: 0.30
 Nodes (19): InvoiceModal(), bukuMark(), calcTotals(), displayPhone(), downloadBlob(), esc(), invoiceCaption(), invoiceHtml() (+11 more)
 
 ### Community 219 - "SesiBerakhirError"
-Cohesion: 0.33
-Nodes (8): BUILTIN_CH, CatalogCtx, CatalogProvider(), colorFor(), PALETTE, ensureSeedData(), fetchCategories(), fetchChannels()
+Cohesion: 0.18
+Nodes (16): AIDisclaimer(), Chatbot(), occurredAtIso(), BUILTIN_CH, CatalogCtx, CatalogProvider(), colorFor(), PALETTE (+8 more)
 
 ### Community 220 - "Dashboard.jsx"
 Cohesion: 0.16
@@ -875,10 +874,6 @@ Nodes (4): ALLOWED_ORIGINS, rupiah(), templateNarrative(), templateNarrativeEn()
 Cohesion: 0.50
 Nodes (4): 12. HPP — Harga Pokok Produksi, Cara Penggunaan, Fungsi & Tujuan, Yang Bisa Dilakukan
 
-### Community 224 - "3. Dashboard"
-Cohesion: 0.50
-Nodes (4): 3. Dashboard, Cara Penggunaan, Fungsi & Tujuan, Yang Ditampilkan
-
 ## Knowledge Gaps
 - **1180 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+1175 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -887,11 +882,11 @@ Nodes (4): 3. Dashboard, Cara Penggunaan, Fungsi & Tujuan, Yang Ditampilkan
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `r()` connect `Dashboard.jsx` to `Opname.jsx`, `adminApi.js`, `chatbot-eval.mjs`, `useAuth`, `csvImport.js`, `ai-hpp-draft/index.ts`, `chatbot-eval.mjs`, `src/lib/applock.js`, `Settings.jsx`?**
+- **Why does `r()` connect `Dashboard.jsx` to `Opname.jsx`, `WorkspaceContext.jsx`, `adminApi.js`, `chatbot-eval.mjs`, `useAuth`, `csvImport.js`, `chatbot-eval.mjs`, `ai-hpp-draft/index.ts`, `Settings.jsx`?**
   _High betweenness centrality (0.118) - this node is a cross-community bridge._
 - **Why does `isiTerkontaminasi()` connect `Settings.jsx` to `Dashboard.jsx`?**
   _High betweenness centrality (0.078) - this node is a cross-community bridge._
-- **Why does `useLang()` connect `15. Absensi & Cuti` to `WorkspaceContext.jsx`, `Opname.jsx`, `12. HPP — Harga Pokok Produksi`, `Hpp.jsx`, `src/main.jsx`, `ai-hpp-draft/index.ts`, `csvImport.js`, `chatbot-eval.mjs`, `fetchSuppliers`, `3. Dashboard`, `Dashboard.jsx`, `Dashboard.jsx`, `src/lib/applock.js`, `Dashboard.jsx`, `Opname.jsx`?**
+- **Why does `useLang()` connect `15. Absensi & Cuti` to `WorkspaceContext.jsx`, `Opname.jsx`, `12. HPP — Harga Pokok Produksi`, `Hpp.jsx`, `src/main.jsx`, `ai-hpp-draft/index.ts`, `csvImport.js`, `chatbot-eval.mjs`, `fetchSuppliers`, `3. Dashboard`, `Dashboard.jsx`, `Dashboard.jsx`, `SesiBerakhirError`, `Dashboard.jsx`, `Opname.jsx`?**
   _High betweenness centrality (0.039) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
   _1180 weakly-connected nodes found - possible documentation gaps or missing edges._

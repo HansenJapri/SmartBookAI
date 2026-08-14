@@ -78,8 +78,8 @@
   border-bottom: 1px solid var(--lp-outline-variant);
 }
 .lp-nav-inner { display: flex; align-items: center; gap: 24px; height: 64px; }
-.lp-brand { font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; font-size: 22px; color: var(--lp-primary); letter-spacing: -0.02em; text-decoration: none; display: flex; align-items: center; }
-.lp-brand-static { color: var(--lp-primary); font-size: 22px; font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; }
+.lp-brand { font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; font-size: 22px; color: var(--lp-primary); letter-spacing: -0.02em; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.lp-brand-static { color: var(--lp-primary); font-size: 22px; font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 .lp-brand-logo { height: 36px; width: auto; object-fit: contain; display: block; }
 .lp-brand-logo-footer { height: 32px; }
 .lp-nav-links { display: none; gap: 28px; margin-left: auto; }

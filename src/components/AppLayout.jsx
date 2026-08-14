@@ -127,7 +127,7 @@ export default function AppLayout() {
       <Chatbot />
       <div className={`side-backdrop ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
       <aside className={`sidebar ${open ? 'open' : ''}`}>
-        <div className="brand"><span>Smart<b>Book</b> AI</span></div>
+        <div className="brand"><img src="/logo-mark.png" alt="" /><span>Smart<b>Book</b> AI</span></div>
         <nav className="side-nav">
           {nav2.map((group) => (
             <div className="side-group" key={group.sec}>

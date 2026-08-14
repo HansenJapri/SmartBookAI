@@ -52,7 +52,10 @@ export default function Landing() {
       {/* Header */}
       <header className="lp-nav">
         <div className="lp-container lp-nav-inner">
-          <Link to="/" className="lp-brand" aria-label="SmartBook AI">SmartBook AI</Link>
+          <Link to="/" className="lp-brand" aria-label="SmartBook AI">
+            <img className="lp-brand-logo" src="/logo-mark.png" alt="" />
+            SmartBook AI
+          </Link>
           <nav className="lp-nav-links" aria-label="Utama">
             <a href="#fitur">{L.nav.fitur}</a>
             <a href="#cara">{L.nav.cara}</a>
@@ -177,13 +180,21 @@ export default function Landing() {
                 <p>{L.features.scanD}</p>
               </div>
               <div className="lp-bento-2-art">
-                <img
-                  src="/receipt-scanner.png"
-                  alt="Ilustrasi pemindaian struk dengan kamera ponsel"
-                  className="lp-bento-2-img"
-                  loading="lazy"
-                  decoding="async"
-                />
+                {/* Foto, bukan grafis — dulu PNG 1,9 MB dan itu aset terberat di
+                    halaman ini. Sekarang WebP 79 KB dengan cadangan JPEG 118 KB
+                    untuk peramban yang belum mendukung WebP. */}
+                <picture>
+                  <source srcSet="/receipt-scanner.webp" type="image/webp" />
+                  <img
+                    src="/receipt-scanner.jpg"
+                    alt="Ilustrasi pemindaian struk dengan kamera ponsel"
+                    className="lp-bento-2-img"
+                    width="1200"
+                    height="685"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
               </div>
             </article>
 
@@ -258,7 +269,10 @@ export default function Landing() {
       <footer className="lp-footer">
         <div className="lp-container lp-footer-grid">
           <div>
-            <div className="lp-brand lp-brand-static">SmartBook AI</div>
+            <div className="lp-brand lp-brand-static">
+              <img className="lp-brand-logo lp-brand-logo-footer" src="/logo-mark.png" alt="" />
+              SmartBook AI
+            </div>
             <p className="lp-foot-tag">{L.footer.tagline}</p>
             <div className="lp-foot-social">
               <a href="#" aria-label="Website"><Globe size={16} /></a>

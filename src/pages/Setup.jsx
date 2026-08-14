@@ -5,7 +5,7 @@ export default function Setup() {
     <div className="auth-main" style={{ minHeight: '100vh' }}>
       <div className="auth-card" style={{ maxWidth: 560 }}>
         <Link to="/" className="brand" style={{ marginBottom: 24, display: 'inline-flex' }}>
-          <img src="/logo.svg" alt="" /><span>Buku<b>Pintar</b> AI</span>
+          <img src="/logo-mark.png" alt="" /><span>Buku<b>Pintar</b> AI</span>
         </Link>
         <h1>Hubungkan Supabase dulu</h1>
         <p className="sub">

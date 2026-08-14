@@ -5,7 +5,7 @@ export default function AuthSide({ title, subtitle, points }) {
   return (
     <div className="auth-side">
       <div className="auth-side-top">
-        <Link to="/" className="brand"><img src="/logo.svg" alt="" /><span>Smart<b>Book</b> AI</span></Link>
+        <Link to="/" className="brand"><img src="/logo-mark.png" alt="" /><span>Smart<b>Book</b> AI</span></Link>
         <LangToggle />
       </div>
       <div>

@@ -156,7 +156,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .nav-inner { display: flex; align-items: center; gap: 24px; height: 66px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
-.brand img { width: 30px; height: 30px; }
+/* Logo tidak persegi (522x465), jadi lebarnya ikut tinggi — bukan dikunci
+   30x30 yang membuatnya gepeng. */
+.brand img { height: 30px; width: auto; object-fit: contain; display: block; }
 .brand span b { color: var(--indigo); }
 .nav-links { display: flex; gap: 26px; margin-left: 16px; }
 .nav-links a { font-size: 14.5px; color: var(--slate); font-weight: 500; position: relative; padding-bottom: 3px; }
