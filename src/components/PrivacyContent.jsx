@@ -69,9 +69,19 @@ function PrivacyFallback() {
       <ul>
         <li>Fitur AI bersifat <b>opsional</b> dan baru aktif setelah Anda menyetujuinya secara
           terpisah.</li>
-        <li>Untuk menjawab pertanyaan Anda, Aplikasi mengirimkan <b>ringkasan data yang sudah
-          diolah dan disamarkan</b> kepada penyedia AI. Kami berupaya tidak mengirim data yang
-          sangat sensitif seperti nomor rekening dan nama pelanggan secara utuh.</li>
+        <li>Untuk menjawab pertanyaan Anda, Aplikasi mengirimkan <b>ringkasan angka</b> beserta{' '}
+          <b>baris data usaha yang relevan dengan pertanyaan tersebut</b> kepada penyedia AI —
+          misalnya nama produk beserta sisa stoknya, nama karyawan beserta gajinya, atau nama
+          pemasok. Yang dikirim dibatasi daftar kolom tertentu untuk setiap jenis data, dan
+          hanya mencakup data yang memang boleh Anda akses.</li>
+        <li><b>Yang tidak Kami kirimkan:</b> nomor telepon dan WhatsApp, alamat surel, alamat,
+          nomor rekening bank, nomor identitas (NIK, KTP, NPWP), keterangan mutasi bank mentah,
+          serta salinan baris data pada catatan audit. <b>Nama pelanggan disamarkan</b> menjadi
+          label seperti &ldquo;Pelanggan #4821&rdquo; sebelum dikirim, sehingga penyedia AI tidak
+          menerima nama aslinya.</li>
+        <li>Data yang berada <b>di luar hak akses Anda tidak dibaca sama sekali</b> — bukan
+          sekadar tidak ditampilkan. Staf yang tidak diberi modul tertentu oleh pemilik usaha
+          tidak akan pernah membuat Aplikasi mengambil data modul tersebut.</li>
         <li>Pada fitur <b>baca struk</b>, foto atau PDF struk yang Anda unggah dikirim ke penyedia
           AI untuk dibaca isinya. Hindari mengunggah dokumen yang memuat informasi sangat rahasia.</li>
         <li>Saat ini Aplikasi menggunakan layanan AI pada <b>paket gratis</b>. Sesuai ketentuan
@@ -82,6 +92,13 @@ function PrivacyFallback() {
           begitu kondisi memungkinkan.</li>
         <li><b>Riwayat percakapan dengan asisten AI tidak Kami simpan.</b> Percakapan dihapus
           setelah sesi selesai.</li>
+        <li>Yang Kami simpan adalah <b>catatan pemakaian</b> fitur AI sebagai bagian dari jejak
+          audit usaha: siapa, kapan, fitur apa, dan berhasil atau tidak. <b>Isi pertanyaan maupun
+          jawaban tidak ikut disimpan.</b> Pada usaha yang memiliki staf, catatan pemakaian ini
+          dapat dilihat oleh pemilik usaha.</li>
+        <li>Perubahan data yang dilakukan melalui asisten AI <b>ditandai sebagai &ldquo;lewat
+          AI&rdquo;</b> pada Audit Log, agar pemilik usaha bisa membedakannya dari perubahan yang
+          diketik langsung.</li>
         <li>Hasil dari fitur AI bersifat perkiraan dan wajib Anda periksa kembali.</li>
       </ul>
 

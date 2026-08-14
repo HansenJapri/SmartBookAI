@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ChevronLeft, ChevronRight, User, CalendarDays, Gauge, Banknote } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, User, CalendarDays, Gauge, Banknote, History, Sparkles } from 'lucide-react'
 import {
   fetchEmployees, fetchAttendanceRange, fetchAttendanceRules,
   fetchKpiCriteria, fetchKpiScores, fetchKpiBonusRules, fetchPayrolls, fetchTasks,
+  fetchAuditLogs,
 } from '../lib/api'
 import { currentPeriod, periodLabel, periodRange, ATTENDANCE_STATUS, SALARY_TYPES, PAYROLL_STATUS } from '../lib/hr'
 import {
   attendanceScore, taskScore, recapAttendance, weightedTotal, applyBonusTier, attendanceAdjustments,
 } from '../lib/kpi'
-import { rupiah, fmtDate } from '../lib/format'
+import { rupiah, fmtDate, fmtDateTime } from '../lib/format'
 import { useLang } from '../context/LangContext'
+import { useWorkspace } from '../context/WorkspaceContext'
 
 // Halaman profil karyawan (P15).
 //
@@ -31,6 +33,7 @@ export default function EmployeeProfile() {
   const { id } = useParams()
   const nav = useNavigate()
   const { t } = useLang()
+  const { isOwner } = useWorkspace()
   const ep = t.employeeProfile
 
   const [employee, setEmployee] = useState(null)
@@ -43,7 +46,16 @@ export default function EmployeeProfile() {
   const [bonusRules, setBonusRules] = useState([])
   const [payrolls, setPayrolls] = useState([])
   const [tasks, setTasks] = useState([])
+  const [audit, setAudit] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Riwayat perubahan hanya diambil untuk pemilik. Bukan sekadar penghematan:
+  // staf akan selalu mendapat daftar kosong karena RLS, dan memanggilnya tetap
+  // membebani jaringan untuk hasil yang tidak pernah bisa ditampilkan.
+  useEffect(() => {
+    if (!isOwner || !id) { setAudit([]); return }
+    fetchAuditLogs({ employeeId: id, limit: 20 }).then(setAudit).catch(() => setAudit([]))
+  }, [isOwner, id])
 
   useEffect(() => {
     fetchEmployees()
@@ -287,6 +299,45 @@ export default function EmployeeProfile() {
             )}
             <Link to="/app/gaji" className="linklike" style={{ display: 'inline-block', marginTop: 8 }}>{ep.toPayroll}</Link>
           </div>
+
+          {/* Riwayat perubahan.
+              Hanya untuk pemilik: policy audit_owner_read membatasi SELECT ke
+              owner_id = auth.uid(), jadi bagi staf query ini selalu kosong.
+              Menampilkan kartu kosong akan terbaca "belum ada perubahan"
+              padahal yang benar "Anda tidak berhak melihatnya" — dua hal yang
+              berbeda, dan menyamakannya menyesatkan. */}
+          {isOwner && (
+            <div className="card card-pad">
+              <h3 className="card-title">
+                <History size={17} style={{ verticalAlign: '-3px', marginRight: 6 }} />
+                {ep.auditTitle}
+              </h3>
+              <p className="muted-sm" style={{ marginTop: -4 }}>{ep.auditHint}</p>
+              {!audit.length ? (
+                <p className="muted-sm">{ep.auditEmpty}</p>
+              ) : (
+                <div className="pnl" style={{ marginTop: 8 }}>
+                  {audit.map((l) => (
+                    <div key={l.id} className="pnl-row" style={{ alignItems: 'flex-start', gap: 8 }}>
+                      <span>
+                        <b>{ep.auditTables[l.table_name] || l.table_name}</b>
+                        {' · '}
+                        {ep.auditActions[l.action] || l.action}
+                        {l.via === 'ai' && (
+                          <span className="badge badge-indigo" style={{ marginLeft: 6 }}>
+                            <Sparkles size={11} style={{ verticalAlign: '-1px', marginRight: 3 }} />
+                            {ep.byAi}
+                          </span>
+                        )}
+                      </span>
+                      <span className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(l.created_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Link to="/app/audit" className="linklike" style={{ display: 'inline-block', marginTop: 8 }}>{ep.toAudit}</Link>
+            </div>
+          )}
         </>
       )}
     </div>
