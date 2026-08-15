@@ -1898,15 +1898,5 @@
     "mtime": 1786744023.54824,
     "ast_hash": "462004f3b889f7d59d042e5911bd1c26",
     "semantic_hash": ""
-  },
-  "supabase/functions/_shared/ai/credit-rates_test.ts": {
-    "mtime": 1786759983.5755537,
-    "ast_hash": "79d0f7ee16b72978acb77bb85a456439",
-    "semantic_hash": ""
-  },
-  "supabase/migration_ai_credits.sql": {
-    "mtime": 1786760015.2735753,
-    "ast_hash": "3962147d27817dd362d979454a2da9c5",
-    "semantic_hash": ""
   }
 }
