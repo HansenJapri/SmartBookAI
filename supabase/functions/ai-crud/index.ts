@@ -20,7 +20,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import {
-  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  checkQuota, commitQuota, quotaBlockedPayload, telemetriDari,
   type QuotaTelemetry,
 } from '../_shared/ai/rate-limiter.ts'
 import {
@@ -333,7 +333,7 @@ serve(async (req) => {
     // Kuota dicek SEBELUM memanggil Gemini.
     const ai = getGeminiClient('crud')
     const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
-    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
+    if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     const SYSTEM = `Kamu asisten pencatatan untuk pemilik UMKM Indonesia.
 Tugasmu: ubah kalimat pengguna menjadi SATU pemanggilan fungsi yang tepat.

@@ -36,16 +36,40 @@ export interface QuotaStatus {
    * yang sebenarnya tertulis jelas di log.
    */
   unavailable?: boolean
+
+  // ---- Fase 2: dua penghitung berdampingan ----
+  /**
+   * APA yang memblokir, bukan sekadar bahwa sesuatu memblokir.
+   *
+   * 'daily'     → guardrail teknis; tunggu reset, kredit TIDAK terpotong
+   * 'credits'   → jatah komersial habis; bisa dibeli/di-upgrade sekarang
+   * 'suspended' → dimatikan admin secara sadar
+   *
+   * Perbedaan 'daily' dan 'credits' adalah perbedaan antara "tunggu tiga jam"
+   * dan "beli lagi" — dua kalimat yang sangat berbeda bagi pemilik toko, dan
+   * dua tindakan yang sangat berbeda bagi tim penjualan.
+   */
+  blockedBy?: 'daily' | 'credits' | 'suspended' | 'no_workspace' | null
+  creditsUsed?: number
+  /** null = tanpa batas kredit (Enterprise). */
+  creditsCap?: number | null
+  cycleStart?: string | null
+  cycleEnd?: string | null
+  planCode?: string | null
 }
 
-/** Bentuk error terstruktur saat kuota harian habis. */
-export interface DailyLimitError {
+/** Bentuk error terstruktur saat sebuah permintaan AI ditolak kuota. */
+export interface QuotaBlockedError {
   error: string
-  code: 'DAILY_LIMIT_REACHED'
+  code: 'DAILY_LIMIT_REACHED' | 'CREDIT_LIMIT_REACHED' | 'AI_SUSPENDED'
   feature: QuotaFeature
   used: number
   cap: number
   resetAt: string | null
+  creditsUsed?: number
+  creditsCap?: number | null
+  cycleEnd?: string | null
+  planCode?: string | null
 }
 
 const FEATURE_LABEL_ID: Record<QuotaFeature, string> = {
@@ -67,22 +91,40 @@ export async function checkQuota(
   feature: QuotaFeature,
   cap: number,
 ): Promise<QuotaStatus> {
-  const { data, error } = await supabase.rpc('ai_quota_check', {
+  // `cap` yang dikirim pemanggil (FEATURE_ROUTES.dailyCap) bukan lagi angka
+  // penentu, melainkan CADANGAN TERAKHIR — dipakai hanya bila paket maupun
+  // override tidak menyebut fitur ini. Urutannya diselesaikan di database:
+  // override workspace ?? paket ?? cadangan kode.
+  const { data, error } = await supabase.rpc('ai_quota_resolve', {
     p_feature: feature,
-    p_limit: cap,
+    p_fallback_cap: cap,
   })
   if (error) {
     // Tetap fail-closed demi biaya — tapi ditandai `unavailable` supaya
     // pemanggil bisa membedakannya dari kuota yang sungguh habis.
-    console.error('ai_quota_check gagal', feature, error.message)
+    console.error('ai_quota_resolve gagal', feature, error.message)
     return { allowed: false, used: cap, cap, resetAt: null, unavailable: true }
   }
   const row = Array.isArray(data) ? data[0] : data
+  const angka = (v: unknown, bawaan: number) => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : bawaan
+  }
   return {
     allowed: Boolean(row?.allowed),
-    used: Number(row?.used ?? 0),
-    cap: Number(row?.cap ?? cap),
-    resetAt: row?.reset_at ?? null,
+    used: angka(row?.daily_used, 0),
+    cap: angka(row?.daily_cap, cap),
+    resetAt: row?.daily_reset_at ?? null,
+    blockedBy: row?.blocked_by ?? null,
+    creditsUsed: angka(row?.credits_used, 0),
+    // null di sini berarti TANPA BATAS, jadi ia tidak boleh ikut dijadikan 0
+    // oleh pembacaan angka yang ceroboh — 0 berarti kebalikannya persis.
+    creditsCap: row?.credits_cap === null || row?.credits_cap === undefined
+      ? null
+      : Number(row.credits_cap),
+    cycleStart: row?.cycle_start ?? null,
+    cycleEnd: row?.cycle_end ?? null,
+    planCode: row?.plan_code ?? null,
   }
 }
 
@@ -163,22 +205,80 @@ export function telemetriDari(
   }
 }
 
-/** Susun payload error 429 yang terstruktur & ramah pengguna. */
-export function dailyLimitPayload(
+/** Tanggal Indonesia ringkas untuk pesan pengguna: "8 September". */
+function tanggalID(iso: string | null | undefined): string {
+  if (!iso) return 'siklus berikutnya'
+  const BULAN = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ]
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso))
+  if (!m) return 'siklus berikutnya'
+  return `${Number(m[3])} ${BULAN[Number(m[2]) - 1] ?? ''}`.trim()
+}
+
+/**
+ * Susun payload 429 yang terstruktur & ramah pengguna.
+ *
+ * Bercabang pada `blockedBy` karena ketiga sebabnya menuntut TINDAKAN yang
+ * berbeda dari pembacanya. Menyeragamkannya jadi satu kalimat "kuota habis"
+ * berarti menyuruh orang yang kreditnya habis untuk "menunggu besok" — dan
+ * besok ia tetap tidak bisa apa-apa.
+ *
+ * Dulu bernama dailyLimitPayload(). Namanya diganti karena ia tidak lagi hanya
+ * mengurus batas harian, dan nama yang berbohong lebih mahal daripada rename.
+ */
+export function quotaBlockedPayload(
   feature: QuotaFeature,
   status: QuotaStatus,
-): DailyLimitError {
+): QuotaBlockedError {
   const label = FEATURE_LABEL_ID[feature] ?? feature
   const unit = feature === 'voice' ? 'menit' : 'kali'
   const capShown = feature === 'voice' ? Math.round(status.cap / 60) : status.cap
-  return {
-    error: `Kuota harian ${label} untuk usaha Anda sudah habis (${capShown} ${unit}/hari). `
-      + 'Kuota dibagi bersama seluruh anggota dan direset otomatis besok. '
-      + 'Sementara itu Anda tetap bisa memakai form manual tanpa batas.',
-    code: 'DAILY_LIMIT_REACHED',
+
+  const bersama = {
     feature,
     used: status.used,
     cap: status.cap,
     resetAt: status.resetAt,
+    creditsUsed: status.creditsUsed,
+    creditsCap: status.creditsCap,
+    cycleEnd: status.cycleEnd,
+    planCode: status.planCode,
+  }
+
+  if (status.blockedBy === 'suspended') {
+    return {
+      ...bersama,
+      error: 'Fitur AI untuk akun ini sedang dinonaktifkan oleh admin. '
+        + 'Hubungi admin aplikasi untuk mengaktifkannya kembali. '
+        + 'Seluruh pencatatan manual tetap bisa Anda pakai seperti biasa.',
+      code: 'AI_SUSPENDED',
+    }
+  }
+
+  if (status.blockedBy === 'credits') {
+    const pakai = Math.round(status.creditsUsed ?? 0)
+    const jatah = Math.round(status.creditsCap ?? 0)
+    return {
+      ...bersama,
+      error: `Kredit AI usaha Anda untuk siklus ini sudah habis (${pakai} dari ${jatah} kredit). `
+        + `Kredit baru terisi pada ${tanggalID(status.cycleEnd)}. `
+        + 'Untuk menambah sekarang, tingkatkan paket lewat menu Pengaturan. '
+        + 'Sementara itu seluruh form manual tetap bisa dipakai tanpa batas.',
+      code: 'CREDIT_LIMIT_REACHED',
+    }
+  }
+
+  return {
+    ...bersama,
+    // Kalimat "kredit Anda tidak berkurang" bukan basa-basi: tanpa itu,
+    // pengguna yang menabrak guardrail teknis akan mengira jatah komersialnya
+    // ikut terpotong, lalu membeli sesuatu yang tidak ia butuhkan.
+    error: `Kuota harian ${label} untuk usaha Anda sudah habis (${capShown} ${unit}/hari). `
+      + 'Kuota dibagi bersama seluruh anggota dan direset otomatis besok. '
+      + 'Kredit Anda tidak berkurang. '
+      + 'Sementara itu Anda tetap bisa memakai form manual tanpa batas.',
+    code: 'DAILY_LIMIT_REACHED',
   }
 }

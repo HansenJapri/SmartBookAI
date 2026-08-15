@@ -12,7 +12,7 @@
 // ============================================================
 import { assert, assertEquals, assertStringIncludes } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 import {
-  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  checkQuota, commitQuota, quotaBlockedPayload, telemetriDari,
   type QuotaFeature,
 } from './rate-limiter.ts'
 
@@ -40,40 +40,101 @@ const FITUR: QuotaFeature[] = [
 
 // ---------- checkQuota ----------
 
-Deno.test('checkQuota memanggil RPC ai_quota_check dengan fitur & batas yang benar', async () => {
-  const { klien, panggilan } = fakeSupabase({ data: [{ allowed: true, used: 3, cap: 10, reset_at: '2026-08-05T07:00:00Z' }] })
+/** Baris balasan ai_quota_resolve, dengan nilai wajar yang bisa ditimpa. */
+function baris(ubah: Record<string, unknown> = {}) {
+  return {
+    allowed: true,
+    blocked_by: null,
+    daily_used: 3,
+    daily_cap: 10,
+    daily_reset_at: '2026-08-05T07:00:00Z',
+    credits_used: 42,
+    credits_cap: 300,
+    cycle_start: '2026-08-01',
+    cycle_end: '2026-08-31',
+    plan_code: 'free',
+    ...ubah,
+  }
+}
+
+Deno.test('checkQuota memanggil ai_quota_resolve, dan cap kode jadi CADANGAN', async () => {
+  const { klien, panggilan } = fakeSupabase({ data: [baris()] })
   const status = await checkQuota(klien, 'chat', 10)
 
   assertEquals(panggilan.length, 1)
-  assertEquals(panggilan[0].fn, 'ai_quota_check')
-  assertEquals(panggilan[0].args, { p_feature: 'chat', p_limit: 10 })
-  assertEquals(status, { allowed: true, used: 3, cap: 10, resetAt: '2026-08-05T07:00:00Z' })
+  assertEquals(panggilan[0].fn, 'ai_quota_resolve')
+  // p_fallback_cap, bukan p_limit: angka dari FEATURE_ROUTES tidak lagi
+  // menentukan, ia hanya dipakai bila paket & override tidak menyebut fitur ini.
+  assertEquals(panggilan[0].args, { p_feature: 'chat', p_fallback_cap: 10 })
+  assertEquals(status.allowed, true)
+  assertEquals(status.used, 3)
+  assertEquals(status.cap, 10)
+  assertEquals(status.resetAt, '2026-08-05T07:00:00Z')
+})
+
+Deno.test('checkQuota membawa serta keadaan kredit & siklus', async () => {
+  const { klien } = fakeSupabase({ data: [baris()] })
+  const status = await checkQuota(klien, 'chat', 10)
+  assertEquals(status.creditsUsed, 42)
+  assertEquals(status.creditsCap, 300)
+  assertEquals(status.cycleEnd, '2026-08-31')
+  assertEquals(status.planCode, 'free')
+})
+
+Deno.test('cap yang dinaikkan paket MENANG atas cap kode', async () => {
+  // Inti Fase 2: angka yang dipakai datang dari database, bukan dari
+  // FEATURE_ROUTES. Kalau ini terbalik, seluruh gunanya hilang — admin
+  // menaikkan limit dan tidak terjadi apa-apa.
+  const { klien } = fakeSupabase({ data: [baris({ daily_cap: 50, daily_used: 30 })] })
+  const status = await checkQuota(klien, 'ocr', 10)
+  assertEquals(status.cap, 50)
+  assertEquals(status.allowed, true)
+})
+
+Deno.test('credits_cap null = TANPA BATAS, bukan nol', async () => {
+  // Perbedaan yang paling mudah rusak oleh Number(): Number(null) = 0, dan 0
+  // berarti kebalikan persis dari yang dimaksud — Enterprise tanpa batas
+  // mendadak jadi Enterprise tanpa kredit sama sekali.
+  const { klien } = fakeSupabase({ data: [baris({ credits_cap: null })] })
+  const status = await checkQuota(klien, 'chat', 10)
+  assertEquals(status.creditsCap, null)
 })
 
 Deno.test('checkQuota TIDAK menambah penghitung (tidak memanggil ai_quota_commit)', async () => {
-  const { klien, panggilan } = fakeSupabase({ data: [{ allowed: true, used: 0, cap: 10, reset_at: null }] })
+  const { klien, panggilan } = fakeSupabase({ data: [baris({ daily_used: 0 })] })
   await checkQuota(klien, 'crud', 10)
   assertEquals(panggilan.filter((p) => p.fn === 'ai_quota_commit').length, 0)
 })
 
-Deno.test('checkQuota menolak saat kuota habis', async () => {
-  const { klien } = fakeSupabase({ data: [{ allowed: false, used: 10, cap: 10, reset_at: '2026-08-05T07:00:00Z' }] })
+Deno.test('checkQuota menolak saat kuota harian habis', async () => {
+  const { klien } = fakeSupabase({ data: [baris({ allowed: false, blocked_by: 'daily', daily_used: 10 })] })
   const status = await checkQuota(klien, 'chat', 10)
   assertEquals(status.allowed, false)
   assertEquals(status.used, 10)
+  assertEquals(status.blockedBy, 'daily')
   // Kuota yang benar-benar habis TIDAK boleh ditandai unavailable.
   assertEquals(status.unavailable, undefined)
 })
 
+Deno.test('checkQuota membedakan kredit habis dari kuota harian habis', async () => {
+  const { klien } = fakeSupabase({
+    data: [baris({ allowed: false, blocked_by: 'credits', daily_used: 2, credits_used: 300 })],
+  })
+  const status = await checkQuota(klien, 'chat', 10)
+  assertEquals(status.blockedBy, 'credits')
+  // Harian masih longgar (2 dari 10) — yang habis jatah komersialnya.
+  assertEquals(status.used, 2)
+})
+
 Deno.test('checkQuota menerima bentuk baris tunggal maupun array', async () => {
-  const { klien } = fakeSupabase({ data: { allowed: true, used: 1, cap: 10, reset_at: null } })
+  const { klien } = fakeSupabase({ data: baris({ daily_used: 1 }) })
   const status = await checkQuota(klien, 'ocr', 10)
   assertEquals(status.allowed, true)
   assertEquals(status.used, 1)
 })
 
 Deno.test('RPC error = fail-closed TAPI ditandai unavailable (bukan "kuota habis")', async () => {
-  const { klien } = fakeSupabase({ error: { message: 'function ai_quota_check does not exist' } })
+  const { klien } = fakeSupabase({ error: { message: 'function ai_quota_resolve does not exist' } })
   const status = await checkQuota(klien, 'chat', 10)
 
   assertEquals(status.allowed, false)      // fail-closed demi biaya
@@ -203,10 +264,12 @@ Deno.test('commitQuota menelan error — respons yang sudah jadi tidak boleh gag
   await commitQuota(klien as any, 'chat')  // tidak boleh melempar
 })
 
-// ---------- dailyLimitPayload ----------
+// ---------- quotaBlockedPayload ----------
 
-Deno.test('dailyLimitPayload memakai kode DAILY_LIMIT_REACHED', () => {
-  const p = dailyLimitPayload('chat', { allowed: false, used: 10, cap: 10, resetAt: '2026-08-05T07:00:00Z' })
+Deno.test('blokir harian memakai kode DAILY_LIMIT_REACHED', () => {
+  const p = quotaBlockedPayload('chat', {
+    allowed: false, blockedBy: 'daily', used: 10, cap: 10, resetAt: '2026-08-05T07:00:00Z',
+  })
   assertEquals(p.code, 'DAILY_LIMIT_REACHED')
   assertEquals(p.feature, 'chat')
   assertEquals(p.used, 10)
@@ -214,15 +277,55 @@ Deno.test('dailyLimitPayload memakai kode DAILY_LIMIT_REACHED', () => {
   assertEquals(p.resetAt, '2026-08-05T07:00:00Z')
 })
 
-Deno.test('pesan kuota menjelaskan berbagi antar-anggota dan mengarahkan ke form manual', () => {
-  const p = dailyLimitPayload('crud', { allowed: false, used: 10, cap: 10, resetAt: null })
+Deno.test('blokir harian MENEGASKAN kredit tidak terpotong', () => {
+  // Tanpa kalimat ini, pengguna yang menabrak guardrail teknis mengira jatah
+  // komersialnya ikut habis, lalu membeli sesuatu yang tidak ia butuhkan.
+  const p = quotaBlockedPayload('ocr', { allowed: false, blockedBy: 'daily', used: 10, cap: 10, resetAt: null })
+  assertStringIncludes(p.error, 'Kredit Anda tidak berkurang')
+})
+
+Deno.test('kredit habis memakai kode & kalimat yang BERBEDA dari kuota harian', () => {
+  const p = quotaBlockedPayload('chat', {
+    allowed: false, blockedBy: 'credits', used: 2, cap: 10, resetAt: null,
+    creditsUsed: 300, creditsCap: 300, cycleEnd: '2026-08-31',
+  })
+  assertEquals(p.code, 'CREDIT_LIMIT_REACHED')
+  assertStringIncludes(p.error, '300 dari 300 kredit')
+  assertStringIncludes(p.error, '31 Agustus')
+  assertStringIncludes(p.error, 'tingkatkan paket')
+  // "Tunggu besok" adalah saran yang SALAH di sini: besok kreditnya tetap habis.
+  assert(!p.error.includes('besok'), 'pesan kredit tidak boleh menyuruh menunggu besok')
+})
+
+Deno.test('AI yang ditangguhkan admin punya kode sendiri', () => {
+  const p = quotaBlockedPayload('chat', {
+    allowed: false, blockedBy: 'suspended', used: 0, cap: 10, resetAt: null,
+  })
+  assertEquals(p.code, 'AI_SUSPENDED')
+  assertStringIncludes(p.error, 'admin')
+  assertStringIncludes(p.error, 'manual')
+})
+
+Deno.test('ketiga sebab blokir mengarahkan ke form manual', () => {
+  // Apa pun sebabnya, pengguna tidak boleh merasa pembukuannya ikut mati.
+  for (const sebab of ['daily', 'credits', 'suspended'] as const) {
+    const p = quotaBlockedPayload('catat', {
+      allowed: false, blockedBy: sebab, used: 10, cap: 10, resetAt: null,
+      creditsUsed: 300, creditsCap: 300, cycleEnd: '2026-09-01',
+    })
+    assertStringIncludes(p.error, 'manual')
+  }
+})
+
+Deno.test('pesan kuota harian menjelaskan berbagi antar-anggota', () => {
+  const p = quotaBlockedPayload('crud', { allowed: false, blockedBy: 'daily', used: 10, cap: 10, resetAt: null })
   assertStringIncludes(p.error, 'seluruh anggota')
   assertStringIncludes(p.error, 'manual')
   assertStringIncludes(p.error, 'besok')
 })
 
 Deno.test('kuota voice ditampilkan dalam menit, bukan detik', () => {
-  const p = dailyLimitPayload('voice', { allowed: false, used: 600, cap: 600, resetAt: null })
+  const p = quotaBlockedPayload('voice', { allowed: false, blockedBy: 'daily', used: 600, cap: 600, resetAt: null })
   assertStringIncludes(p.error, '10 menit')
   assert(!p.error.includes('600 kali'))
 })
@@ -243,7 +346,7 @@ const LABEL_HARAPAN: Record<QuotaFeature, string> = {
 
 Deno.test('setiap fitur punya label yang dikenali pengguna, bukan kunci internal', () => {
   for (const fitur of FITUR) {
-    const p = dailyLimitPayload(fitur, { allowed: false, used: 10, cap: 10, resetAt: null })
+    const p = quotaBlockedPayload(fitur, { allowed: false, blockedBy: 'daily', used: 10, cap: 10, resetAt: null })
     assertStringIncludes(p.error, LABEL_HARAPAN[fitur])
     // Kunci mentah bergaris bawah tidak boleh bocor ke pesan pengguna.
     assert(!p.error.includes('insight_'), `kunci mentah bocor untuk "${fitur}"`)

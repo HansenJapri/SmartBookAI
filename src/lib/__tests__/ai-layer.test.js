@@ -27,7 +27,7 @@ import {
 import {
   checkQuota,
   commitQuota,
-  dailyLimitPayload,
+  quotaBlockedPayload,
 } from '../../../supabase/functions/_shared/ai/rate-limiter.ts'
 
 // ============================================================
@@ -141,29 +141,69 @@ function fakeSupabase(rpcImpl) {
   return { rpc: vi.fn(rpcImpl) }
 }
 
+/** Baris balasan ai_quota_resolve dengan nilai wajar yang bisa ditimpa. */
+function barisKuota(ubah = {}) {
+  return {
+    allowed: true,
+    blocked_by: null,
+    daily_used: 3,
+    daily_cap: 10,
+    daily_reset_at: '2026-07-31T07:00:00Z',
+    credits_used: 42,
+    credits_cap: 300,
+    cycle_start: '2026-07-01',
+    cycle_end: '2026-07-31',
+    plan_code: 'free',
+    ...ubah,
+  }
+}
+
 describe('rate limiter per workspace', () => {
   it('mengizinkan saat pemakaian masih di bawah cap', async () => {
-    const sb = fakeSupabase(async () => ({
-      data: [{ allowed: true, used: 3, cap: 10, reset_at: '2026-07-31T07:00:00Z' }],
-      error: null,
-    }))
+    const sb = fakeSupabase(async () => ({ data: [barisKuota()], error: null }))
     const s = await checkQuota(sb, 'chat', 10)
     expect(s.allowed).toBe(true)
     expect(s.used).toBe(3)
   })
 
-  it('menolak saat cap tercapai', async () => {
+  it('menolak saat cap harian tercapai', async () => {
     const sb = fakeSupabase(async () => ({
-      data: [{ allowed: false, used: 10, cap: 10, reset_at: '2026-07-31T07:00:00Z' }],
+      data: [barisKuota({ allowed: false, blocked_by: 'daily', daily_used: 10 })],
       error: null,
     }))
     const s = await checkQuota(sb, 'chat', 10)
     expect(s.allowed).toBe(false)
 
-    const payload = dailyLimitPayload('chat', s)
+    const payload = quotaBlockedPayload('chat', s)
     expect(payload.code).toBe('DAILY_LIMIT_REACHED')
     expect(payload.feature).toBe('chat')
     expect(payload.resetAt).toBeTruthy()
+  })
+
+  it('kredit habis menghasilkan kode & arahan yang berbeda dari kuota harian', async () => {
+    const sb = fakeSupabase(async () => ({
+      data: [barisKuota({ allowed: false, blocked_by: 'credits', daily_used: 2, credits_used: 300 })],
+      error: null,
+    }))
+    const s = await checkQuota(sb, 'chat', 10)
+    const payload = quotaBlockedPayload('chat', s)
+    expect(payload.code).toBe('CREDIT_LIMIT_REACHED')
+    // Menyuruh menunggu besok itu saran yang salah: besok kreditnya tetap habis.
+    expect(payload.error).not.toContain('besok')
+    expect(payload.error).toContain('tingkatkan paket')
+  })
+
+  it('cap dari paket menang atas cap kode (inti Fase 2)', async () => {
+    const sb = fakeSupabase(async () => ({
+      data: [barisKuota({ daily_cap: 50, daily_used: 30 })],
+      error: null,
+    }))
+    const s = await checkQuota(sb, 'ocr', 10)
+    expect(s.cap).toBe(50)
+    expect(s.allowed).toBe(true)
+    expect(sb.rpc).toHaveBeenCalledWith('ai_quota_resolve', {
+      p_feature: 'ocr', p_fallback_cap: 10,
+    })
   })
 
   it('gagal-aman (menolak) bila kuota tidak terbaca', async () => {
@@ -213,7 +253,7 @@ describe('rate limiter per workspace', () => {
 
   it('pesan batas voice ditampilkan dalam menit', async () => {
     const s = { allowed: false, used: 600, cap: 600, resetAt: null }
-    expect(dailyLimitPayload('voice', s).error).toContain('10 menit/hari')
+    expect(quotaBlockedPayload('voice', s).error).toContain('10 menit/hari')
   })
 })
 

@@ -16,7 +16,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import {
-  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  checkQuota, commitQuota, quotaBlockedPayload, telemetriDari,
   type QuotaTelemetry,
 } from '../_shared/ai/rate-limiter.ts'
 
@@ -146,7 +146,7 @@ serve(async (req) => {
     // Dicek SEBELUM memanggil Gemini supaya kuota asli di Google tidak terbuang.
     const ai = getGeminiClient('insight_dashboard')
     const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
-    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
+    if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     // ================= TAHAP 1: metrik deterministik =================
     const { data: txs } = await supabase

@@ -15,7 +15,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
 import {
-  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  checkQuota, commitQuota, quotaBlockedPayload, telemetriDari,
   type QuotaTelemetry,
 } from '../_shared/ai/rate-limiter.ts'
 
@@ -61,7 +61,7 @@ serve(async (req) => {
     // Kuota harian PER WORKSPACE, dicek SEBELUM memanggil Gemini.
     const ai = getGeminiClient('hpp_draft')
     const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
-    if (!quota.allowed) return json(dailyLimitPayload(ai.quotaFeature, quota), 429)
+    if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     const { productName, businessType, unit, sellPrice } = await req.json()
     if (!productName || typeof productName !== 'string') return json({ error: 'Nama produk kosong.' }, 400)
