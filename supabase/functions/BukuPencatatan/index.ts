@@ -32,7 +32,10 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
-import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+import {
+  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  type QuotaTelemetry,
+} from '../_shared/ai/rate-limiter.ts'
 import { resolveScope, restrictionNote } from '../_shared/ai/workspace-scope.ts'
 import { catatAktivitasAI } from '../_shared/ai/activity-log.ts'
 import { buildRagContext, catatanDomainDitolak } from '../_shared/ai/rag/context-builder.ts'
@@ -331,6 +334,7 @@ serve(async (req) => {
     }
 
     let reply = ''
+    let tele: QuotaTelemetry | undefined
     try {
       const r = await ai.generateChat(contents, {
         systemInstruction: arahan,
@@ -338,19 +342,39 @@ serve(async (req) => {
         maxOutputTokens: 800,
       })
       reply = r.text
+      tele = telemetriDari(r, ai.route.key)
     } catch (e) {
-      await catatAktivitasAI(supabase, { owner: scope.owner, feature: 'chat', outcome: 'gagal', meta: jejak })
+      // Sebab kegagalan ikut dicatat. "gagal" saja tidak cukup untuk
+      // membedakan kunci yang dicabut dari model yang dipensiunkan Google —
+      // dua hal dengan penanganan yang sama sekali berbeda.
+      await catatAktivitasAI(supabase, {
+        owner: scope.owner,
+        feature: 'chat',
+        outcome: 'gagal',
+        meta: jejak,
+        model: ai.model,
+        keySlot: ai.route.key,
+        errorCode: payloadGagalAI(e).code,
+      })
       return json(payloadGagalAI(e), 502)
     }
 
     // Kuota naik hanya setelah jawaban benar-benar diterima.
-    if (reply) await commitQuota(supabase, ai.quotaFeature)
+    if (reply) await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    // Model menjawab kosong: kuota tidak naik, tokennya tetap dicatat.
+    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele)
 
     await catatAktivitasAI(supabase, {
       owner: scope.owner,
       feature: 'chat',
       outcome: reply ? 'ok' : 'gagal',
       meta: jejak,
+      model: tele?.model,
+      keySlot: ai.route.key,
+      latencyMs: tele?.latencyMs,
+      tokensIn: tele?.promptTokens,
+      tokensOut: tele?.completionTokens,
+      usedFallback: tele?.usedFallback,
     })
 
     return json({ reply: reply || 'Maaf, saya belum bisa menjawab itu. Coba tanyakan dengan cara lain.' })

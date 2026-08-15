@@ -175,13 +175,40 @@ describe('rate limiter per workspace', () => {
   it('commit voice memakai satuan detik', async () => {
     const sb = fakeSupabase(async () => ({ data: 125, error: null }))
     await commitQuota(sb, 'voice', 125)
-    expect(sb.rpc).toHaveBeenCalledWith('ai_quota_commit', { p_feature: 'voice', p_units: 125 })
+    expect(sb.rpc).toHaveBeenCalledWith('ai_quota_commit', expect.objectContaining({
+      p_feature: 'voice', p_units: 125,
+    }))
   })
 
   it('commit fitur biasa menambah 1', async () => {
     const sb = fakeSupabase(async () => ({ data: 1, error: null }))
     await commitQuota(sb, 'ocr')
-    expect(sb.rpc).toHaveBeenCalledWith('ai_quota_commit', { p_feature: 'ocr', p_units: 1 })
+    expect(sb.rpc).toHaveBeenCalledWith('ai_quota_commit', expect.objectContaining({
+      p_feature: 'ocr', p_units: 1,
+    }))
+  })
+
+  it('commit meneruskan token ke RPC (basis biaya, bukan sekadar jumlah panggilan)', async () => {
+    const sb = fakeSupabase(async () => ({ data: 1, error: null }))
+    await commitQuota(sb, 'ocr', 1, {
+      model: 'gemini-3.1-flash-lite',
+      promptTokens: 1200, completionTokens: 340, totalTokens: 1540, wastedTokens: 880,
+    })
+    expect(sb.rpc).toHaveBeenCalledWith('ai_quota_commit', expect.objectContaining({
+      p_prompt_tokens: 1200,
+      p_completion_tokens: 340,
+      p_total_tokens: 1540,
+      p_wasted_tokens: 880,
+      p_model: 'gemini-3.1-flash-lite',
+    }))
+  })
+
+  it('commit units=0 mencatat token tanpa menaikkan kuota', async () => {
+    const sb = fakeSupabase(async () => ({ data: 0, error: null }))
+    await commitQuota(sb, 'insight_dashboard', 0, { totalTokens: 700, wastedTokens: 700 })
+    expect(sb.rpc).toHaveBeenCalledWith('ai_quota_commit', expect.objectContaining({
+      p_units: 0, p_wasted_tokens: 700,
+    }))
   })
 
   it('pesan batas voice ditampilkan dalam menit', async () => {

@@ -11,7 +11,10 @@
 // Jalankan: deno test supabase/functions/_shared/ai/
 // ============================================================
 import { assert, assertEquals, assertStringIncludes } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { checkQuota, commitQuota, dailyLimitPayload, type QuotaFeature } from './rate-limiter.ts'
+import {
+  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  type QuotaFeature,
+} from './rate-limiter.ts'
 
 /** Klien Supabase palsu (fake) — mencatat panggilan RPC dan membalas skenario. */
 function fakeSupabase(balasan: { data?: unknown; error?: { message: string } | null } = {}) {
@@ -101,13 +104,97 @@ Deno.test('commitQuota menambah 1 unit secara baku', async () => {
   await commitQuota(klien, 'chat')
   assertEquals(panggilan.length, 1)
   assertEquals(panggilan[0].fn, 'ai_quota_commit')
-  assertEquals(panggilan[0].args, { p_feature: 'chat', p_units: 1 })
+  assertEquals(panggilan[0].args.p_feature, 'chat')
+  assertEquals(panggilan[0].args.p_units, 1)
 })
 
 Deno.test('commitQuota meneruskan jumlah detik untuk fitur voice', async () => {
   const { klien, panggilan } = fakeSupabase()
   await commitQuota(klien, 'voice', 125)
-  assertEquals(panggilan[0].args, { p_feature: 'voice', p_units: 125 })
+  assertEquals(panggilan[0].args.p_feature, 'voice')
+  assertEquals(panggilan[0].args.p_units, 125)
+})
+
+// ---------- telemetri token (Fase 0) ----------
+
+Deno.test('commitQuota tanpa telemetri mengirim token 0, bukan undefined', async () => {
+  // undefined pada argumen RPC diserialkan jadi field yang HILANG, dan fungsi
+  // Postgres lalu memakai default-nya. Kebetulan hasilnya sama, tapi menyandarkan
+  // kebenaran pada kebetulan itu rapuh — kirim 0 secara eksplisit.
+  const { klien, panggilan } = fakeSupabase()
+  await commitQuota(klien, 'chat')
+  const a = panggilan[0].args
+  assertEquals(a.p_prompt_tokens, 0)
+  assertEquals(a.p_completion_tokens, 0)
+  assertEquals(a.p_thinking_tokens, 0)
+  assertEquals(a.p_total_tokens, 0)
+  assertEquals(a.p_wasted_tokens, 0)
+  assertEquals(a.p_model, null)
+})
+
+Deno.test('commitQuota meneruskan token & model dari telemetri', async () => {
+  const { klien, panggilan } = fakeSupabase()
+  await commitQuota(klien, 'ocr', 1, {
+    model: 'gemini-3.1-flash-lite',
+    promptTokens: 1200, completionTokens: 340, thinkingTokens: 88,
+    totalTokens: 1628, wastedTokens: 900, latencyMs: 2400,
+  })
+  const a = panggilan[0].args
+  assertEquals(a.p_prompt_tokens, 1200)
+  assertEquals(a.p_completion_tokens, 340)
+  assertEquals(a.p_thinking_tokens, 88)
+  assertEquals(a.p_total_tokens, 1628)
+  assertEquals(a.p_wasted_tokens, 900)
+  assertEquals(a.p_model, 'gemini-3.1-flash-lite')
+})
+
+Deno.test('commitQuota menolak angka token yang tidak masuk akal', async () => {
+  const { klien, panggilan } = fakeSupabase()
+  await commitQuota(klien, 'chat', 1, {
+    // NaN pernah muncul nyata saat field usageMetadata tidak ada dan hasil
+    // aritmetikanya diteruskan apa adanya. NaN yang lolos ke Postgres membuat
+    // SELURUH kolom penjumlahan hari itu jadi NaN — satu baris rusak
+    // menghapus pembukuan sehari penuh.
+    promptTokens: NaN, completionTokens: -5, totalTokens: Infinity,
+  })
+  const a = panggilan[0].args
+  assertEquals(a.p_prompt_tokens, 0)
+  assertEquals(a.p_completion_tokens, 0)
+  assertEquals(a.p_total_tokens, 0)
+})
+
+Deno.test('commitQuota units=0 = catat token TANPA menaikkan kuota', async () => {
+  // Dipakai saat Gemini menjawab tapi jawabannya dibuang (narasi terpotong,
+  // struk gagal checksum, kalimat tak terpahami). Pengguna tidak boleh
+  // tertagih kuota; Google tetap menagih tokennya.
+  const { klien, panggilan } = fakeSupabase()
+  await commitQuota(klien, 'insight_dashboard', 0, { totalTokens: 700, wastedTokens: 700 })
+  assertEquals(panggilan[0].args.p_units, 0)
+  assertEquals(panggilan[0].args.p_wasted_tokens, 700)
+})
+
+Deno.test('telemetriDari memetakan GenerateResult apa adanya', () => {
+  const t = telemetriDari({
+    usage: { prompt: 10, completion: 20, thinking: 5, total: 35 },
+    wastedTokens: 12, latencyMs: 999, modelUsed: 'gemini-3.5-flash',
+    usedFallback: true, attempts: 2,
+  }, 'C')
+  assertEquals(t.promptTokens, 10)
+  assertEquals(t.completionTokens, 20)
+  assertEquals(t.thinkingTokens, 5)
+  assertEquals(t.totalTokens, 35)
+  assertEquals(t.wastedTokens, 12)
+  assertEquals(t.latencyMs, 999)
+  assertEquals(t.model, 'gemini-3.5-flash')
+  assertEquals(t.keySlot, 'C')
+  assertEquals(t.usedFallback, true)
+  assertEquals(t.attempts, 2)
+})
+
+Deno.test('telemetriDari aman untuk hasil tanpa usage (jalur cache)', () => {
+  const t = telemetriDari({ modelUsed: 'gemini-3.5-flash-lite' })
+  assertEquals(t.totalTokens, undefined)
+  assertEquals(t.model, 'gemini-3.5-flash-lite')
 })
 
 Deno.test('commitQuota menelan error — respons yang sudah jadi tidak boleh gagal', async () => {

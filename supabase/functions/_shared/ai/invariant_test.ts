@@ -149,6 +149,49 @@ for (const f of FUNGSI) {
   })
 }
 
+// ---------- Invarian 4b: telemetri token tidak boleh dibuang ----------
+//
+// Fase 0 memasang pembacaan `usageMetadata`, tapi datanya hanya sampai ke
+// database kalau pemanggil MENERUSKANNYA. `commitQuota(supabase, fitur)` tetap
+// sah secara tipe — argumen telemetrinya opsional — jadi pemanggil baru bisa
+// menghilangkan seluruh biaya sebuah fitur dari pembukuan tanpa satu pun error,
+// tanpa satu pun test merah, dan tanpa gejala apa pun di layar. Persis bentuk
+// kegagalan yang sama dengan T-1: benar secara sintaksis, bisu secara akibat.
+//
+// Pengecualian voice-live-token sengaja TIDAK diberikan lewat
+// PENGECUALIAN_TERCATAT: fungsi itu memang tidak memanggil generateContent,
+// jadi tidak ada usageMetadata untuk diteruskan — ia lolos syarat di bawah
+// karena tidak memakai getGeminiClient().generate*, bukan karena dimaafkan.
+
+for (const f of FUNGSI) {
+  if (PENGECUALIAN_TERCATAT[f.nama]) continue
+  if (!f.isi.includes('commitQuota(')) continue
+  // Hanya fungsi yang benar-benar meminta generasi punya token untuk dicatat.
+  const memanggilGenerate = /\.generate(Chat|WithFallback)?\s*\(/.test(f.isi)
+  if (!memanggilGenerate) continue
+
+  Deno.test(`${f.nama}: hasil generate() wajib diubah jadi telemetri`, () => {
+    assert(
+      f.isi.includes('telemetriDari('),
+      `${f.nama} memanggil Gemini lalu commitQuota() tanpa telemetriDari() — `
+      + 'token & latency fitur ini tidak akan pernah tercatat, dan biayanya '
+      + 'hilang dari dashboard admin tanpa gejala apa pun.',
+    )
+  })
+
+  Deno.test(`${f.nama}: telemetri wajib SAMPAI ke commitQuota()`, () => {
+    // Menghitung telemetriDari() lalu tidak mengirimkannya sama saja dengan
+    // tidak menghitungnya. commitQuota berargumen dua (tanpa units & telemetri)
+    // adalah bentuk yang paling mungkin lolos review.
+    const adaCommitBertelemetri = /commitQuota\([^)]*,[^)]*,[^)]*,[^)]*\)/s.test(f.isi)
+      || /commitQuota\(\s*supabase,[^)]*,\s*\d+,\s*\{/s.test(f.isi)
+    assert(
+      adaCommitBertelemetri,
+      `${f.nama} menghitung telemetri tapi tidak meneruskannya ke commitQuota().`,
+    )
+  })
+}
+
 // ---------- Invarian 5: model tidak boleh dipatok di luar config.ts ----------
 
 Deno.test('tidak ada nama model Gemini yang di-hardcode di Edge Function', () => {

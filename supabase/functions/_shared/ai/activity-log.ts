@@ -32,6 +32,20 @@ export async function catatAktivitasAI(
     feature: string
     outcome?: HasilAktivitas
     meta?: Record<string, unknown>
+    /**
+     * Telemetri teknis. Kolomnya sengaja TERPISAH dari `meta`, bukan diselipkan
+     * ke dalamnya: angka yang akan diagregasi (rata-rata latency, p95, total
+     * token) harus bisa di-index dan dijumlahkan SQL biasa. Menyimpannya di
+     * jsonb berarti setiap grafik admin membayar ongkos parse di setiap baris.
+     */
+    model?: string
+    keySlot?: string
+    latencyMs?: number
+    tokensIn?: number
+    tokensOut?: number
+    usedFallback?: boolean
+    /** GeminiFailureCode saat outcome='gagal' — sebab, bukan sekadar "gagal". */
+    errorCode?: string
   },
 ): Promise<void> {
   try {
@@ -39,12 +53,22 @@ export async function catatAktivitasAI(
     const actor = data?.user?.id
     if (!actor || !opsi.owner) return
 
+    const n = (v: unknown) =>
+      typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v) : null
+
     await supabase.from('ai_activity_log').insert({
       owner_id: opsi.owner,
       actor_id: actor,
       feature: opsi.feature,
       outcome: opsi.outcome ?? 'ok',
       meta: opsi.meta ?? null,
+      model: opsi.model ?? null,
+      key_slot: opsi.keySlot ?? null,
+      latency_ms: n(opsi.latencyMs),
+      tokens_in: n(opsi.tokensIn),
+      tokens_out: n(opsi.tokensOut),
+      used_fallback: typeof opsi.usedFallback === 'boolean' ? opsi.usedFallback : null,
+      error_code: opsi.errorCode ?? null,
     })
   } catch {
     // sengaja diabaikan — lihat catatan di atas

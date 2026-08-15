@@ -14,7 +14,10 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
-import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+import {
+  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  type QuotaTelemetry,
+} from '../_shared/ai/rate-limiter.ts'
 import { parseAndValidateReceipt, ChecksumMismatchError } from '../_shared/ai/tools/ocr-parser.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -87,6 +90,7 @@ serve(async (req) => {
 
     let receipt
     let usedFallback = false
+    let tele: QuotaTelemetry | undefined
     try {
       const r = await ai.generateWithFallback(
         { parts, temperature: 0.1, json: true, maxOutputTokens: 2048 },
@@ -94,6 +98,11 @@ serve(async (req) => {
       )
       receipt = r.value
       usedFallback = r.result.usedFallback
+      // Satu-satunya jalur di aplikasi ini yang rutin membuang jawaban lengkap:
+      // struk yang checksum-nya tidak cocok diulang ke model lain. Token
+      // percobaan pertama tetap ditagih Google dan ikut tercatat lewat
+      // `wastedTokens` — inilah fitur yang biaya retry-nya paling perlu diawasi.
+      tele = telemetriDari(r.result, ai.route.key)
     } catch (e) {
       if (e instanceof ChecksumMismatchError) {
         // Fallback pun gagal → jangan silent fail, beri arahan konkret.
@@ -108,7 +117,7 @@ serve(async (req) => {
     }
 
     // Kuota naik hanya setelah pembacaan sukses & lolos validasi.
-    await commitQuota(supabase, ai.quotaFeature)
+    await commitQuota(supabase, ai.quotaFeature, 1, tele)
 
     return json({ ...receipt, usedFallback })
   } catch (e) {

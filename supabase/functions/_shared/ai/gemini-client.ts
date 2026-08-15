@@ -127,6 +127,45 @@ export interface GenerateOptions {
   systemInstruction?: string
 }
 
+/**
+ * Pemakaian token satu panggilan, apa adanya dari `usageMetadata` Google.
+ *
+ * Sebelum ini tidak ada satu token pun yang dicatat: penghitung kuota hanya
+ * menghitung JUMLAH PANGGILAN. Akibatnya biaya nyata per workspace tidak bisa
+ * dihitung, hanya ditebak dari rata-rata — dan tebakan tidak boleh dipakai
+ * untuk menagih siapa pun.
+ *
+ * `thinking` dipisah dari `completion` dengan sengaja. Token thinking pernah
+ * memakan habis maxOutputTokens pada makro-harian sehingga JSON terpotong dan
+ * seluruh sinyal jatuh ke "stabil" tanpa satu pun error muncul. Ia tetap
+ * ditagih Google walau tidak satu huruf pun sampai ke pengguna, jadi ia harus
+ * bisa dilihat terpisah — bukan bersembunyi di dalam angka completion.
+ */
+export interface TokenUsage {
+  prompt: number
+  completion: number
+  thinking: number
+  total: number
+}
+
+const USAGE_KOSONG: TokenUsage = { prompt: 0, completion: 0, thinking: 0, total: 0 }
+
+/** Baca usageMetadata secara defensif — bentuknya pernah berganti nama field. */
+function bacaUsage(data: Record<string, unknown> | null | undefined): TokenUsage {
+  const u = (data?.usageMetadata ?? {}) as Record<string, unknown>
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+
+  const prompt = n(u.promptTokenCount)
+  const completion = n(u.candidatesTokenCount)
+  const thinking = n(u.thoughtsTokenCount)
+  // totalTokenCount Google SUDAH mencakup thinking. Kalau field itu tidak ada
+  // (model lama / respons terpotong), jumlahkan sendiri — jangan biarkan 0,
+  // karena 0 di kolom biaya terbaca sebagai "gratis", bukan "tidak terukur".
+  const total = n(u.totalTokenCount) || prompt + completion + thinking
+
+  return { prompt, completion, thinking, total }
+}
+
 export interface GenerateResult {
   text: string
   functionCalls: Array<{ name: string; args: Record<string, unknown> }>
@@ -134,6 +173,19 @@ export interface GenerateResult {
   modelUsed: string
   /** true bila hasil ini berasal dari model fallback. */
   usedFallback: boolean
+  /** Token panggilan yang MENGHASILKAN jawaban ini. */
+  usage: TokenUsage
+  /**
+   * Token yang terbakar pada percobaan yang dibuang (jawaban datang tapi gagal
+   * validasi, lalu diulang ke model lain). Google tetap menagihnya. Menyatukan
+   * angka ini ke `usage` akan menyembunyikan biaya retry — justru angka yang
+   * paling perlu dilihat saat sebuah fitur mulai boros.
+   */
+  wastedTokens: number
+  /** Berapa kali model benar-benar dipanggil untuk menghasilkan ini (≥1). */
+  attempts: number
+  /** Waktu tunggu panggilan yang berhasil, milidetik. */
+  latencyMs: number
 }
 
 /** Satu giliran percakapan (untuk chat multi-turn). */
@@ -187,6 +239,8 @@ async function callModel(
     body.systemInstruction = { parts: [{ text: opts.systemInstruction }] }
   }
 
+  const mulai = Date.now()
+
   let res: Response
   try {
     res = await fetch(`${API_BASE}/${model}:generateContent`, {
@@ -225,6 +279,10 @@ async function callModel(
     finishReason: cand?.finishReason ?? null,
     modelUsed: model,
     usedFallback: false,
+    usage: bacaUsage(data),
+    wastedTokens: 0,
+    attempts: 1,
+    latencyMs: Date.now() - mulai,
   }
 }
 
@@ -253,11 +311,17 @@ export function getGeminiClient(feature: FeatureName): GeminiClient {
     mulaiDari = 0,
   ): Promise<GenerateResult> {
     let terakhir: unknown
+    let percobaan = 0
     for (let i = mulaiDari; i < chain.length; i++) {
       const model = chain[i]
+      percobaan++
       try {
         const result = await callModel(apiKey!, model, opts, contents)
         result.usedFallback = i > 0
+        // Percobaan yang gagal di TRANSPOR (404/429/5xx) tidak mengembalikan
+        // usageMetadata sama sekali — tidak ada token untuk dicatat, hanya
+        // jumlah percobaannya yang bisa diketahui.
+        result.attempts = percobaan
         if (i > 0) console.warn(`[ai:${feature}] berhasil dengan model cadangan ${model}`)
         return result
       } catch (e) {
@@ -296,8 +360,16 @@ export function getGeminiClient(feature: FeatureName): GeminiClient {
         const berikutnya = chain.indexOf(result.modelUsed) + 1
         if (berikutnya <= 0 || berikutnya >= chain.length) throw gagalValidasi
         console.warn(`[ai:${feature}] hasil ${result.modelUsed} gagal validasi, coba ${chain[berikutnya]}`)
+
+        // Jawaban yang dibuang tetap ditagih Google. Angkanya dibawa ke hasil
+        // berikutnya supaya biaya retry tidak hilang dari pembukuan.
+        const terbuang = result.wastedTokens + result.usage.total
+        const percobaanSebelumnya = result.attempts
+
         result = await jalankanRantai(opts, undefined, berikutnya)
         result.usedFallback = true
+        result.wastedTokens = terbuang
+        result.attempts += percobaanSebelumnya
         return { value: validate(result), result }
       }
     },

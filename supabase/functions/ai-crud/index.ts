@@ -19,7 +19,10 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
-import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+import {
+  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  type QuotaTelemetry,
+} from '../_shared/ai/rate-limiter.ts'
 import {
   buildCrudTools,
   validateDraft,
@@ -368,6 +371,7 @@ ATURAN KERAS:
 - Kamu TIDAK punya akses ke login, password, 2FA, PIN, atau pengaturan akun.`
 
     let calls: Array<{ name: string; args: Record<string, unknown> }> = []
+    let tele: QuotaTelemetry | undefined
     try {
       const r = await ai.generate({
         prompt: message,
@@ -377,11 +381,21 @@ ATURAN KERAS:
         maxOutputTokens: 1024,
       })
       calls = r.functionCalls
+      tele = telemetriDari(r, ai.route.key)
     } catch (e) {
       return json(payloadGagalAI(e), 502)
     }
 
     if (!calls.length) {
+      // Model menjawab tapi tidak memanggil satu fungsi pun. Kuota sengaja
+      // TIDAK naik — pengguna tidak mendapat apa-apa. Tokennya tetap dicatat
+      // (units=0): kalimat yang tidak terpahami adalah biaya nyata, dan kalau
+      // angkanya besar itu masalah prompt, bukan masalah pengguna.
+      if (tele) {
+        await commitQuota(supabase, ai.quotaFeature, 0, {
+          ...tele, wastedTokens: tele.totalTokens,
+        })
+      }
       return json({
         error: 'Saya belum paham maksudnya. Coba tulis ulang lebih spesifik, '
           + 'misalnya "catat penjualan 5 nasi goreng 125rb tunai" atau "tambah produk kopi susu harga 15rb stok 20".',
@@ -390,7 +404,7 @@ ATURAN KERAS:
     }
 
     // Kuota naik: panggilan AI sudah sukses.
-    await commitQuota(supabase, ai.quotaFeature)
+    await commitQuota(supabase, ai.quotaFeature, 1, tele)
 
     // Satu kalimat boleh menghasilkan beberapa catatan terpisah ("beli gas 22rb
     // sama plastik 10rb"). Tiap aksi divalidasi SENDIRI-SENDIRI dan menjadi satu
@@ -464,6 +478,12 @@ ATURAN KERAS:
         })),
         terpotong: calls.length > MAX_ACTIONS,
       },
+      model: tele?.model,
+      keySlot: ai.route.key,
+      latencyMs: tele?.latencyMs,
+      tokensIn: tele?.promptTokens,
+      tokensOut: tele?.completionTokens,
+      usedFallback: tele?.usedFallback,
     })
 
     // `actions` adalah sumber kebenaran. Bidang aksi pertama tetap disalin ke

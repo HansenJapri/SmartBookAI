@@ -14,7 +14,10 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
-import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+import {
+  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  type QuotaTelemetry,
+} from '../_shared/ai/rate-limiter.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
@@ -166,6 +169,7 @@ serve(async (req) => {
     // ================= TAHAP 2: Gemini menarasikan =================
     let content = ''
     let aiError: string | null = null
+    let tele: QuotaTelemetry | undefined
     if (metrics.total_products > 0) {
       try {
         const PROMPT = isEn ? `You are a practical stock-management assistant for a small Indonesian business (UMKM).
@@ -215,6 +219,10 @@ ATURAN KERAS:
         // Bila diminta Inggris tapi Gemini tetap membalas Indonesia, buang juga.
         if (r.text && r.finishReason !== 'MAX_TOKENS' && !(isEn && looksIndonesian(r.text))) {
           content = r.text
+          tele = telemetriDari(r, ai.route.key)
+        } else {
+          // Jawaban dibuang — token tetap terbakar. Lihat catatan di ai-narasi.
+          tele = { ...telemetriDari(r, ai.route.key), wastedTokens: r.usage.total }
         }
       } catch (e) {
         // Sama seperti ai-narasi: template tetap tampil, tapi sebabnya dicatat.
@@ -224,7 +232,8 @@ ATURAN KERAS:
     }
     const usedAI = Boolean(content)
     // Kuota hanya naik bila AI benar-benar menghasilkan narasi.
-    if (usedAI) await commitQuota(supabase, ai.quotaFeature)
+    if (usedAI) await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele)
     if (!content) content = isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics)
 
     try {

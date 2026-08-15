@@ -20,7 +20,10 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
-import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+import {
+  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  type QuotaTelemetry,
+} from '../_shared/ai/rate-limiter.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
@@ -112,11 +115,13 @@ ATURAN KERAS:
 - category WAJIB persis salah satu dari daftar. Bila ragu pakai "${inFallback}" (pemasukan) atau "${outFallback}" (pengeluaran).`
 
     let text: string
+    let tele: QuotaTelemetry | undefined
     try {
       const res = await ai.generate({
         prompt: PROMPT, temperature: 0.1, json: true, maxOutputTokens: 1024,
       })
       text = res.text || '{}'
+      tele = telemetriDari(res, ai.route.key)
     } catch (e) {
       // Gagal memanggil Gemini: kuota TIDAK di-commit, jadi pengguna tidak
       // kehilangan jatah untuk sesuatu yang tidak pernah mereka terima.
@@ -148,7 +153,7 @@ ATURAN KERAS:
     }
 
     // Kuota naik hanya setelah panggilan AI benar-benar sukses.
-    await commitQuota(supabase, ai.quotaFeature)
+    await commitQuota(supabase, ai.quotaFeature, 1, tele)
 
     return json({ transactions: out, note: String(parsed.note || '').slice(0, 300) })
   } catch (e) {

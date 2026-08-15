@@ -15,7 +15,10 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getGeminiClient, payloadGagalAI } from '../_shared/ai/gemini-client.ts'
-import { checkQuota, commitQuota, dailyLimitPayload } from '../_shared/ai/rate-limiter.ts'
+import {
+  checkQuota, commitQuota, dailyLimitPayload, telemetriDari,
+  type QuotaTelemetry,
+} from '../_shared/ai/rate-limiter.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
@@ -270,6 +273,7 @@ serve(async (req) => {
     // Sebab kegagalan AI, bila ada. Ikut dikirim ke klien supaya "narasi ini
     // template" bisa dibedakan dari "narasi ini memang sedang tidak menarik".
     let aiError: string | null = null
+    let tele: QuotaTelemetry | undefined
     if (metrics.tx_count > 0) {
       try {
         const PROMPT = isEn ? `You are a down-to-earth, to-the-point financial advisor for a small Indonesian business (UMKM).
@@ -325,6 +329,13 @@ ATURAN KERAS:
         // Bila diminta Inggris tapi Gemini tetap membalas Indonesia, buang juga.
         if (r.text && r.finishReason !== 'MAX_TOKENS' && !(isEn && looksIndonesian(r.text))) {
           content = r.text
+          tele = telemetriDari(r, ai.route.key)
+        } else {
+          // Jawaban datang tapi dibuang (terpotong, atau bahasa yang salah).
+          // Kuota TIDAK naik — perilaku lama yang benar dan tetap dipertahankan —
+          // tapi tokennya sudah terbakar di Google. Kalau tidak dicatat di sini,
+          // biaya ini tidak muncul di mana pun.
+          tele = { ...telemetriDari(r, ai.route.key), wastedTokens: r.usage.total }
         }
       } catch (e) {
         // Template cadangan tetap dipakai — pengguna tidak boleh melihat
@@ -339,7 +350,9 @@ ATURAN KERAS:
     }
     const usedAI = Boolean(content)
     // Penghitung kuota HANYA naik saat panggilan AI benar-benar menghasilkan narasi.
-    if (usedAI) await commitQuota(supabase, ai.quotaFeature)
+    if (usedAI) await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    // Jawaban datang tapi dibuang: kuota tidak naik (units=0), token tetap dicatat.
+    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele)
     if (!content) {
       content = metrics.tx_count > 0
         ? (isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics))

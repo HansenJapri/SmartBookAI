@@ -87,18 +87,79 @@ export async function checkQuota(
 }
 
 /**
+ * Telemetri biaya satu panggilan AI. SELURUH field opsional.
+ *
+ * Opsional bukan karena tidak penting, melainkan karena penghitung kuota harus
+ * tetap naik walau telemetrinya tidak tersedia — mis. `ai-narasi` yang kadang
+ * menjawab dari cache tanpa menyentuh Gemini. Kuota adalah kebenaran penagihan;
+ * telemetri adalah pelengkapnya, dan pelengkap tidak boleh menyandera yang pokok.
+ */
+export interface QuotaTelemetry {
+  model?: string
+  keySlot?: string
+  promptTokens?: number
+  completionTokens?: number
+  thinkingTokens?: number
+  totalTokens?: number
+  /** Token percobaan yang dibuang (gagal validasi lalu diulang). */
+  wastedTokens?: number
+  latencyMs?: number
+  usedFallback?: boolean
+  attempts?: number
+}
+
+/**
  * Tambah penghitung SETELAH panggilan AI sukses.
  * units: 1 untuk fitur berbasis panggilan; jumlah DETIK untuk voice.
+ * telemetry: token & latency dari GenerateResult, bila panggilan Gemini nyata.
  */
 export async function commitQuota(
   supabase: SupabaseClient,
   feature: QuotaFeature,
   units = 1,
+  telemetry?: QuotaTelemetry,
 ): Promise<void> {
+  const t = telemetry ?? {}
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : 0)
   try {
-    await supabase.rpc('ai_quota_commit', { p_feature: feature, p_units: units })
+    await supabase.rpc('ai_quota_commit', {
+      p_feature: feature,
+      p_units: units,
+      p_prompt_tokens: n(t.promptTokens),
+      p_completion_tokens: n(t.completionTokens),
+      p_thinking_tokens: n(t.thinkingTokens),
+      p_total_tokens: n(t.totalTokens),
+      p_wasted_tokens: n(t.wastedTokens),
+      p_model: t.model ?? null,
+    })
   } catch {
     // Gagal mencatat pemakaian tidak boleh menggagalkan respons yang sudah jadi.
+  }
+}
+
+/** Ubah GenerateResult jadi telemetri kuota — satu tempat, supaya 8 pemanggil tidak masing-masing salah memetakan. */
+export function telemetriDari(
+  r: {
+    usage?: { prompt: number; completion: number; thinking: number; total: number }
+    wastedTokens?: number
+    latencyMs?: number
+    modelUsed?: string
+    usedFallback?: boolean
+    attempts?: number
+  },
+  keySlot?: string,
+): QuotaTelemetry {
+  return {
+    model: r.modelUsed,
+    keySlot,
+    promptTokens: r.usage?.prompt,
+    completionTokens: r.usage?.completion,
+    thinkingTokens: r.usage?.thinking,
+    totalTokens: r.usage?.total,
+    wastedTokens: r.wastedTokens,
+    latencyMs: r.latencyMs,
+    usedFallback: r.usedFallback,
+    attempts: r.attempts,
   }
 }
 
