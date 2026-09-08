@@ -207,7 +207,7 @@ begin
   end if;
 
   select net.http_post(
-    url     := 'https://hexaidoxmeycctpwfbst.supabase.co/functions/v1/keepalive?sumber=' || p_sumber,
+    url     := 'https://vbzmtnpmtgrhovmwjqqk.supabase.co/functions/v1/keepalive?sumber=' || p_sumber,
     body    := '{}'::jsonb,
     headers := jsonb_build_object(
       'Content-Type',      'application/json',

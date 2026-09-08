@@ -49,7 +49,7 @@ select cron.schedule(
   '0 23 * * *',
   $cron$
   select net.http_post(
-    url     := 'https://hexaidoxmeycctpwfbst.supabase.co/functions/v1/makro-harian',
+    url     := 'https://vbzmtnpmtgrhovmwjqqk.supabase.co/functions/v1/makro-harian',
     body    := '{}'::jsonb,
     headers := '{"Content-Type": "application/json"}'::jsonb
   )

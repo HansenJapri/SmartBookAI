@@ -3,7 +3,7 @@
 # Sebelumnya verify_jwt hanya tersimpan di server; sekarang ter-versi di repo
 # agar `supabase functions deploy` selalu reproducible.
 # ============================================================
-project_id = "hexaidoxmeycctpwfbst"
+project_id = "vbzmtnpmtgrhovmwjqqk"
 
 # harga-daerah: dipanggil dari UI oleh pengguna yang SUDAH login.
 [functions.harga-daerah]

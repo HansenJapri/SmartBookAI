@@ -16,7 +16,7 @@ vercel --prod         # deploy; jawab default; framework: Vite terdeteksi otomat
 
 Saat diminta Environment Variables (atau set di dashboard setelahnya), isi:
 ```
-VITE_SUPABASE_URL   = https://ontvkxocshepyeyjmqto.supabase.co
+VITE_SUPABASE_URL   = https://vbzmtnpmtgrhovmwjqqk.supabase.co
 VITE_SUPABASE_ANON_KEY = (anon key Anda)
 VITE_PHONE_OTP      = false
 ```
