@@ -91,9 +91,13 @@ serve(async (req) => {
 
   let tokenDb = ''
   try {
-    const { data } = await svc.from('service_config').select('nilai').eq('kunci', 'keepalive_token').maybeSingle()
-    tokenDb = String(data?.nilai ?? '')
-  } catch { /* tabel belum ada: jatuh ke token env saja */ }
+    // Lewat RPC, bukan tabel: ops.service_config hidup di schema yang TIDAK
+    // diekspos PostgREST, jadi tidak punya endpoint REST sama sekali.
+    // public.ops_token() adalah satu-satunya pintunya, dan hanya service_role
+    // yang punya EXECUTE.
+    const { data } = await svc.rpc('ops_token', { p_kunci: 'keepalive_token' })
+    tokenDb = String(data ?? '')
+  } catch { /* pintu belum ada: jatuh ke token env saja */ }
 
   const cocok = (harapan: string) => harapan.length >= 24 && samaWaktuTetap(harapan, kiriman)
   if (!cocok(tokenDb) && !cocok(tokenEnv)) {
@@ -108,7 +112,7 @@ serve(async (req) => {
     const sumber = new URL(req.url).searchParams.get('sumber') ?? 'cron-6-hari'
 
     // ---------- 1) Rekam medis dari database ----------
-    const { data: kesehatanDb, error: errRingkas } = await svc.rpc('ringkasan_kesehatan')
+    const { data: kesehatanDb, error: errRingkas } = await svc.rpc('ops_ringkasan_kesehatan')
     const ringkas = (kesehatanDb ?? {}) as Record<string, unknown>
 
     // ---------- 2) Rekam medis kunci AI ----------
@@ -165,25 +169,25 @@ serve(async (req) => {
     // ---------- 4) Tulis detaknya ----------
     // Inilah permintaan yang benar-benar menyentuh PostgREST + Postgres, dan
     // karenanya inilah yang dihitung sebagai aktivitas proyek.
-    const { data: baris, error: errTulis } = await svc
-      .from('service_heartbeat')
-      .insert({
-        sumber,
-        sehat,
-        kesehatan: { db: ringkas, kunci_ai: kunci },
-        catatan: sehat ? 'Semua pemeriksaan lolos.' : masalah.join('; ').slice(0, 1000),
-      })
-      .select('id, beat_at')
-      .single()
+    const { data: baris, error: errTulis } = await svc.rpc('ops_catat_heartbeat', {
+      p_sumber: sumber,
+      p_sehat: sehat,
+      p_kesehatan: { db: ringkas, kunci_ai: kunci },
+      p_catatan: sehat ? 'Semua pemeriksaan lolos.' : masalah.join('; ').slice(0, 1000),
+    })
 
     if (errTulis) {
       console.error(`[keepalive] GAGAL menulis heartbeat: ${errTulis.message}`)
       return json({ ok: false, error: 'Gagal menulis heartbeat.', detail: errTulis.message }, 500)
     }
 
-    // Pangkas riwayat lama sesekali (~1 dari 10 detak) — cukup untuk tabel yang
-    // hanya tumbuh ~61 baris/tahun, dan tidak menambah beban tiap panggilan.
-    if (Math.random() < 0.1) await svc.rpc('pangkas_heartbeat')
+    // Pemangkasan retensi TIDAK lagi dilakukan di sini.
+    //
+    // Dulu ia dijalankan secara probabilistik (~1 dari 10 detak). Pembersihan
+    // yang hanya jalan "kira-kira" adalah pembersihan yang tidak pernah bisa
+    // dibuktikan sudah berjalan — dan pada jadwal 6 harian, sepuluh detak
+    // berarti dua bulan ketidakpastian. Sekarang ada cron tersendiri
+    // (`pangkas-heartbeat-3bulan`) yang jalan tanggal 1 tiap bulan.
 
     if (!sehat) console.error(`[keepalive] TIDAK SEHAT: ${masalah.join('; ')}`)
 

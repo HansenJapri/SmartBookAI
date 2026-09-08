@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
@@ -22,6 +22,10 @@ export default function Register() {
   const [sentAt, setSentAt] = useState(0)
   const [kedaluwarsa, setKedaluwarsa] = useState(false)
   const [agree, setAgree] = useState(false)
+  // Dipakai untuk MEMINDAHKAN FOKUS ke kotak centang saat orang menekan Daftar
+  // tanpa mencentangnya. Kotak centang itu ada di paling bawah formulir yang
+  // panjang; menampilkan pesan error saja di atas layar belum tentu terlihat.
+  const agreeRef = useRef(null)
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -41,7 +45,18 @@ export default function Register() {
       if (!phoneE164) return setErr(a.errPhone)
     }
     if (!isPasswordValid(form.password)) return setErr(a.errPwd)
-    if (!agree) return setErr(a.errAgree)
+    if (!agree) {
+      // Tombol Daftar SENGAJA tidak lagi dinonaktifkan saat centang kosong.
+      //
+      // Sebelumnya `disabled={busy}` membuat penekanan tombol tidak
+      // menghasilkan apa pun: tanpa pesan, tanpa petunjuk, dan validasi di baris
+      // ini tidak pernah tercapai. Tombol mati tanpa penjelasan adalah jalan
+      // buntu — pengguna tahu ada yang salah tapi tidak tahu apa.
+      setErr(a.errAgree)
+      agreeRef.current?.focus()
+      agreeRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      return
+    }
 
     setBusy(true)
     try {
@@ -128,7 +143,9 @@ export default function Register() {
               <PasswordChecklist value={form.password} />
             </div>
             <label className="agree">
-              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+              <input ref={agreeRef} type="checkbox" checked={agree}
+                onChange={(e) => { setAgree(e.target.checked); if (e.target.checked) setErr('') }}
+                aria-invalid={!agree && err === a.errAgree} />
               <span>{a.agree1}<Link to="/ketentuan" target="_blank" rel="noreferrer">{a.agreeTerms}</Link>{a.agreeAnd}<Link to="/privasi" target="_blank" rel="noreferrer">{a.agreePrivacy}</Link>{a.agree2}</span>
             </label>
             <button className="btn btn-primary btn-block btn-lg" disabled={busy || !agree}>

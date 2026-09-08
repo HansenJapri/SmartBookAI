@@ -965,6 +965,18 @@ table.tbl tr:hover td { background: var(--bg-soft); }
 .chat-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
 .chat-hint { color: var(--muted); font-size: 13px; }
 .chat-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* Kolom jawaban DI DALAM kartu pertanyaan asisten.
+   Ada supaya pertanyaan bebas (tanggal, nama, angka) bisa dijawab tepat di
+   tempat pertanyaannya muncul, bukan di kotak ketik paling bawah layar yang
+   membuat pembaruan kartunya terjadi di luar pandangan pengguna. */
+.chat-answer { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.chat-answer .input { flex: 1; min-width: 0; font-size: 13.5px; padding: 8px 10px; }
+.chat-answer .btn { flex: none; padding: 8px 14px; font-size: 13.5px; }
+@media (max-width: 480px) {
+  .chat-answer { flex-wrap: wrap; }
+  .chat-answer .btn { width: 100%; }
+}
 .chat-chips button { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 13px; color: var(--ink); }
 .chat-chips button:hover { border-color: var(--indigo); color: var(--indigo); }
 .chat-msg { max-width: 86%; padding: 11px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }

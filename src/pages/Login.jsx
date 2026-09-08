@@ -46,11 +46,13 @@ export default function Login() {
   // pengguna tetap konsisten di kedua bahasa dan tidak membocorkan detail.
   // Sebab yang tidak dikenali TIDAK boleh jatuh ke "password salah" — lihat
   // catatan di startLogin(). Kegagalan layanan punya pesannya sendiri.
-  // Sebab yang tidak dikenali TIDAK boleh jatuh ke "password salah" — lihat
-  // catatan di startLogin(). Kegagalan layanan punya pesannya sendiri.
   const pesanSebab = (e2) => {
     const map = {
       invalid_credentials: a.errInvalid,
+      // Dibedakan dari invalid_credentials sejak 8 Sep 2026: pengguna yang
+      // belum pernah mendaftar perlu tahu bahwa yang kurang adalah AKUNNYA,
+      // bukan ketepatan kata sandinya.
+      email_not_registered: a.errNotRegistered,
       email_not_confirmed: a.errUnconfirmed,
       otp_send_failed: a.errOtpSend,
       email_delivery_failed: a.errEmailDelivery,

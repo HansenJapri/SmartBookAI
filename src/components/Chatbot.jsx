@@ -75,6 +75,19 @@ export default function Chatbot() {
   // Pesan: {role:'user'|'assistant', text} ATAU {role:'assistant', type:'draft', drafts, note, saved}
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
+  // Jawaban yang sedang diketik DI DALAM kartu pertanyaan, dikunci per kartu.
+  //
+  // Sebelum ini kartu pertanyaan tidak punya kolom isian sama sekali: ia hanya
+  // menampilkan pertanyaannya, tombol pilihan bila ada, dan tautan "Lewati".
+  // Untuk pertanyaan bebas — "Kapan jatuh temponya?", yang tidak punya pilihan —
+  // satu-satunya cara menjawab adalah mengetik di kotak paling bawah layar.
+  //
+  // Itu bekerja secara teknis, tapi gagal sebagai percakapan: kartunya
+  // diperbarui DI TEMPATNYA SEMULA, yang sudah tergulung jauh di atas, sementara
+  // mata pengguna ada di kotak ketik paling bawah. Dari sana tidak ada satu pun
+  // tanda bahwa jawabannya diterima, jadi orang mengetik lagi, dan lagi —
+  // persis yang terlihat pada laporan pengguna 8 September 2026.
+  const [jawabanKartu, setJawabanKartu] = useState({})
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
@@ -181,6 +194,20 @@ export default function Chatbot() {
 
   // Kirim jawaban satu field ke server. Tidak memakai kuota AI: putaran
   // slot-filling dijalankan deterministik di Edge Function.
+  // Kirim jawaban yang diketik di dalam kartu ke-idx.
+  //
+  // Jawabannya juga ditambahkan sebagai gelembung pesan pengguna supaya
+  // percakapannya tetap terbaca berurutan — tanpa itu, riwayat akan memuat
+  // pertanyaan tanpa jawaban, dan orang tidak bisa menelusuri apa yang tadi
+  // mereka isi.
+  const kirimJawabanKartu = async (idx) => {
+    const teks = String(jawabanKartu[idx] ?? '').trim()
+    if (!teks || busy) return
+    setJawabanKartu((j) => ({ ...j, [idx]: '' }))
+    setMessages((all) => [...all, { role: 'user', text: teks }])
+    await answerField(idx, teks)
+  }
+
   const answerField = async (idx, answer) => {
     const m = messages[idx]
     if (!m?.question) return
@@ -493,6 +520,35 @@ export default function Chatbot() {
                             ))}
                           </div>
                         )}
+                        {/* Kolom jawaban DI DALAM kartu.
+                            Pertanyaan berpilihan tetap punya tombolnya di atas;
+                            kolom ini untuk jawaban bebas (tanggal, nama, angka)
+                            dan sekaligus jalan keluar ketika pilihan yang
+                            tersedia tidak ada yang cocok. */}
+                        <div className="chat-answer">
+                          <input
+                            id={`jawab-${i}`}
+                            className="input"
+                            type="text"
+                            autoComplete="off"
+                            aria-label={`Jawaban untuk: ${m.question.question}`}
+                            placeholder="Ketik jawaban Anda di sini..."
+                            value={jawabanKartu[i] ?? ''}
+                            disabled={busy}
+                            onChange={(e) => setJawabanKartu((j) => ({ ...j, [i]: e.target.value }))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') { e.preventDefault(); kirimJawabanKartu(i) }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={busy || !String(jawabanKartu[i] ?? '').trim()}
+                            onClick={() => kirimJawabanKartu(i)}
+                          >
+                            Kirim
+                          </button>
+                        </div>
                         {!m.question.required && (
                           <button type="button" className="linklike" disabled={busy}
                             onClick={() => chooseOption(i, 'lewati', 'Lewati')}>Lewati pertanyaan ini</button>
