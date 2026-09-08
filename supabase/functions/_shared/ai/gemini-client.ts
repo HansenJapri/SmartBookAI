@@ -8,7 +8,11 @@
 // hasilnya gagal validasi (schema/checksum), MENCOBA SEKALI LAGI dengan model
 // fallback pada bucket model berbeda (tidak memakan kuota Flash-Lite).
 // ============================================================
-import { FEATURE_ROUTES, resolveKey, type FeatureName, type FeatureRoute } from './config.ts'
+import {
+  FEATURE_ROUTES, PLATFORM_ROUTES, resolveKey,
+  type FeatureName, type FeatureRoute, type KeySlot,
+  type PlatformFeatureName, type PlatformRoute,
+} from './config.ts'
 
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
@@ -286,14 +290,46 @@ async function callModel(
   }
 }
 
-export function getGeminiClient(feature: FeatureName): GeminiClient {
-  const route = FEATURE_ROUTES[feature]
-  if (!route) throw new Error(`Fitur AI tidak dikenal: ${feature}`)
+/**
+ * Klien untuk pekerjaan platform (cron). Bentuknya sengaja LEBIH SEMPIT
+ * daripada GeminiClient: tanpa quotaFeature dan tanpa dailyCap.
+ *
+ * Penyempitan itu disengaja sebagai pengaman tipe. Kalau klien platform tetap
+ * membawa field kuota, sebuah cron bisa memanggil checkQuota() dengan nama
+ * fitur milik workspace orang lain dan menghabiskan jatah pengguna sungguhan —
+ * kesalahan yang tidak akan pernah memunculkan error, hanya tagihan yang salah
+ * alamat. Field yang tidak ada tidak bisa dipakai keliru.
+ */
+export interface PlatformGeminiClient {
+  feature: PlatformFeatureName
+  route: PlatformRoute
+  model: string
+  fallbackModel: string
+  generate(opts: GenerateOptions): Promise<GenerateResult>
+  generateChat(contents: ChatTurn[], opts?: Omit<GenerateOptions, 'prompt' | 'parts'>): Promise<GenerateResult>
+  generateWithFallback<T>(
+    opts: GenerateOptions,
+    validate: (r: GenerateResult) => T,
+  ): Promise<{ value: T; result: GenerateResult }>
+}
 
-  const apiKey = resolveKey(route.key)
-  if (!apiKey) throw new GeminiKeyMissingError(route.key)
+/**
+ * Bagian klien yang TIDAK bergantung pada kuota: resolusi kunci, rantai model,
+ * retry, dan telemetri.
+ *
+ * Diekstrak supaya rute platform (cron seperti `makro-harian`) memakai jalur
+ * yang PERSIS SAMA dengan fitur pengguna. Sebelumnya satu-satunya cara memberi
+ * kemampuan itu ke sebuah cron adalah menyalin logikanya — dan salinan yang
+ * berumur panjang selalu berhenti diperbarui. `makro-harian` memang punya
+ * salinan seperti itu, tertinggal di `gemini-2.5-flash` dengan kunci yang sudah
+ * dicabut, dan gagal setiap hari selama sebulan tanpa terdeteksi.
+ */
+function buatInti(namaFitur: string, slot: KeySlot, model: string, fallbackModel?: string) {
+  const apiKey = resolveKey(slot)
+  if (!apiKey) throw new GeminiKeyMissingError(slot)
 
-  const chain = [route.model, ...(route.fallbackModel ? [route.fallbackModel] : [])]
+  const feature = namaFitur
+  const chain = [model, ...(fallbackModel ? [fallbackModel] : [])]
 
   /**
    * Jalankan rantai model sampai ada yang berhasil.
@@ -335,20 +371,16 @@ export function getGeminiClient(feature: FeatureName): GeminiClient {
   }
 
   return {
-    feature,
-    route,
-    model: route.model,
-    fallbackModel: route.fallbackModel,
-    quotaFeature: route.quotaFeature,
-    dailyCap: route.dailyCap,
+    model,
+    fallbackModel,
 
-    generate: (opts) => jalankanRantai(opts, undefined),
+    generate: (opts: GenerateOptions) => jalankanRantai(opts, undefined),
 
-    generateChat(contents, opts = {}) {
+    generateChat(contents: ChatTurn[], opts: Omit<GenerateOptions, 'prompt' | 'parts'> = {}) {
       return jalankanRantai(opts, contents)
     },
 
-    async generateWithFallback(opts, validate) {
+    async generateWithFallback<T>(opts: GenerateOptions, validate: (r: GenerateResult) => T) {
       // Percobaan 1 — rantai model normal (sudah menangani kegagalan transpor).
       let result = await jalankanRantai(opts, undefined)
       try {
@@ -373,5 +405,37 @@ export function getGeminiClient(feature: FeatureName): GeminiClient {
         return { value: validate(result), result }
       }
     },
+  }
+}
+
+export function getGeminiClient(feature: FeatureName): GeminiClient {
+  const route = FEATURE_ROUTES[feature]
+  if (!route) throw new Error(`Fitur AI tidak dikenal: ${feature}`)
+  return {
+    feature,
+    route,
+    quotaFeature: route.quotaFeature,
+    dailyCap: route.dailyCap,
+    ...buatInti(feature, route.key, route.model, route.fallbackModel),
+  }
+}
+
+/**
+ * Klien untuk pekerjaan terjadwal platform (lihat PLATFORM_ROUTES di config.ts).
+ *
+ * Memakai resolusi kunci, rantai fallback, klasifikasi error, dan telemetri
+ * yang sama persis dengan fitur pengguna — itulah seluruh maksudnya. Sebuah
+ * cron yang memanggil Gemini lewat `fetch` sendiri akan selalu tertinggal dari
+ * perbaikan yang dilakukan di sini, dan ketertinggalan itu tidak menimbulkan
+ * gejala sampai kunci atau modelnya mati.
+ */
+export function getPlatformGeminiClient(feature: PlatformFeatureName): PlatformGeminiClient {
+  const route = PLATFORM_ROUTES[feature]
+  if (!route) throw new Error(`Rute platform tidak dikenal: ${feature}`)
+  return {
+    feature,
+    route,
+    ...buatInti(feature, route.key, route.model, route.fallbackModel),
+    fallbackModel: route.fallbackModel,
   }
 }

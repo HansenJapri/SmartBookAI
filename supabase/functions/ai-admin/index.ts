@@ -16,24 +16,15 @@
 // ============================================================
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders as corsBersama, originDitolak } from '../_shared/cors.ts'
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
-const ADMIN_ORIGIN = Deno.env.get('ADMIN_ORIGIN') ?? ''
 const CHAT_MODEL = 'gemini-2.5-flash-lite'
 
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', ADMIN_ORIGIN].filter(Boolean)
-
-function corsHeaders(origin: string | null) {
-  const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : (ALLOWED_ORIGINS[0] || '*')
-  return {
-    'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
+// Panel admin punya daftar origin sendiri (secret ADMIN_ORIGIN).
+const corsHeaders = (origin: string | null) => corsBersama(origin, 'ADMIN_ORIGIN')
 
 const rupiah = (n: number) => 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID')
 
@@ -50,7 +41,10 @@ CARA MENJAWAB (wajib dipatuhi):
 serve(async (req) => {
   const origin = req.headers.get('Origin')
   const cors = corsHeaders(origin)
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method === 'OPTIONS') {
+    originDitolak(origin, 'ai-admin', 'ADMIN_ORIGIN')
+    return new Response('ok', { headers: cors })
+  }
 
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })

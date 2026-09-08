@@ -434,6 +434,7 @@ export const translations = {
       avgProv: 'rata-rata {prov}', avgNational: 'rata-rata nasional (HNT)', provinceWord: 'provinsi',
       noPrev: 'Belum ada pembanding harga sebelumnya', stable: 'Stabil dibanding harga sebelumnya', up: 'Naik', down: 'Turun', vsPrev: 'dibanding harga sebelumnya',
       noForecast: 'Perkiraan arah 30 hari belum tersedia untuk komoditas ini.', forecast30: 'Perkiraan 30 hari:',
+      forecastAiGagal: 'Perkiraan 30 hari belum bisa dihitung hari ini (layanan AI sedang bermasalah). Harga di atas tetap harga resmi terbaru.',
       otherTitle: 'Komoditas lain (perkiraan arah)', otherSub: 'Komoditas global/energi di luar cakupan SP2KP — hanya sinyal arah dari berita, tanpa harga resmi.',
     },
     tasks: {
@@ -1356,6 +1357,7 @@ export const translations = {
       avgProv: '{prov} average', avgNational: 'national average (HNT)', provinceWord: 'province',
       noPrev: 'No previous price to compare yet', stable: 'Stable vs previous price', up: 'Up', down: 'Down', vsPrev: 'vs previous price',
       noForecast: 'A 30-day direction forecast is not available for this commodity yet.', forecast30: '30-day forecast:',
+      forecastAiGagal: "Today's 30-day forecast could not be computed (the AI service is having trouble). The prices above are still the latest official figures.",
       otherTitle: 'Other commodities (direction forecast)', otherSub: 'Global/energy commodities outside SP2KP coverage — direction signal from news only, no official price.',
     },
     tasks: {

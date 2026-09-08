@@ -142,6 +142,48 @@ export const FEATURE_ROUTES: Record<FeatureName, FeatureRoute> = {
   },
 }
 
+// ============================================================
+// RUTE PLATFORM — pekerjaan terjadwal yang bukan milik workspace mana pun.
+//
+// Dipisah dari FEATURE_ROUTES karena bedanya nyata, bukan kosmetik: rute
+// platform TIDAK punya quotaFeature dan TIDAK punya dailyCap per-workspace,
+// sebab tidak ada workspace yang bisa ditagih untuk cron harian yang hasilnya
+// dipakai bersama seluruh pengguna.
+//
+// Rute ini lahir dari kegagalan yang berlangsung 32 hari. `makro-harian`
+// tidak pernah ikut migrasi G-18: ia membaca GEMINI_API_KEY sendiri dan memaku
+// `const MODEL = 'gemini-2.5-flash'`. Ketika kunci lama itu dicabut Google,
+// pipeline balas 401 setiap pagi, menulis 25 baris sinyal "stabil" palsu, dan
+// menandai dirinya `done`. Satu-satunya fungsi yang lolos dari router terpusat
+// adalah satu-satunya fungsi yang mati diam-diam — itu bukan kebetulan.
+//
+// Sekarang ia memakai slot kunci dan rantai model yang sama dengan fitur lain,
+// jadi satu kunci yang dicabut atau satu model yang dipensiunkan tidak lagi
+// bisa mematikannya sendirian.
+export type PlatformFeatureName = 'makro'
+
+export interface PlatformRoute {
+  key: KeySlot
+  model: string
+  /** WAJIB ada, dan pada model berbeda — alasannya sama dengan FEATURE_ROUTES. */
+  fallbackModel: string
+}
+
+export const PLATFORM_ROUTES: Record<PlatformFeatureName, PlatformRoute> = {
+  // Sinyal arah harga 30 hari dari judul berita (1 panggilan/hari, ~25 komoditas).
+  //
+  // Flash penuh, bukan Flash-Lite: keluarannya JSON terstruktur untuk 25
+  // komoditas sekaligus dengan aturan keras soal grounding ke berita. Ini kelas
+  // tugas yang sama dengan `catat` dan `hpp_draft`, bukan sekadar merangkai
+  // kalimat. Cadangannya sengaja melompat keluarga (3.5 -> 3.1) supaya
+  // pemangkasan kapasitas satu keluarga tidak menghabiskan kedua percobaan.
+  makro: {
+    key: 'A',
+    model: 'gemini-3.5-flash',
+    fallbackModel: 'gemini-3.1-flash-lite',
+  },
+}
+
 /**
  * Nilai yang BUKAN kunci sungguhan, walau secret-nya terisi.
  *

@@ -26,21 +26,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { FEATURE_ROUTES, resolveKey, type FeatureName } from '../_shared/ai/config.ts'
 import { checkQuota, commitQuota } from '../_shared/ai/rate-limiter.ts'
 import { resolveScope } from '../_shared/ai/workspace-scope.ts'
+import { corsHeaders, originDitolak } from '../_shared/cors.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
-const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
-function corsHeaders(origin: string | null) {
-  const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : (ALLOWED_ORIGINS[0] || '*')
-  return {
-    'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
 
 const API_ROOT = 'https://generativelanguage.googleapis.com'
 // Token efemeral hanya dilayani jalur v1alpha; v1beta masih menuntut kunci asli.
@@ -122,7 +111,10 @@ serve(async (req) => {
       headers: { ...cors, 'Content-Type': 'application/json' },
     })
 
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method === 'OPTIONS') {
+    originDitolak(origin, 'voice-live-token')
+    return new Response('ok', { headers: cors })
+  }
   if (req.method !== 'POST') return json({ error: 'Method tidak didukung.', code: 'BAD_METHOD' }, 405)
 
   try {

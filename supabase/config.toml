@@ -39,3 +39,16 @@ verify_jwt = true
 
 [functions.BukuPencatatanStruk]
 verify_jwt = true
+
+# ai-selftest: diagnosa kunci & model AI. Memaparkan bentuk konfigurasi server,
+# jadi verify_jwt WAJIB true — gerbang admin di dalam fungsi adalah lapis kedua,
+# bukan satu-satunya.
+[functions.ai-selftest]
+verify_jwt = true
+
+# keepalive: dipicu pg_cron/pg_net tiap <= 6 hari TANPA login, sama seperti
+# makro-harian. WAJIB false — kalau jadi true, cron kena 401 dan proyek Supabase
+# gratis kembali menuju jeda 7 hari tanpa gejala apa pun.
+# Gerbang keamanannya ada di dalam fungsi: header x-keepalive-token.
+[functions.keepalive]
+verify_jwt = false

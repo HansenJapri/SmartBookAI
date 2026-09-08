@@ -40,23 +40,10 @@ import { resolveScope, restrictionNote } from '../_shared/ai/workspace-scope.ts'
 import { catatAktivitasAI } from '../_shared/ai/activity-log.ts'
 import { buildRagContext, catatanDomainDitolak } from '../_shared/ai/rag/context-builder.ts'
 import { sanitizeCell } from '../_shared/ai/rag/sanitize.ts'
+import { corsHeaders, originDitolak } from '../_shared/cors.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
-const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
-
-function corsHeaders(origin: string | null) {
-  const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : (ALLOWED_ORIGINS[0] || '*')
-  return {
-    'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
-
 const SYSTEM = `Kamu adalah asisten BukuPintar AI untuk pemilik UMKM di Indonesia.
 Tugasmu: memandu pengguna memakai aplikasi dan menjawab pertanyaan tentang keuangan usaha mereka.
 
@@ -230,7 +217,10 @@ PRIVASI DI DALAM BLOK DATA:
 serve(async (req) => {
   const origin = req.headers.get('Origin')
   const cors = corsHeaders(origin)
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method === 'OPTIONS') {
+    originDitolak(origin, 'BukuPencatatan')
+    return new Response('ok', { headers: cors })
+  }
 
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })

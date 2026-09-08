@@ -23,12 +23,11 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildNational } from '../_shared/sp2kp.ts'
+import { getPlatformGeminiClient, GeminiCallError } from '../_shared/ai/gemini-client.ts'
+import { corsHeaders, originDitolak } from '../_shared/cors.ts'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const APP_ORIGIN = Deno.env.get('APP_ORIGIN') ?? ''
-const MODEL = 'gemini-2.5-flash'
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
 
 // Keranjang komoditas — WAJIB sinkron dengan ai-hpp-draft & src/lib/hpp.js.
@@ -61,17 +60,6 @@ const COMMODITIES: { key: string; label: string; q: string; qEn?: string }[] = [
   { key: 'plastik', label: 'Plastik/Kemasan', q: 'harga plastik OR bijih plastik' },
   { key: 'kurs', label: 'Kurs USD/IDR', q: 'nilai tukar rupiah dolar', qEn: 'rupiah exchange rate' },
 ]
-
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:5174', APP_ORIGIN].filter(Boolean)
-function corsHeaders(origin: string | null) {
-  const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : (ALLOWED_ORIGINS[0] || '*')
-  return {
-    'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
 
 const todayWIB = () => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10)
 // Kunci "hari data": batas hari pukul 06.00 WIB (sebelum jam 6 = hari kemarin).
@@ -149,12 +137,13 @@ async function fetchRss(url: string, max = 4): Promise<NewsItem[]> {
   } catch { return [] }
 }
 
-
-
 serve(async (req) => {
   const origin = req.headers.get('Origin')
   const cors = corsHeaders(origin)
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method === 'OPTIONS') {
+    originDitolak(origin, 'makro-harian')
+    return new Response('ok', { headers: cors })
+  }
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
@@ -274,10 +263,20 @@ serve(async (req) => {
       return { key: c.key, label: c.label, headlines: items.slice(0, 5) }
     }))
 
-
     // ---------- 4) SATU panggilan Gemini untuk semua komoditas ----------
+    //
+    // Hasil panggilan ini DICATAT, bukan sekadar dipakai. Sampai 8 September
+    // 2026 blok ini menelan setiap kegagalan: kunci ditolak 401 setiap pagi,
+    // `signals` tetap [], 25 baris "stabil" tetap ditulis, dan run tetap
+    // ditandai `done`. Tidak ada satu pun kolom yang membedakan "AI bilang
+    // semua stabil" dari "AI tidak pernah menjawab" — sehingga sinyal palsu
+    // tampil di Radar selama 32 hari sebagai analisis yang sah.
     let signals: any[] = []
-    if (GEMINI_API_KEY) {
+    let aiStatus: 'ok' | 'kosong' | 'gagal' = 'gagal'
+    let aiDetail = ''
+    let aiModel = ''
+    let aiTokens = 0
+    {
       const input = feeds.map((f) => ({
         key: f.key, label: f.label,
         berita: f.headlines.map((h) => ({ judul: h.title, ringkasan: h.snippet.slice(0, 200), sumber: h.domain })),
@@ -308,37 +307,50 @@ ATURAN KERAS (pelanggaran = jawaban tidak dipakai):
 - Estimasi KONSERVATIF, kelipatan 0.5, rentang wajar (umumnya -10 sampai +10; ekstrem hanya bila berita sangat kuat).
 - Untuk key "kurs": arah "naik" artinya rupiah MELEMAH (USD/IDR naik).`
       try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-          {
-            method: 'POST',
-            headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-              generationConfig: {
-                temperature: 0.2,
-                responseMimeType: 'application/json',
-                maxOutputTokens: 16384,
-                // Matikan mode "thinking" 2.5 Flash: token berpikir ikut memakan
-                // maxOutputTokens sehingga JSON bisa terpotong tanpa error.
-                thinkingConfig: { thinkingBudget: 0 },
-              },
-            }),
-          },
-        )
-        if (geminiRes.ok) {
-          const data = await geminiRes.json()
-          const finish = data?.candidates?.[0]?.finishReason
-          const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '[]'
-          try { signals = JSON.parse(text.match(/\[[\s\S]*\]/)?.[0] ?? '[]') } catch {
-            signals = []
-            console.error(`gemini parse gagal (finish=${finish}): ${String(text).slice(0, 200)}`)
-          }
-          if (!signals.length) console.error(`gemini 0 sinyal (finish=${finish}, len=${String(text).length})`)
-        } else {
-          console.error(`gemini HTTP ${geminiRes.status}: ${(await geminiRes.text()).slice(0, 300)}`)
+        // Kunci & model datang dari PLATFORM_ROUTES (_shared/ai/config.ts),
+        // bukan dari env yang dibaca sendiri. Rantai fallback lintas keluarga
+        // model ikut didapat gratis: satu model yang dipensiunkan Google tidak
+        // lagi cukup untuk mematikan seluruh sinyal harga.
+        const ai = getPlatformGeminiClient('makro')
+        const hasil = await ai.generate({
+          prompt: PROMPT,
+          temperature: 0.2,
+          json: true,
+          maxOutputTokens: 16384,
+          // Token "thinking" ikut memakan maxOutputTokens sehingga JSON bisa
+          // terpotong di tengah tanpa satu pun error muncul.
+          disableThinking: true,
+        })
+        aiModel = hasil.modelUsed
+        aiTokens = hasil.usage.total
+
+        try {
+          signals = JSON.parse(hasil.text.match(/\[[\s\S]*\]/)?.[0] ?? '[]')
+        } catch {
+          signals = []
         }
-      } catch (e) { signals = []; console.error(`gemini exception: ${String(e).slice(0, 200)}`) }
+
+        if (signals.length) {
+          aiStatus = 'ok'
+          aiDetail = `${signals.length} sinyal dari ${hasil.modelUsed}`
+            + (hasil.usedFallback ? ' (model cadangan)' : '')
+        } else {
+          // Model menjawab tapi jawabannya tidak terpakai — biasanya JSON
+          // terpotong karena finishReason MAX_TOKENS. Berbeda sebab, berbeda
+          // penanganan, jadi berbeda pula statusnya.
+          aiStatus = 'kosong'
+          aiDetail = `model ${hasil.modelUsed} balas ${hasil.text.length} karakter `
+            + `tanpa JSON yang bisa dipakai (finish=${hasil.finishReason})`
+          console.error(`[makro] ${aiDetail}`)
+        }
+      } catch (e) {
+        signals = []
+        aiStatus = 'gagal'
+        aiDetail = e instanceof GeminiCallError
+          ? `${e.code}${e.status ? ` HTTP ${e.status}` : ''} pada ${e.model}: ${e.detail.slice(0, 200)}`
+          : String(e).slice(0, 240)
+        console.error(`[makro] Gemini gagal: ${aiDetail}`)
+      }
     }
 
     const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -363,16 +375,43 @@ ATURAN KERAS (pelanggaran = jawaban tidak dipakai):
         confidence: ['rendah', 'sedang', 'tinggi'].includes(s.confidence) ? s.confidence : 'rendah',
         drivers: Array.isArray(s.drivers) ? s.drivers.slice(0, 3).map((d: any) => String(d).slice(0, 140)) : [],
         sources: (f?.headlines || []).map((h) => ({ title: h.title, link: h.link, domain: h.domain })),
+        // Provenance baris ini: hasil AI sungguhan, atau nilai bawaan?
+        //
+        // Tanpa kolom ini, "AI menilai harga beras stabil" dan "AI tidak pernah
+        // menjawab sehingga dipakai nilai bawaan" tersimpan sebagai baris yang
+        // SAMA PERSIS: direction 'stabil', est 0..0, drivers []. Itulah yang
+        // membuat 32 hari sinyal kosong tampil di Radar sebagai perkiraan yang
+        // sah, dan itulah sebabnya kolom ini ada.
+        ai_status: aiStatus,
       }
     })
     await svc.from('macro_signals').upsert(rows, { onConflict: 'run_date,commodity_key' })
 
+    // Status run membedakan "selesai lengkap" dari "selesai tanpa AI".
+    //
+    // 'done' mengunci hari itu sepenuhnya (lihat blok LOCK di atas), jadi
+    // memakai 'done' untuk run yang AI-nya gagal berarti kegagalan sesaat di
+    // sisi Google mengunci Radar tanpa perkiraan selama 24 jam penuh.
+    // 'done_tanpa_ai' membiarkan pemicu berikutnya mencoba lagi — dibatasi
+    // jendela stale 10 menit, jadi paling banyak 6 percobaan per jam.
+    const statusRun = aiStatus === 'ok' ? 'done' : 'done_tanpa_ai'
     await svc.from('macro_runs').update({
-      status: 'done', finished_at: new Date().toISOString(),
-      detail: `${rows.length} sinyal; ${sp2kpCount} harga SP2KP; ${kursNote || 'kurs gagal'}`,
+      status: statusRun,
+      finished_at: new Date().toISOString(),
+      detail: `${rows.length} sinyal; ${sp2kpCount} harga SP2KP; ${kursNote || 'kurs gagal'}; `
+        + `AI=${aiStatus}${aiDetail ? ` (${aiDetail})` : ''}`,
+      ai_status: aiStatus,
+      ai_detail: aiDetail.slice(0, 500) || null,
+      ai_model: aiModel || null,
+      ai_tokens: aiTokens || null,
     }).eq('run_date', runKey)
 
-    return json({ ok: true, signals: rows.length, prices: sp2kpCount })
+    return json({
+      ok: true,
+      signals: rows.length,
+      prices: sp2kpCount,
+      ai: { status: aiStatus, model: aiModel || null, tokens: aiTokens, detail: aiDetail || null },
+    })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan pipeline makro.', detail: String(e).slice(0, 300) }, 500)
   }

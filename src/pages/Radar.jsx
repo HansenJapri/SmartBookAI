@@ -28,6 +28,22 @@ const expectedRunKey = () => new Date(Date.now() + (7 - 6) * 3600 * 1000).toISOS
 // (data itu tetap dipakai internal untuk menyusun sinyal).
 function SignalBlock({ s }) {
   const { t } = useLang()
+
+  // Baris yang BUKAN hasil AI tidak boleh tampil sebagai perkiraan.
+  //
+  // Ketika pipeline gagal memanggil Gemini, baris tetap ditulis dengan nilai
+  // bawaan: direction 'stabil', est 0..0. Di layar itu muncul sebagai
+  // "Perkiraan 30 hari: ±0%" — sebuah kalimat yang terbaca persis seperti
+  // analisis, padahal artinya "tidak ada analisis". Antara 8 Agustus dan
+  // 8 September 2026 seluruh Radar menampilkan angka itu setiap hari, dan
+  // tidak ada satu pun cara bagi pengguna untuk mengetahuinya.
+  //
+  // ai_status kosong = baris lama sebelum kolom ini ada; diperlakukan sebagai
+  // tidak diketahui, dan yang tidak diketahui tidak disajikan sebagai fakta.
+  if (s.ai_status !== 'ok') {
+    return <div className="sig-forecast muted-sm">{t.radar.forecastAiGagal}</div>
+  }
+
   const range = Number(s.est_pct_min) === 0 && Number(s.est_pct_max) === 0
     ? '±0%'
     : `${Number(s.est_pct_min) > 0 ? '+' : ''}${Number(s.est_pct_min)}% s.d. ${Number(s.est_pct_max) > 0 ? '+' : ''}${Number(s.est_pct_max)}%`

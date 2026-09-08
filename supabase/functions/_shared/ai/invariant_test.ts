@@ -14,7 +14,7 @@
 // ============================================================
 import { assert, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 import { dirname, fromFileUrl, join } from 'https://deno.land/std@0.224.0/path/mod.ts'
-import { FEATURE_ROUTES } from './config.ts'
+import { FEATURE_ROUTES, PLATFORM_ROUTES } from './config.ts'
 
 const FUNCTIONS_DIR = dirname(dirname(dirname(fromFileUrl(import.meta.url))))
 
@@ -52,7 +52,6 @@ async function edgeFunctions(): Promise<Array<{ nama: string; isi: string }>> {
  */
 const PENGECUALIAN_TERCATAT: Record<string, string> = {
   'ai-admin': 'Panel admin internal, bukan jalur pengguna. Belum disetujui untuk dimigrasi.',
-  'makro-harian': 'Job terjadwal (cron), bukan dipicu pengguna — kuota per-workspace tidak berlaku langsung. Perlu keputusan cap sendiri.',
   'voice-live-token': 'Menanyakan model yang mendukung bidiGenerateContent ke API sebelum menerbitkan token; bukan generateContent biasa. Perlu penanganan khusus.',
 }
 
@@ -82,7 +81,7 @@ Deno.test('utang key langsung persis sebatas yang sudah tercatat', () => {
   // Mengunci CAKUPAN utang, bukan menyembunyikannya: kalau ada fungsi baru yang
   // membaca key sendiri, daftar ini tidak lagi cocok dan test merah.
   const pembacaKey = FUNGSI.filter((f) => membacaKeyLangsung(f.isi)).map((f) => f.nama)
-  assertEquals(pembacaKey, ['ai-admin', 'makro-harian'])
+  assertEquals(pembacaKey, ['ai-admin'])
 })
 
 // ---------- Invarian 2: yang memanggil Gemini WAJIB lewat router + kuota ----------
@@ -241,4 +240,87 @@ Deno.test('setiap rute teks punya fallbackModel di model yang berbeda', () => {
     [],
     `Rute bermodel tunggal mati total begitu Google memensiunkan modelnya: ${tanpaCadangan.join(', ')}`,
   )
+})
+
+// ---------- Invarian 7: rute platform tunduk pada aturan yang sama ----------
+//
+// PLATFORM_ROUTES lahir saat `makro-harian` dimigrasi. Tanpa test ini ia jadi
+// pintu belakang: sebuah tabel rute kedua yang tidak diperiksa siapa pun, persis
+// posisi yang ditempati makro-harian selama 32 hari saat ia memaku
+// `gemini-2.5-flash` sendirian dan gagal setiap pagi tanpa terdeteksi.
+
+Deno.test('rute platform tidak memakai keluarga model yang sudah deprecated', () => {
+  const pelanggar: string[] = []
+  for (const [nama, rute] of Object.entries(PLATFORM_ROUTES)) {
+    for (const m of [rute.model, rute.fallbackModel]) {
+      if (KELUARGA_PENSIUN.some((prefix) => m.startsWith(prefix))) pelanggar.push(`${nama} -> ${m}`)
+    }
+  }
+  assertEquals(pelanggar, [], `Rute platform menunjuk model deprecated: ${pelanggar.join('; ')}`)
+})
+
+Deno.test('setiap rute platform punya fallbackModel yang berbeda', () => {
+  const tanpaCadangan = Object.entries(PLATFORM_ROUTES)
+    .filter(([, r]) => !r.fallbackModel || r.fallbackModel === r.model)
+    .map(([nama]) => nama)
+  assertEquals(
+    tanpaCadangan,
+    [],
+    `Cron bermodel tunggal mati diam-diam begitu Google memensiunkan modelnya: ${tanpaCadangan.join(', ')}`,
+  )
+})
+
+// ---------- Invarian 8: CORS hanya boleh datang dari _shared/cors.ts ----------
+//
+// Ini invarian yang paling mahal ketiadaannya. Sebelas Edge Function menyalin
+// blok CORS yang sama, dan setiap salinan membawa baris yang sama:
+//
+//   const allow = origin && ALLOWED_ORIGINS.includes(origin)
+//     ? origin : (ALLOWED_ORIGINS[0] || '*')
+//
+// Origin tak dikenal tetap dibalas 200, tapi dengan Allow-Origin milik origin
+// LAIN. Browser membuang responsnya tanpa pernah mengirim POST-nya, sehingga
+// tidak ada satu pun error yang tercatat di sisi mana pun. Ketika aplikasi
+// pindah ke domain kustom smartbookai.id sementara secret APP_ORIGIN masih
+// berisi domain vercel.app, SELURUH fitur AI dan harga Radar mati di produksi —
+// dan gejalanya di log hanya deretan `OPTIONS | 200` tanpa POST susulan.
+//
+// Daftar-izin yang tersebar di sebelas berkas berarti sebelas tempat yang harus
+// diingat setiap kali domain berubah. Satu tempat berarti satu.
+
+const BERBASIS_WILDCARD = ['auth-login-otp', 'categorize', 'invite-staff']
+
+Deno.test('tidak ada Edge Function yang mendefinisikan daftar origin sendiri', () => {
+  const pelanggar = FUNGSI
+    .filter((f) => /const ALLOWED_ORIGINS\s*=/.test(f.isi))
+    .map((f) => f.nama)
+  assertEquals(
+    pelanggar,
+    [],
+    `Daftar origin harus datang dari _shared/cors.ts. Pelanggar: ${pelanggar.join(', ')}`,
+  )
+})
+
+Deno.test('tidak ada Edge Function yang membalas Allow-Origin milik origin lain', () => {
+  // Menangkap pola persisnya, bukan sekadar ketiadaan ALLOWED_ORIGINS: bentuk
+  // "kalau tidak cocok, pakai yang pertama" boleh muncul dengan nama variabel
+  // apa pun dan tetap sama merusaknya.
+  const pelanggar = FUNGSI
+    .filter((f) => /\?\s*origin\s*:\s*\(?[A-Z_]+\[0\]/.test(f.isi))
+    .map((f) => f.nama)
+  assertEquals(
+    pelanggar,
+    [],
+    'Origin tak dikenal WAJIB tidak mendapat header Allow-Origin sama sekali, '
+    + `bukan header milik origin lain. Pelanggar: ${pelanggar.join(', ')}`,
+  )
+})
+
+Deno.test('setiap Edge Function ber-CORS memakai helper bersama', () => {
+  const pelanggar = FUNGSI
+    .filter((f) => !BERBASIS_WILDCARD.includes(f.nama))
+    .filter((f) => f.isi.includes('Access-Control-Allow-Origin') || f.isi.includes('corsHeaders'))
+    .filter((f) => !f.isi.includes("from '../_shared/cors.ts'"))
+    .map((f) => f.nama)
+  assertEquals(pelanggar, [], `Belum memakai _shared/cors.ts: ${pelanggar.join(', ')}`)
 })
