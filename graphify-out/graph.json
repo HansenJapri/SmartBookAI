@@ -2716,8 +2716,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "package",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 225,
+      "community_name": "package.json",
       "norm_label": "package.json"
     },
     {
@@ -2727,8 +2727,8 @@
       "source_location": "L2",
       "_origin": "ast",
       "id": "package_name",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 225,
+      "community_name": "package.json",
       "norm_label": "name"
     },
     {
@@ -2738,8 +2738,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "package_private",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 225,
+      "community_name": "package.json",
       "norm_label": "private"
     },
     {
@@ -2749,8 +2749,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "package_version",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 225,
+      "community_name": "package.json",
       "norm_label": "version"
     },
     {
@@ -2760,8 +2760,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "package_type",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 225,
+      "community_name": "package.json",
       "norm_label": "type"
     },
     {
@@ -2771,8 +2771,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "package_engines",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 225,
+      "community_name": "package.json",
       "norm_label": "engines"
     },
     {
@@ -2782,8 +2782,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "package_engines_node",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 225,
+      "community_name": "package.json",
       "norm_label": "node"
     },
     {
@@ -2793,8 +2793,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "package_scripts",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "scripts"
     },
     {
@@ -2804,8 +2804,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "package_scripts_dev",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "dev"
     },
     {
@@ -2815,8 +2815,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "package_scripts_build",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "build"
     },
     {
@@ -2826,8 +2826,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "package_scripts_preview",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "preview"
     },
     {
@@ -2837,8 +2837,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "package_scripts_test",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "test"
     },
     {
@@ -2848,8 +2848,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "package_scripts_test_db",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "test:db"
     },
     {
@@ -2859,8 +2859,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "package_scripts_test_e2e",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "test:e2e"
     },
     {
@@ -2870,8 +2870,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "package_scripts_test_perf",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "test:perf"
     },
     {
@@ -2881,8 +2881,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "package_scripts_cek_bundle",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "cek:bundle"
     },
     {
@@ -2892,8 +2892,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "package_scripts_eval_ai",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "eval:ai"
     },
     {
@@ -2903,8 +2903,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "package_scripts_eval_ai_list",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "eval:ai:list"
     },
     {
@@ -2914,8 +2914,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "package_scripts_seed_uji",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "seed:uji"
     },
     {
@@ -2925,8 +2925,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "package_scripts_seed_uji_bersih",
-      "community": 176,
-      "community_name": "Struk.jsx",
+      "community": 221,
+      "community_name": "scripts",
       "norm_label": "seed:uji:bersih"
     },
     {
@@ -2936,8 +2936,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "package_dependencies",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "dependencies"
     },
     {
@@ -2947,8 +2947,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "package_dependencies_fontsource_variable_space_grotesk",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "@fontsource-variable/space-grotesk"
     },
     {
@@ -2958,8 +2958,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "fontsource_variable_space_grotesk",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "@fontsource-variable/space-grotesk"
     },
     {
@@ -2969,8 +2969,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "package_dependencies_fontsource_inter",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "@fontsource/inter"
     },
     {
@@ -2980,8 +2980,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "fontsource_inter",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "@fontsource/inter"
     },
     {
@@ -2991,8 +2991,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "package_dependencies_supabase_supabase_js",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "@supabase/supabase-js"
     },
     {
@@ -3002,8 +3002,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "package_json_supabase_supabase_js",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "@supabase/supabase-js"
     },
     {
@@ -3013,8 +3013,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "package_dependencies_jspdf",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "jspdf"
     },
     {
@@ -3024,8 +3024,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "jspdf",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 91,
+      "community_name": "ai-hpp-draft/index.ts",
       "norm_label": "jspdf"
     },
     {
@@ -3035,8 +3035,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "package_dependencies_jspdf_autotable",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "jspdf-autotable"
     },
     {
@@ -3046,8 +3046,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "jspdf_autotable",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "jspdf-autotable"
     },
     {
@@ -3057,8 +3057,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_dependencies_lucide_react",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "lucide-react"
     },
     {
@@ -3068,8 +3068,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "package_json_lucide_react",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "lucide-react"
     },
     {
@@ -3079,8 +3079,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "package_dependencies_papaparse",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "papaparse"
     },
     {
@@ -3090,8 +3090,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "papaparse",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "papaparse"
     },
     {
@@ -3101,8 +3101,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "package_dependencies_react",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "react"
     },
     {
@@ -3112,8 +3112,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "package_json_react",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "react"
     },
     {
@@ -3123,8 +3123,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_dependencies_react_dom",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 229,
+      "community_name": "react-dom",
       "norm_label": "react-dom"
     },
     {
@@ -3134,8 +3134,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "package_json_react_dom",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 229,
+      "community_name": "react-dom",
       "norm_label": "react-dom"
     },
     {
@@ -3145,8 +3145,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "package_dependencies_react_router_dom",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "react-router-dom"
     },
     {
@@ -3156,8 +3156,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "package_json_react_router_dom",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "react-router-dom"
     },
     {
@@ -3167,8 +3167,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "package_dependencies_recharts",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "recharts"
     },
     {
@@ -3178,8 +3178,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "package_json_recharts",
-      "community": 216,
-      "community_name": "src/lib/legalRender.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "recharts"
     },
     {
@@ -3189,8 +3189,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "package_dependencies_xlsx",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "xlsx"
     },
     {
@@ -3200,8 +3200,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "xlsx",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 217,
+      "community_name": "sanitize.ts",
       "norm_label": "xlsx"
     },
     {
@@ -4036,8 +4036,8 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_app_app",
-      "community": 16,
-      "community_name": "src/App.jsx",
+      "community": 164,
+      "community_name": "useAuth",
       "norm_label": "app()"
     },
     {
@@ -4047,8 +4047,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_aidisclaimer",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "aidisclaimer.jsx"
     },
     {
@@ -4058,8 +4058,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_aidisclaimer_aidisclaimer",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "aidisclaimer()"
     },
     {
@@ -4091,8 +4091,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_applayout",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "applayout.jsx"
     },
     {
@@ -4102,8 +4102,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_applayout_nav",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "nav"
     },
     {
@@ -4113,8 +4113,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_components_applayout_title_key",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "title_key"
     },
     {
@@ -4179,8 +4179,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_baselineask",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 228,
+      "community_name": "BaselineAsk.jsx",
       "norm_label": "baselineask.jsx"
     },
     {
@@ -4201,8 +4201,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_baselineask_baselineask",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 228,
+      "community_name": "BaselineAsk.jsx",
       "norm_label": "baselineask()"
     },
     {
@@ -4212,8 +4212,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_chatbot",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "src/components/chatbot.jsx"
     },
     {
@@ -4223,8 +4223,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_chatbot_occurredatiso",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "occurredatiso()"
     },
     {
@@ -4234,8 +4234,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_chatbot_chatbot",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "chatbot()"
     },
     {
@@ -4465,8 +4465,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_mfachallenge",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "src/components/mfachallenge.jsx"
     },
     {
@@ -4476,8 +4476,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_mfachallenge_mfachallenge",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "mfachallenge()"
     },
     {
@@ -4487,8 +4487,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_modal",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "modal.jsx"
     },
     {
@@ -4498,8 +4498,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_modal_modal",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "modal()"
     },
     {
@@ -4630,8 +4630,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_reminders",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "reminders.jsx"
     },
     {
@@ -4641,8 +4641,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_components_reminders_reminders",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "reminders()"
     },
     {
@@ -4718,8 +4718,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_themetoggle",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "themetoggle.jsx"
     },
     {
@@ -4729,8 +4729,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_components_themetoggle_themetoggle",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "themetoggle()"
     },
     {
@@ -4828,8 +4828,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_workspaceswitcher",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "workspaceswitcher.jsx"
     },
     {
@@ -4839,8 +4839,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_workspaceswitcher_workspaceswitcher",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "workspaceswitcher()"
     },
     {
@@ -4916,8 +4916,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_tests_modal_test",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "modal.test.jsx"
     },
     {
@@ -4938,8 +4938,8 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_components_tests_modal_test_harness",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "harness()"
     },
     {
@@ -5103,8 +5103,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_context_authcontext",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 164,
+      "community_name": "useAuth",
       "norm_label": "authcontext.jsx"
     },
     {
@@ -5114,8 +5114,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_context_authcontext_authctx",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 164,
+      "community_name": "useAuth",
       "norm_label": "authctx"
     },
     {
@@ -5125,8 +5125,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_context_authcontext_authprovider",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 164,
+      "community_name": "useAuth",
       "norm_label": "authprovider()"
     },
     {
@@ -5136,8 +5136,8 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "src_context_authcontext_useauth",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "useauth()"
     },
     {
@@ -5191,8 +5191,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_context_catalogcontext_colorfor",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "colorfor()"
     },
     {
@@ -5246,8 +5246,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_context_langcontext_langprovider",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 164,
+      "community_name": "useAuth",
       "norm_label": "langprovider()"
     },
     {
@@ -5301,8 +5301,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_context_workspacecontext_useworkspace",
-      "community": 79,
-      "community_name": "PurchaseOrders.jsx",
+      "community": 40,
+      "community_name": "src/main.jsx",
       "norm_label": "useworkspace()"
     },
     {
@@ -5576,8 +5576,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_dateinput_test",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "dateinput.test.js"
     },
     {
@@ -5609,8 +5609,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_format_test",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "format.test.js"
     },
     {
@@ -5950,8 +5950,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_logic_test",
-      "community": 10,
-      "community_name": "csvImport.js",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "logic.test.js"
     },
     {
@@ -6324,8 +6324,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_ragprice_test",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "ragprice.test.js"
     },
     {
@@ -6522,8 +6522,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test",
-      "community": 220,
-      "community_name": "useOtpLock.test.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "useotplock.test.jsx"
     },
     {
@@ -6533,8 +6533,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_statusotp",
-      "community": 220,
-      "community_name": "useOtpLock.test.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "statusotp"
     },
     {
@@ -6544,8 +6544,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_catatotpgagal",
-      "community": 220,
-      "community_name": "useOtpLock.test.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "catatotpgagal"
     },
     {
@@ -6555,8 +6555,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_tests_useotplock_test_resetotp",
-      "community": 220,
-      "community_name": "useOtpLock.test.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "resetotp"
     },
     {
@@ -7215,8 +7215,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_analytics",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "analytics.js"
     },
     {
@@ -7226,8 +7226,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_analytics_findduplicategroups",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "findduplicategroups()"
     },
     {
@@ -7237,8 +7237,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_lib_analytics_summarize",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "summarize()"
     },
     {
@@ -7248,8 +7248,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_lib_analytics_issameday",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "issameday()"
     },
     {
@@ -7259,8 +7259,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_lib_analytics_todaysummary",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "todaysummary()"
     },
     {
@@ -7270,8 +7270,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_lib_analytics_trenddaily",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "trenddaily()"
     },
     {
@@ -7281,8 +7281,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_lib_analytics_trendforrange",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "trendforrange()"
     },
     {
@@ -7303,8 +7303,8 @@
       "source_location": "L137",
       "_origin": "ast",
       "id": "src_lib_analytics_expensebycategory",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "expensebycategory()"
     },
     {
@@ -7314,8 +7314,8 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "src_lib_analytics_tax",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "tax"
     },
     {
@@ -7325,8 +7325,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_lib_analytics_taxyearly",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "taxyearly()"
     },
     {
@@ -7336,8 +7336,8 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "src_lib_analytics_monthlytaxrows",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "monthlytaxrows()"
     },
     {
@@ -7347,8 +7347,8 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "src_lib_analytics_taxsummaryforyear",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "taxsummaryforyear()"
     },
     {
@@ -7413,8 +7413,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_lib_api_adalahgalatsesi",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "adalahgalatsesi()"
     },
     {
@@ -7501,8 +7501,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_lib_api_wsupdate",
-      "community": 195,
-      "community_name": "package.json",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "wsupdate()"
     },
     {
@@ -7523,8 +7523,8 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "src_lib_api_fetchtransactions",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "fetchtransactions()"
     },
     {
@@ -7545,8 +7545,8 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "src_lib_api_fetchtxcount",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "fetchtxcount()"
     },
     {
@@ -7567,8 +7567,8 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "src_lib_api_addtransaction",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 179,
+      "community_name": "fetchSuppliers",
       "norm_label": "addtransaction()"
     },
     {
@@ -7600,8 +7600,8 @@
       "source_location": "L285",
       "_origin": "ast",
       "id": "src_lib_api_addtransactionsbulk",
-      "community": 190,
-      "community_name": "action-blocklist.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "addtransactionsbulk()"
     },
     {
@@ -7633,8 +7633,8 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "src_lib_api_fetchrules",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "fetchrules()"
     },
     {
@@ -7644,8 +7644,8 @@
       "source_location": "L344",
       "_origin": "ast",
       "id": "src_lib_api_addrule",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "addrule()"
     },
     {
@@ -7655,8 +7655,8 @@
       "source_location": "L352",
       "_origin": "ast",
       "id": "src_lib_api_deleterule",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "deleterule()"
     },
     {
@@ -7677,8 +7677,8 @@
       "source_location": "L363",
       "_origin": "ast",
       "id": "src_lib_api_addcategory",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "addcategory()"
     },
     {
@@ -7688,8 +7688,8 @@
       "source_location": "L370",
       "_origin": "ast",
       "id": "src_lib_api_updatecategory",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "updatecategory()"
     },
     {
@@ -7699,8 +7699,8 @@
       "source_location": "L375",
       "_origin": "ast",
       "id": "src_lib_api_deletecategory",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "deletecategory()"
     },
     {
@@ -7721,8 +7721,8 @@
       "source_location": "L386",
       "_origin": "ast",
       "id": "src_lib_api_addchannel",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "addchannel()"
     },
     {
@@ -7743,8 +7743,8 @@
       "source_location": "L399",
       "_origin": "ast",
       "id": "src_lib_api_deletechannel",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "deletechannel()"
     },
     {
@@ -7787,8 +7787,8 @@
       "source_location": "L447",
       "_origin": "ast",
       "id": "src_lib_api_receipt_types",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "receipt_types"
     },
     {
@@ -7798,8 +7798,8 @@
       "source_location": "L449",
       "_origin": "ast",
       "id": "src_lib_api_uploadreceipt",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "uploadreceipt()"
     },
     {
@@ -7809,8 +7809,8 @@
       "source_location": "L464",
       "_origin": "ast",
       "id": "src_lib_api_getreceipturl",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "getreceipturl()"
     },
     {
@@ -7820,8 +7820,8 @@
       "source_location": "L472",
       "_origin": "ast",
       "id": "src_lib_api_fetchprofile",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "fetchprofile()"
     },
     {
@@ -7831,8 +7831,8 @@
       "source_location": "L481",
       "_origin": "ast",
       "id": "src_lib_api_updateprofile",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "updateprofile()"
     },
     {
@@ -7842,8 +7842,8 @@
       "source_location": "L498",
       "_origin": "ast",
       "id": "src_lib_api_exportmydata",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "exportmydata()"
     },
     {
@@ -7853,8 +7853,8 @@
       "source_location": "L521",
       "_origin": "ast",
       "id": "src_lib_api_deletemydata",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "deletemydata()"
     },
     {
@@ -7875,8 +7875,8 @@
       "source_location": "L556",
       "_origin": "ast",
       "id": "src_lib_api_fetchfeedback",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "fetchfeedback()"
     },
     {
@@ -7897,8 +7897,8 @@
       "source_location": "L597",
       "_origin": "ast",
       "id": "src_lib_api_deletefeedback",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "deletefeedback()"
     },
     {
@@ -7974,8 +7974,8 @@
       "source_location": "L643",
       "_origin": "ast",
       "id": "src_lib_api_updatecustomer",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updatecustomer()"
     },
     {
@@ -7985,8 +7985,8 @@
       "source_location": "L650",
       "_origin": "ast",
       "id": "src_lib_api_deletecustomer",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "deletecustomer()"
     },
     {
@@ -8007,8 +8007,8 @@
       "source_location": "L699",
       "_origin": "ast",
       "id": "src_lib_api_resolvesupplier",
-      "community": 186,
-      "community_name": "Supplier.jsx",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "resolvesupplier()"
     },
     {
@@ -8029,8 +8029,8 @@
       "source_location": "L740",
       "_origin": "ast",
       "id": "src_lib_api_fetchproducts",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "fetchproducts()"
     },
     {
@@ -8106,8 +8106,8 @@
       "source_location": "L822",
       "_origin": "ast",
       "id": "src_lib_api_fetchpurchaseorders",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "fetchpurchaseorders()"
     },
     {
@@ -8194,8 +8194,8 @@
       "source_location": "L912",
       "_origin": "ast",
       "id": "src_lib_api_updateopname",
-      "community": 195,
-      "community_name": "package.json",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updateopname()"
     },
     {
@@ -8227,8 +8227,8 @@
       "source_location": "L957",
       "_origin": "ast",
       "id": "src_lib_api_assertownerview",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "assertownerview()"
     },
     {
@@ -8249,8 +8249,8 @@
       "source_location": "L985",
       "_origin": "ast",
       "id": "src_lib_api_notifyinvite",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "notifyinvite()"
     },
     {
@@ -8260,8 +8260,8 @@
       "source_location": "L991",
       "_origin": "ast",
       "id": "src_lib_api_module_keys",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "module_keys"
     },
     {
@@ -8271,8 +8271,8 @@
       "source_location": "L992",
       "_origin": "ast",
       "id": "src_lib_api_staff_roles",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "staff_roles"
     },
     {
@@ -8282,8 +8282,8 @@
       "source_location": "L993",
       "_origin": "ast",
       "id": "src_lib_api_staff_statuses",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "staff_statuses"
     },
     {
@@ -8293,8 +8293,8 @@
       "source_location": "L997",
       "_origin": "ast",
       "id": "src_lib_api_sanitizemodules",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "sanitizemodules()"
     },
     {
@@ -8304,8 +8304,8 @@
       "source_location": "L1007",
       "_origin": "ast",
       "id": "src_lib_api_sanitizestaffname",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "sanitizestaffname()"
     },
     {
@@ -8315,8 +8315,8 @@
       "source_location": "L1015",
       "_origin": "ast",
       "id": "src_lib_api_addstaff",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "addstaff()"
     },
     {
@@ -8326,8 +8326,8 @@
       "source_location": "L1045",
       "_origin": "ast",
       "id": "src_lib_api_updatestaff",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "updatestaff()"
     },
     {
@@ -8337,8 +8337,8 @@
       "source_location": "L1064",
       "_origin": "ast",
       "id": "src_lib_api_deletestaff",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "deletestaff()"
     },
     {
@@ -8348,8 +8348,8 @@
       "source_location": "L1072",
       "_origin": "ast",
       "id": "src_lib_api_reinvitestaff",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "reinvitestaff()"
     },
     {
@@ -8447,8 +8447,8 @@
       "source_location": "L1208",
       "_origin": "ast",
       "id": "src_lib_api_addtask",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "addtask()"
     },
     {
@@ -8458,8 +8458,8 @@
       "source_location": "L1215",
       "_origin": "ast",
       "id": "src_lib_api_updatetask",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updatetask()"
     },
     {
@@ -8491,8 +8491,8 @@
       "source_location": "L1231",
       "_origin": "ast",
       "id": "src_lib_api_addemployee",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "addemployee()"
     },
     {
@@ -8502,8 +8502,8 @@
       "source_location": "L1238",
       "_origin": "ast",
       "id": "src_lib_api_updateemployee",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updateemployee()"
     },
     {
@@ -8513,8 +8513,8 @@
       "source_location": "L1243",
       "_origin": "ast",
       "id": "src_lib_api_deleteemployee",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "deleteemployee()"
     },
     {
@@ -8612,8 +8612,8 @@
       "source_location": "L1308",
       "_origin": "ast",
       "id": "src_lib_api_updatekpicriteria",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updatekpicriteria()"
     },
     {
@@ -8623,8 +8623,8 @@
       "source_location": "L1313",
       "_origin": "ast",
       "id": "src_lib_api_deletekpicriteria",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "deletekpicriteria()"
     },
     {
@@ -8678,8 +8678,8 @@
       "source_location": "L1347",
       "_origin": "ast",
       "id": "src_lib_api_updatekpibonusrule",
-      "community": 195,
-      "community_name": "package.json",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updatekpibonusrule()"
     },
     {
@@ -8722,8 +8722,8 @@
       "source_location": "L1369",
       "_origin": "ast",
       "id": "src_lib_api_updatepayroll",
-      "community": 195,
-      "community_name": "package.json",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updatepayroll()"
     },
     {
@@ -8777,8 +8777,8 @@
       "source_location": "L1412",
       "_origin": "ast",
       "id": "src_lib_api_updatereminder",
-      "community": 195,
-      "community_name": "package.json",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updatereminder()"
     },
     {
@@ -8788,8 +8788,8 @@
       "source_location": "L1417",
       "_origin": "ast",
       "id": "src_lib_api_deletereminder",
-      "community": 179,
-      "community_name": "fetchSuppliers",
+      "community": 43,
+      "community_name": "chatbot-eval.mjs",
       "norm_label": "deletereminder()"
     },
     {
@@ -8942,8 +8942,8 @@
       "source_location": "L1514",
       "_origin": "ast",
       "id": "src_lib_api_fetchbaseline",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 228,
+      "community_name": "BaselineAsk.jsx",
       "norm_label": "fetchbaseline()"
     },
     {
@@ -8953,8 +8953,8 @@
       "source_location": "L1522",
       "_origin": "ast",
       "id": "src_lib_api_savebaseline",
-      "community": 6,
-      "community_name": "dependencies",
+      "community": 228,
+      "community_name": "BaselineAsk.jsx",
       "norm_label": "savebaseline()"
     },
     {
@@ -9008,8 +9008,8 @@
       "source_location": "L1606",
       "_origin": "ast",
       "id": "src_lib_api_deactivatetarget",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "deactivatetarget()"
     },
     {
@@ -9030,8 +9030,8 @@
       "source_location": "L1622",
       "_origin": "ast",
       "id": "src_lib_api_updateingredient",
-      "community": 195,
-      "community_name": "package.json",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "updateingredient()"
     },
     {
@@ -9096,8 +9096,8 @@
       "source_location": "L1734",
       "_origin": "ast",
       "id": "src_lib_api_fetchcommodityprices",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 6,
+      "community_name": "dependencies",
       "norm_label": "fetchcommodityprices()"
     },
     {
@@ -9547,8 +9547,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_dateinput",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "dateinput.js"
     },
     {
@@ -9558,8 +9558,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_lib_dateinput_batas_date",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "batas_date"
     },
     {
@@ -9569,8 +9569,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_dateinput_batas_datetime",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "batas_datetime"
     },
     {
@@ -9591,8 +9591,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_lib_dateinput_bersihkantanggal",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "bersihkantanggal()"
     },
     {
@@ -9690,8 +9690,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "src/lib/format.js"
     },
     {
@@ -9701,8 +9701,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_format_rupiah",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "rupiah()"
     },
     {
@@ -9712,8 +9712,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_lib_format_rupiahshort",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "rupiahshort()"
     },
     {
@@ -9723,8 +9723,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_format_months",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "months"
     },
     {
@@ -9734,8 +9734,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_lib_format_sah",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "sah()"
     },
     {
@@ -9745,8 +9745,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_format_fmtdate",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "fmtdate()"
     },
     {
@@ -9756,8 +9756,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_lib_format_fmtdatetime",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "fmtdatetime()"
     },
     {
@@ -9767,8 +9767,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_lib_format_todateinput",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "todateinput()"
     },
     {
@@ -9778,8 +9778,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_lib_format_monthkey",
-      "community": 44,
-      "community_name": "useLang",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "monthkey()"
     },
     {
@@ -10867,8 +10867,8 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "src_lib_liveaudio_livevoicesupported",
-      "community": 2,
-      "community_name": "Hpp.jsx",
+      "community": 194,
+      "community_name": "WorkspaceContext.jsx",
       "norm_label": "livevoicesupported()"
     },
     {
@@ -11439,8 +11439,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_otpguard",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "otpguard.js"
     },
     {
@@ -11450,8 +11450,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_lib_otpguard_otp_bucket",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "otp_bucket"
     },
     {
@@ -11461,8 +11461,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_lib_otpguard_kuncilokal",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "kuncilokal()"
     },
     {
@@ -11472,8 +11472,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_lib_otpguard_bacalokal",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "bacalokal()"
     },
     {
@@ -11483,8 +11483,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_lib_otpguard_tulislokal",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "tulislokal()"
     },
     {
@@ -11494,8 +11494,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_lib_otpguard_hapuslokal",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "hapuslokal()"
     },
     {
@@ -11505,8 +11505,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_lib_otpguard_darilokal",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "darilokal()"
     },
     {
@@ -11516,8 +11516,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_lib_otpguard_panggil",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "panggil()"
     },
     {
@@ -11527,8 +11527,8 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_lib_otpguard_statusotp",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "statusotp()"
     },
     {
@@ -11538,8 +11538,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_lib_otpguard_catatotpgagal",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "catatotpgagal()"
     },
     {
@@ -11549,8 +11549,8 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "src_lib_otpguard_resetotp",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "resetotp()"
     },
     {
@@ -11560,8 +11560,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_lib_otpguard_formattunggu",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "formattunggu()"
     },
     {
@@ -11692,8 +11692,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_ragprice",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "ragprice.js"
     },
     {
@@ -11703,8 +11703,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_lib_ragprice_trusted_domains",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "trusted_domains"
     },
     {
@@ -11714,8 +11714,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_lib_ragprice_domainof",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "domainof()"
     },
     {
@@ -11725,8 +11725,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_lib_ragprice_istrusted",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "istrusted()"
     },
     {
@@ -11736,8 +11736,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_lib_ragprice_finalurl",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "finalurl()"
     },
     {
@@ -11747,8 +11747,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_lib_ragprice_numberappearsin",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "numberappearsin()"
     },
     {
@@ -11758,8 +11758,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_lib_ragprice_parserupiahmentions",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "parserupiahmentions()"
     },
     {
@@ -11769,8 +11769,8 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "src_lib_ragprice_pickcommodityprice",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "pickcommodityprice()"
     },
     {
@@ -11780,8 +11780,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_lib_ragprice_selectragprices",
-      "community": 26,
-      "community_name": "Dashboard.jsx",
+      "community": 222,
+      "community_name": "ragPrice.js",
       "norm_label": "selectragprices()"
     },
     {
@@ -11879,8 +11879,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_lib_rbac_canmanageusers",
-      "community": 40,
-      "community_name": "src/main.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "canmanageusers()"
     },
     {
@@ -11945,8 +11945,8 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "src_lib_rbac_staffdisplayname",
-      "community": 40,
-      "community_name": "src/main.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "staffdisplayname()"
     },
     {
@@ -11956,8 +11956,8 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "src_lib_rbac_staff_status",
-      "community": 40,
-      "community_name": "src/main.jsx",
+      "community": 117,
+      "community_name": "25. Feedback",
       "norm_label": "staff_status"
     },
     {
@@ -12616,8 +12616,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_usemodala11y",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "usemodala11y.js"
     },
     {
@@ -12627,8 +12627,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_lib_usemodala11y_focusable",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "focusable"
     },
     {
@@ -12638,8 +12638,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_lib_usemodala11y_usemodala11y",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "usemodala11y()"
     },
     {
@@ -12682,8 +12682,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_useotplock",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "useotplock.js"
     },
     {
@@ -12693,8 +12693,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_useotplock_useotplock",
-      "community": 28,
-      "community_name": "useAuth",
+      "community": 220,
+      "community_name": "useOtpLock.test.jsx",
       "norm_label": "useotplock()"
     },
     {
@@ -13573,8 +13573,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 164,
+      "community_name": "useAuth",
       "norm_label": "src/main.jsx"
     },
     {
@@ -13661,8 +13661,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_audit",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "audit.jsx"
     },
     {
@@ -13672,8 +13672,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_pages_audit_action_cls",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "action_cls"
     },
     {
@@ -13683,8 +13683,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_pages_audit_audit",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "audit()"
     },
     {
@@ -13782,8 +13782,8 @@
       "source_location": "L469",
       "_origin": "ast",
       "id": "src_pages_dashboard_computetargetprogress",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "computetargetprogress()"
     },
     {
@@ -13793,8 +13793,8 @@
       "source_location": "L502",
       "_origin": "ast",
       "id": "src_pages_dashboard_targetmetric",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "targetmetric()"
     },
     {
@@ -13804,8 +13804,8 @@
       "source_location": "L515",
       "_origin": "ast",
       "id": "src_pages_dashboard_targetcard",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 61,
+      "community_name": "ai-narasi/index.ts",
       "norm_label": "targetcard()"
     },
     {
@@ -13815,8 +13815,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_demo",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 41,
+      "community_name": "Register.jsx",
       "norm_label": "demo.jsx"
     },
     {
@@ -13826,8 +13826,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_pages_demo_demo",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 41,
+      "community_name": "Register.jsx",
       "norm_label": "demo()"
     },
     {
@@ -13870,8 +13870,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_employees",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "employees.jsx"
     },
     {
@@ -13881,8 +13881,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_pages_employees_blankform",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "blankform()"
     },
     {
@@ -13892,8 +13892,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_pages_employees_employees",
-      "community": 117,
-      "community_name": "25. Feedback",
+      "community": 196,
+      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
       "norm_label": "employees()"
     },
     {
@@ -14101,8 +14101,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_login",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 28,
+      "community_name": "useAuth",
       "norm_label": "src/pages/login.jsx"
     },
     {
@@ -14112,8 +14112,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_login_login",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 16,
+      "community_name": "src/App.jsx",
       "norm_label": "login()"
     },
     {
@@ -14189,8 +14189,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_purchaseorders",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "purchaseorders.jsx"
     },
     {
@@ -14200,8 +14200,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_purchaseorders_blankform",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "blankform()"
     },
     {
@@ -14211,8 +14211,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_pages_purchaseorders_purchaseorders",
-      "community": 194,
-      "community_name": "WorkspaceContext.jsx",
+      "community": 171,
+      "community_name": "15. Absensi & Cuti",
       "norm_label": "purchaseorders()"
     },
     {
@@ -14299,8 +14299,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_reconciliation",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "reconciliation.jsx"
     },
     {
@@ -14310,8 +14310,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_pages_reconciliation_reconciliation",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "reconciliation()"
     },
     {
@@ -14365,8 +14365,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_reveal",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "reveal.jsx"
     },
     {
@@ -14376,8 +14376,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_reveal_reveal",
-      "community": 91,
-      "community_name": "ai-hpp-draft/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "reveal()"
     },
     {
@@ -14387,8 +14387,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_settings",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "settings.jsx"
     },
     {
@@ -14398,8 +14398,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_pages_settings_slug",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "slug()"
     },
     {
@@ -14409,8 +14409,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_pages_settings_resizeimagetodataurl",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "resizeimagetodataurl()"
     },
     {
@@ -14420,8 +14420,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_pages_settings_catlist",
-      "community": 43,
-      "community_name": "chatbot-eval.mjs",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "catlist()"
     },
     {
@@ -14431,8 +14431,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_pages_settings_settings",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 195,
+      "community_name": "package.json",
       "norm_label": "settings()"
     },
     {
@@ -14530,8 +14530,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_stokhistori",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "stokhistori.jsx"
     },
     {
@@ -14541,8 +14541,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_pages_stokhistori_stokhistori",
-      "community": 61,
-      "community_name": "ai-narasi/index.ts",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "stokhistori()"
     },
     {
@@ -14706,8 +14706,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_transactions",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "src/pages/transactions.jsx"
     },
     {
@@ -14717,8 +14717,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_transactions_transactions",
-      "community": 196,
-      "community_name": "12. HPP \u2014 Harga Pokok Produksi",
+      "community": 79,
+      "community_name": "PurchaseOrders.jsx",
       "norm_label": "transactions()"
     },
     {
@@ -17236,8 +17236,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "supabase_functions_shared_ai_workspace_scope_resolvescope",
-      "community": 0,
-      "community_name": "api.js",
+      "community": 29,
+      "community_name": "Settings.jsx",
       "norm_label": "resolvescope()"
     },
     {
@@ -20231,6 +20231,17 @@
       "community": 125,
       "community_name": "migration_security.sql",
       "norm_label": "feedback_author_trg"
+    },
+    {
+      "label": "migration_storage_buckets.sql",
+      "file_type": "code",
+      "source_file": "supabase/migration_storage_buckets.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "supabase_migration_storage_buckets",
+      "community": 230,
+      "community_name": "migration_storage_buckets.sql",
+      "norm_label": "migration_storage_buckets.sql"
     },
     {
       "label": "migration_tenancy_constraints.sql",
@@ -23957,8 +23968,8 @@
       "source_location": "L733",
       "_origin": "ast",
       "id": "fitur_24_pengaturan",
-      "community": 217,
-      "community_name": "sanitize.ts",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "24. pengaturan"
     },
     {
@@ -23968,8 +23979,8 @@
       "source_location": "L735",
       "_origin": "ast",
       "id": "fitur_fungsi_tujuan_735",
-      "community": 217,
-      "community_name": "sanitize.ts",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "fungsi & tujuan"
     },
     {
@@ -23979,8 +23990,8 @@
       "source_location": "L738",
       "_origin": "ast",
       "id": "fitur_yang_bisa_dikonfigurasi",
-      "community": 217,
-      "community_name": "sanitize.ts",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "yang bisa dikonfigurasi"
     },
     {
@@ -23990,8 +24001,8 @@
       "source_location": "L765",
       "_origin": "ast",
       "id": "fitur_cara_penggunaan_765",
-      "community": 217,
-      "community_name": "sanitize.ts",
+      "community": 35,
+      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
       "norm_label": "cara penggunaan"
     },
     {
@@ -24001,8 +24012,8 @@
       "source_location": "L774",
       "_origin": "ast",
       "id": "fitur_25_feedback",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 226,
+      "community_name": "25. Feedback",
       "norm_label": "25. feedback"
     },
     {
@@ -24012,8 +24023,8 @@
       "source_location": "L776",
       "_origin": "ast",
       "id": "fitur_fungsi_tujuan_776",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 226,
+      "community_name": "25. Feedback",
       "norm_label": "fungsi & tujuan"
     },
     {
@@ -24023,8 +24034,8 @@
       "source_location": "L779",
       "_origin": "ast",
       "id": "fitur_yang_bisa_dilakukan_779",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 226,
+      "community_name": "25. Feedback",
       "norm_label": "yang bisa dilakukan"
     },
     {
@@ -24034,8 +24045,8 @@
       "source_location": "L786",
       "_origin": "ast",
       "id": "fitur_cara_penggunaan_786",
-      "community": 35,
-      "community_name": "BukuPintar AI \u2014 Dokumentasi Fitur Lengkap",
+      "community": 226,
+      "community_name": "25. Feedback",
       "norm_label": "cara penggunaan"
     },
     {
@@ -24191,6 +24202,105 @@
       "community": 36,
       "community_name": "26. Rencana Testing",
       "norm_label": "26.13 checklist pra-launch"
+    },
+    {
+      "label": "LANGKAH-SETELAH-REBUILD.md",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "langkah-setelah-rebuild.md"
+    },
+    {
+      "label": "Langkah setelah database dibangun ulang",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "langkah setelah database dibangun ulang"
+    },
+    {
+      "label": "1. Perbarui environment variable di Vercel  \u26a0\ufe0f PALING PENTING",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_1_perbarui_environment_variable_di_vercel_paling_penting",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "1. perbarui environment variable di vercel  \u26a0\ufe0f paling penting"
+    },
+    {
+      "label": "2. Push kode ke GitHub",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L45",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_2_push_kode_ke_github",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "2. push kode ke github"
+    },
+    {
+      "label": "3. Daftar ulang akun + jadikan admin",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L57",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_3_daftar_ulang_akun_jadikan_admin",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "3. daftar ulang akun + jadikan admin"
+    },
+    {
+      "label": "4. Kunci Gemini \u2014 supaya fitur AI hidup",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L81",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_4_kunci_gemini_supaya_fitur_ai_hidup",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "4. kunci gemini \u2014 supaya fitur ai hidup"
+    },
+    {
+      "label": "5. Email (OTP, verifikasi, reset password)",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L116",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_5_email_otp_verifikasi_reset_password",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "5. email (otp, verifikasi, reset password)"
+    },
+    {
+      "label": "Yang SUDAH selesai (tidak perlu Anda kerjakan)",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L137",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_yang_sudah_selesai_tidak_perlu_anda_kerjakan",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "yang sudah selesai (tidak perlu anda kerjakan)"
+    },
+    {
+      "label": "Yang hilang permanen",
+      "file_type": "document",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L149",
+      "_origin": "ast",
+      "id": "langkah_setelah_rebuild_yang_hilang_permanen",
+      "community": 224,
+      "community_name": "Langkah setelah database dibangun ulang",
+      "norm_label": "yang hilang permanen"
     },
     {
       "label": "PANDUAN-UJI-MANUAL-SMARTBOOKAI.md",
@@ -93006,6 +93116,94 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild",
+      "target": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "target": "langkah_setelah_rebuild_1_perbarui_environment_variable_di_vercel_paling_penting",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "target": "langkah_setelah_rebuild_2_push_kode_ke_github",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L57",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "target": "langkah_setelah_rebuild_3_daftar_ulang_akun_jadikan_admin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L81",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "target": "langkah_setelah_rebuild_4_kunci_gemini_supaya_fitur_ai_hidup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L116",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "target": "langkah_setelah_rebuild_5_email_otp_verifikasi_reset_password",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L149",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "target": "langkah_setelah_rebuild_yang_hilang_permanen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LANGKAH-SETELAH-REBUILD.md",
+      "source_location": "L137",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "langkah_setelah_rebuild_langkah_setelah_database_dibangun_ulang",
+      "target": "langkah_setelah_rebuild_yang_sudah_selesai_tidak_perlu_anda_kerjakan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "PANDUAN-UJI-MANUAL-SMARTBOOKAI.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -100661,5 +100859,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "ab95515567950e16f130dd429769301b1c23d8ac"
+  "built_at_commit": "8a7bd8d14df572b03bf6db1bd85a3d82cd583cab"
 }

@@ -500,8 +500,8 @@
     "semantic_hash": ""
   },
   "src/lib/i18n.js": {
-    "mtime": 1786718208.0818076,
-    "ast_hash": "1bff7c223cc96be19a00836cf9173db7",
+    "mtime": 1788855779.4035532,
+    "ast_hash": "e0d642d91a30b7b10d33555d145528b6",
     "semantic_hash": ""
   },
   "src/lib/imageCompress.js": {
@@ -680,8 +680,8 @@
     "semantic_hash": ""
   },
   "src/pages/Radar.jsx": {
-    "mtime": 1785299789.8242855,
-    "ast_hash": "4724241b4c5ffbe6ed42a14e86cb668b",
+    "mtime": 1788855790.3317742,
+    "ast_hash": "7a487784a728f8dd8f28eaac1e38510b",
     "semantic_hash": ""
   },
   "src/pages/Receivables.jsx": {
@@ -765,23 +765,23 @@
     "semantic_hash": ""
   },
   "supabase/functions/ai-admin/index.ts": {
-    "mtime": 1780463036.302809,
-    "ast_hash": "dbba01860a1cdd0dfd6ebf9a5e5423fe",
+    "mtime": 1788854690.1358132,
+    "ast_hash": "3d752267bbd04318bb375cf00cb2a418",
     "semantic_hash": ""
   },
   "supabase/functions/ai-catat/index.ts": {
-    "mtime": 1786765595.700419,
-    "ast_hash": "7faee8e418df8efb0b25235a19857da2",
+    "mtime": 1788854690.137321,
+    "ast_hash": "f0fd6582238b3849e7a049726b02b3d1",
     "semantic_hash": ""
   },
   "supabase/functions/ai-hpp-draft/index.ts": {
-    "mtime": 1786765595.748391,
-    "ast_hash": "0904eb5b24ae7f1196d21371ec6f8146",
+    "mtime": 1788854690.1409073,
+    "ast_hash": "824e408ed1681e374f0d6b2f4accd8d2",
     "semantic_hash": ""
   },
   "supabase/functions/ai-narasi/index.ts": {
-    "mtime": 1786765595.7727401,
-    "ast_hash": "dcf4e9d799f2d0ca2eac1e1bd23245ae",
+    "mtime": 1788854690.1414142,
+    "ast_hash": "3f86d77665b48a5b3fb257463a099d19",
     "semantic_hash": ""
   },
   "supabase/functions/categorize/index.ts": {
@@ -790,13 +790,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/harga-daerah/index.ts": {
-    "mtime": 1785149221.6060123,
-    "ast_hash": "e858395eca6ebb2cd0a99313ed78b15b",
+    "mtime": 1788855863.1027417,
+    "ast_hash": "b4a1fc7611eaf62b464cdbf242decc34",
     "semantic_hash": ""
   },
   "supabase/functions/makro-harian/index.ts": {
-    "mtime": 1785149863.354247,
-    "ast_hash": "6bb8668124ccfdaebac51490775717ae",
+    "mtime": 1788855280.0689092,
+    "ast_hash": "1de85dfde9f0cb0220857e1e70bfe633",
     "semantic_hash": ""
   },
   "supabase/hapus-akun-tester.sql": {
@@ -1085,8 +1085,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/ai-stok-insight/index.ts": {
-    "mtime": 1786765595.800752,
-    "ast_hash": "8463afd4452d0a9e4f8dd7ca59c0262f",
+    "mtime": 1788854690.1414142,
+    "ast_hash": "6727374e5b0d61665de2bef219e2b89b",
     "semantic_hash": ""
   },
   "src/lib/__tests__/ai-layer.test.js": {
@@ -1100,13 +1100,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/ai/config.ts": {
-    "mtime": 1786630117.404099,
-    "ast_hash": "6d3a5a5059c9a73c9da3286125153f2a",
+    "mtime": 1788855136.3923633,
+    "ast_hash": "4da46514dd7d6476afff7db6cdfccd5c",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/ai/gemini-client.ts": {
-    "mtime": 1786724006.1600506,
-    "ast_hash": "fc251f419f63389eb5fe20a0a652df46",
+    "mtime": 1788855179.2221706,
+    "ast_hash": "1c47849d1c39481d18e6728c44874d5c",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/ai/guards/action-blocklist.ts": {
@@ -1140,8 +1140,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/ai-crud/index.ts": {
-    "mtime": 1786765595.7243972,
-    "ast_hash": "99109329af2641065f337cbe2ecdff64",
+    "mtime": 1788854690.1399066,
+    "ast_hash": "856d2d17d80bd808a7bcd0cad1070e16",
     "semantic_hash": ""
   },
   "supabase/migration_ai_workspace_quota.sql": {
@@ -1330,8 +1330,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/voice-live-token/index.ts": {
-    "mtime": 1786765595.9068127,
-    "ast_hash": "41505258aa90213e50247a6bebf1750f",
+    "mtime": 1788854690.146438,
+    "ast_hash": "85845bf17b8b6375f8939108d58714eb",
     "semantic_hash": ""
   },
   "src/lib/__tests__/liveToken.test.js": {
@@ -1530,8 +1530,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/ai/invariant_test.ts": {
-    "mtime": 1786759115.3693047,
-    "ast_hash": "f5caafb62132fed62aadfa7a8d4b3e0a",
+    "mtime": 1788855836.9086328,
+    "ast_hash": "7a07937eea2deb9abb1782885d5a4128",
     "semantic_hash": ""
   },
   "supabase/functions/deno.json": {
@@ -1745,13 +1745,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/BukuPencatatanStruk/index.ts": {
-    "mtime": 1786765595.856302,
-    "ast_hash": "ee7977089964d9c94a7606c1882ed508",
+    "mtime": 1788854690.1358132,
+    "ast_hash": "09591805f800f42f2d401cf3e4458d3e",
     "semantic_hash": ""
   },
   "supabase/functions/BukuPencatatan/index.ts": {
-    "mtime": 1786765595.8312752,
-    "ast_hash": "6ad67eb5efb158635307a46cacc04f04",
+    "mtime": 1788854690.1332974,
+    "ast_hash": "ec1ff3ea066aa66f62c99c29b77376b9",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/ai/tools/crud-tools_test.ts": {
@@ -1912,6 +1912,61 @@
   "supabase/migration_ai_plans.sql": {
     "mtime": 1786765483.748345,
     "ast_hash": "bc67dca0194b35e95a4ad0a1ccf94b13",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/ai/diagnosa.ts": {
+    "mtime": 1788855068.9580064,
+    "ast_hash": "f0b3b239931af834c4d3e13a0a0ee525",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/cors.ts": {
+    "mtime": 1788854542.9748168,
+    "ast_hash": "5ab37c850614fe0eeccbbd006972757c",
+    "semantic_hash": ""
+  },
+  "supabase/functions/ai-selftest/index.ts": {
+    "mtime": 1788854961.553722,
+    "ast_hash": "6f5a36c7fb022c7fb211dd74e7d861cf",
+    "semantic_hash": ""
+  },
+  "supabase/functions/keepalive/index.ts": {
+    "mtime": 1788855678.5817187,
+    "ast_hash": "79bb07d1fb46f3ae1030b2cb8c73a277",
+    "semantic_hash": ""
+  },
+  "supabase/migration_heartbeat_dan_provenance_ai.sql": {
+    "mtime": 1788856112.1745403,
+    "ast_hash": "38292a0592594db34f1d47b36c1aa723",
+    "semantic_hash": ""
+  },
+  "RUNBOOK-AI-DAN-KEEPALIVE.md": {
+    "mtime": 1788856168.3881433,
+    "ast_hash": "1384a57a593c8c94c42053a06ab472ea",
+    "semantic_hash": ""
+  },
+  "Logo/Revisi Logo Sovralytics-01.png": {
+    "mtime": 1786719982.140181,
+    "ast_hash": "e7669ea0c731058988aaa6fc35096490",
+    "semantic_hash": ""
+  },
+  "Logo/Revisi Logo Sovralytics-02.png": {
+    "mtime": 1786719982.1481926,
+    "ast_hash": "1e971c6f8ee84befd0342864b22fade4",
+    "semantic_hash": ""
+  },
+  "Logo/Revisi Logo Sovralytics-03.png": {
+    "mtime": 1786719982.1557362,
+    "ast_hash": "abac539892ae180aa6fb871905285e50",
+    "semantic_hash": ""
+  },
+  "Logo/Revisi Logo Sovralytics-04.png": {
+    "mtime": 1786719982.1632795,
+    "ast_hash": "24cd67aa4fc797b19711593b7c18522a",
+    "semantic_hash": ""
+  },
+  "Logo/Revisi Logo Sovralytics-05.png": {
+    "mtime": 1786720039.9889467,
+    "ast_hash": "7da77e651d68664ac2b2cd3010152218",
     "semantic_hash": ""
   }
 }
