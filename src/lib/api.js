@@ -230,8 +230,18 @@ export async function fetchTxCount() {
 // staf yang membuka usaha owner justru melihat rekap angkanya sendiri.
 export async function fetchMonthlySummary() {
   const p_owner = await wsOwner()
-  let { data, error } = await supabase.rpc('my_monthly_summary', { p_owner })
-  if (error && isMissingRpc(error)) ({ data, error } = await supabase.rpc('my_monthly_summary'))
+  // Jalur cadangan tanpa argumen SUDAH DIHAPUS.
+  //
+  // Dulu baris ini memanggil ulang `my_monthly_summary()` tanpa p_owner bila
+  // versi ber-uuid dianggap belum ada. Cadangan itu tidak pernah bisa bekerja:
+  // kedua overload hidup berdampingan, sehingga PostgREST tidak bisa memilih
+  // salah satu dan membalas PGRST203 — jalur pemulihan yang dijamin gagal
+  // justru pada saat ia dibutuhkan. Lebih buruk lagi, versi tanpa argumen
+  // memakai auth.uid(), jadi kalaupun berhasil ia menampilkan angka STAF
+  // alih-alih angka usaha yang sedang dibuka.
+  //
+  // Overload usangnya dibuang di migration_pengetatan_rpc_anon.sql.
+  const { data, error } = await supabase.rpc('my_monthly_summary', { p_owner })
   if (error) periksaGalat(error)
   return (data || []).map((r) => ({
     month: r.month, income: Number(r.income), expense: Number(r.expense),
@@ -307,7 +317,24 @@ export async function addTransactionsBulk(list) {
 }
 
 export async function updateTransaction(id, patch) {
-  const { data, error } = await wsUpdate(await wsOwner(), 'transactions', patch)
+  // Jalur EDIT wajib melewati penaut yang sama dengan jalur TAMBAH.
+  //
+  // TransactionModal mengirim `supplier_name` pada setiap simpan — baik tambah
+  // maupun edit. `supplier_name` BUKAN kolom `transactions`; yang ada
+  // `supplier_id`. addTransaction() membuangnya lewat tautkanPihakTransaksi(),
+  // tetapi fungsi ini dulu meneruskan patch apa adanya, sehingga Postgres
+  // membalas "Could not find the 'supplier_name' column of 'transactions' in
+  // the schema cache" dan SETIAP penyuntingan transaksi gagal — termasuk
+  // penyuntingan yang tidak menyentuh pemasok sama sekali, karena modal selalu
+  // menyertakan field itu walau nilainya null.
+  //
+  // Memanggil penaut di sini menutup dua hal sekaligus: kolom hantu dibuang,
+  // dan nama pemasok baru yang diketik saat mengedit ikut dibuatkan barisnya
+  // seperti pada jalur tambah. Dua jalur simpan yang berperilaku berbeda pada
+  // field yang sama adalah cacat yang akan lahir kembali; sekarang keduanya
+  // memakai fungsi yang sama.
+  const row = await tautkanPihakTransaksi(patch)
+  const { data, error } = await wsUpdate(await wsOwner(), 'transactions', row)
     .eq('id', id).select().single()
   if (error) periksaGalat(error)
   return data

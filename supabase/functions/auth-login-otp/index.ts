@@ -39,6 +39,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+// Dipakai HANYA untuk membedakan "email belum terdaftar" dari "password salah".
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -130,8 +132,28 @@ serve(async (req) => {
       if (rl?.jenis === 'throttle') return json({ error: 'rate_limited', retry_after: rl.detik }, 429)
       if (rl?.jenis === 'kuota') return json({ error: 'email_quota_exceeded' }, 429)
       if (msg.includes('confirm')) return json({ error: 'email_not_confirmed' }, 403)
-      // Email tidak ada dan password salah sengaja dijawab sama — jangan
-      // memberi tahu penyerang email mana yang terdaftar.
+
+      // Bedakan "belum punya akun" dari "password salah".
+      //
+      // Keputusan produk 8 September 2026: pengguna baru yang mengira sudah
+      // pernah mendaftar akan mencoba-coba password berkali-kali untuk akun
+      // yang memang tidak ada, lalu menyalahkan aplikasinya.
+      //
+      // Ini SECARA SADAR menukar pencegahan user-enumeration dengan kejelasan.
+      // Yang menahan dampaknya: rate limit endpoint ini sudah berjalan SEBELUM
+      // titik ini, RPC-nya hanya bisa dipanggil service_role (tidak dari
+      // browser), dan yang keluar cuma boolean.
+      //
+      // Kalau pemeriksaannya sendiri gagal, JATUH KE JAWABAN LAMA — jangan
+      // pernah menebak "belum terdaftar" hanya karena kueri bermasalah.
+      if (SERVICE_KEY) {
+        try {
+          const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
+          const { data: ada, error: cekErr } = await admin.rpc('email_terdaftar', { p_email: email })
+          if (!cekErr && ada === false) return json({ error: 'email_not_registered' }, 404)
+        } catch { /* gagal memeriksa: pakai jawaban netral di bawah */ }
+      }
+
       return json({ error: 'invalid_credentials' }, 401)
     }
 

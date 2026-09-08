@@ -47,12 +47,44 @@ describe('kontrak keamanan login dua langkah', () => {
     expect(fn).toMatch(/if \(!email \|\| !password\)/)
   })
 
-  it('email tidak terdaftar dan password salah dijawab sama (tidak membocorkan akun)', () => {
+  // CATATAN PERUBAHAN (8 September 2026)
+  // ------------------------------------
+  // Test ini DULU mengunci hal sebaliknya: "email tidak terdaftar dan password
+  // salah dijawab sama". Pemilik produk memutuskan membedakan keduanya supaya
+  // pengguna yang belum pernah mendaftar berhenti menebak-nebak kata sandi
+  // untuk akun yang memang tidak ada.
+  //
+  // Itu SECARA SADAR melepas pencegahan user-enumeration. Test-nya tidak
+  // dihapus — kalau dihapus, satu-satunya jejak bahwa perlindungan ini pernah
+  // ada akan ikut hilang, dan tidak ada lagi yang menjaga syarat-syarat yang
+  // membuat pertukaran ini masih bisa diterima. Yang dikunci sekarang adalah
+  // syarat-syarat itu.
+  it('pembedaan akun HANYA lewat service role, tidak pernah dari browser', () => {
+    const fn = tanpaKomentar(readFileSync(EDGE_FN, 'utf8'))
+    // RPC pemeriksa hanya boleh dipanggil dengan kunci service role.
+    expect(fn).toMatch(/SUPABASE_SERVICE_ROLE_KEY/)
+    expect(fn).toMatch(/if \(SERVICE_KEY\)/)
+    expect(fn).toMatch(/email_terdaftar/)
+  })
+
+  it('gagal memeriksa akun TIDAK boleh jadi tebakan "belum terdaftar"', () => {
+    const fn = tanpaKomentar(readFileSync(EDGE_FN, 'utf8'))
+    // Hanya hasil boolean false yang eksplisit yang boleh menghasilkan 404.
+    expect(fn).toMatch(/ada === false/)
+    // Dan jalur kegagalan tetap jatuh ke jawaban netral.
+    // Blok pemeriksaan dibungkus try/catch, dan SETELAH blok itu jawaban
+    // netral tetap dikembalikan tanpa syarat.
+    expect(fn).toMatch(/catch \{/)
+    const posCek = fn.indexOf('email_terdaftar')
+    const posNetral = fn.lastIndexOf("invalid_credentials' }, 401)")
+    expect(posNetral).toBeGreaterThan(posCek)
+  })
+
+  it('invalid_credentials tetap jawaban bawaan', () => {
     const fn = readFileSync(EDGE_FN, 'utf8')
     const jumlahInvalid = (fn.match(/invalid_credentials/g) || []).length
-    // Dipakai untuk: input kosong, gagal signIn, dan fallback — semuanya sama.
+    // Input kosong + gagal signIn: keduanya tetap netral.
     expect(jumlahInvalid).toBeGreaterThanOrEqual(2)
-    expect(fn).not.toMatch(/user_not_found|email_not_registered/)
   })
 })
 
