@@ -41,11 +41,29 @@ export function bersihkanTanggal(nilai) {
   const ruas = bagianTanggal.split('-')
   if (!ruas[0]) return ''
 
-  // Tahun: ambil digit saja, potong di 4 digit, lalu jepit ke rentang wajar.
+  // Tahun: ambil digit saja, potong di 4 digit.
   const digitTahun = ruas[0].replace(/\D/g, '').slice(0, 4)
   if (!digitTahun) return ''
   let tahun = Number(digitTahun)
-  if (tahun < TAHUN_MIN) tahun = TAHUN_MIN
+
+  // Batas ATAS dijepit; batas BAWAH SENGAJA TIDAK.
+  //
+  // Menjepit ke bawah di jalur onChange mematahkan pengetikan manual, dan itu
+  // bukan teori: dilaporkan 9 September 2026. <input type="date"> selalu
+  // mengirim tahun ter-pad empat digit, jadi menekan "2" sebagai digit pertama
+  // menghasilkan nilai "0002-09-09". Penjepit lama membacanya sebagai tahun 2,
+  // mengubahnya jadi 1900, dan menuliskannya kembali ke input — ketikan
+  // terputus di digit pertama dan tahun tidak akan pernah bisa diselesaikan.
+  //
+  // Setiap tahun yang diketik manusia melewati keadaan "terlalu kecil" dalam
+  // perjalanannya: 0002 -> 0020 -> 0202 -> 2026. Penjepit bawah menghukum
+  // ketiga langkah pertama demi mencegah keadaan yang tidak pernah benar-benar
+  // menjadi tujuan siapa pun.
+  //
+  // Yang tetap menahan tahun tak masuk akal sampai ke database:
+  //   - pemotongan 4 digit di atas (kasus asal mula penjaga ini: "20266");
+  //   - atribut min/max pada input, yang membuat form ditolak validasi browser;
+  //   - finalkanTanggal() di bawah, untuk jalur simpan yang ingin menjepit sendiri.
   if (tahun > TAHUN_MAX) tahun = TAHUN_MAX
   const keluar = [String(tahun).padStart(4, '0')]
 
@@ -59,4 +77,27 @@ export function bersihkanTanggal(nilai) {
   }
 
   return keluar.join('-') + bagianJam
+}
+
+/**
+ * Versi TEGAS untuk jalur simpan / onBlur: menjepit tahun ke 1900..2100.
+ *
+ * Dipisah dari bersihkanTanggal() dengan sengaja. Yang satu dipanggil pada
+ * SETIAP ketukan tombol dan karenanya harus membiarkan keadaan setengah jadi;
+ * yang ini dipanggil ketika pengguna sudah selesai, dan di titik itu menjepit
+ * tidak lagi mengganggu siapa pun.
+ */
+export function finalkanTanggal(nilai) {
+  const bersih = bersihkanTanggal(nilai)
+  if (!bersih) return ''
+  const pisah = bersih.indexOf('T')
+  const tanggal = pisah === -1 ? bersih : bersih.slice(0, pisah)
+  const jam = pisah === -1 ? '' : bersih.slice(pisah)
+  const ruas = tanggal.split('-')
+  let tahun = Number(ruas[0])
+  if (!Number.isFinite(tahun)) return ''
+  if (tahun < TAHUN_MIN) tahun = TAHUN_MIN
+  if (tahun > TAHUN_MAX) tahun = TAHUN_MAX
+  ruas[0] = String(tahun).padStart(4, '0')
+  return ruas.join('-') + jam
 }
