@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildNational, buildProvince, fetchLatestTanggal } from '../_shared/sp2kp.ts'
 import { corsHeaders, originDitolak } from '../_shared/cors.ts'
+import { catatErrorServer } from '../_shared/log-error.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -65,6 +66,12 @@ serve(async (req) => {
     if (cached?.length) return json({ runDate: runKey, prices: cached })
     return json({ error: 'Harga bahan pokok sedang tidak dapat dimuat.' }, 503)
   } catch (e) {
+    await catatErrorServer({
+      fitur: 'Radar Harga',
+      aksi: 'menarik harga bahan pokok SP2KP',
+      error: e,
+      tingkat: 'error',
+    })
     return json({ error: 'Harga bahan pokok sedang tidak dapat dimuat.', detail: String(e).slice(0, 200) }, 500)
   }
 })

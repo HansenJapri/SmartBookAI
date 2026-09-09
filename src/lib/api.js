@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { MODULES } from './rbac'
 import { normalizePhone } from './aging'
+import { catatError } from './errorLog'
 
 // RPC pengerasan undangan (migration_rbac_invite_hardening.sql) mungkin belum
 // terpasang di database saat build klien ini dirilis. Semua pemanggilnya punya
@@ -61,6 +62,23 @@ export function periksaGalat(error) {
     siarkanSesiBerakhir()
     throw new SesiBerakhirError()
   }
+  // Setiap galat database yang sampai ke sini DICATAT sebelum dilempar.
+  //
+  // Inilah corong tunggal seluruh kegagalan PostgREST di aplikasi — kolom yang
+  // tidak ada, policy RLS yang menolak, constraint yang dilanggar. Dulu semuanya
+  // hanya menjadi pesan merah di layar satu pengguna lalu hilang; error
+  // `supplier_name` yang membuat SETIAP penyuntingan transaksi gagal bertahan
+  // berbulan-bulan justru karena tidak pernah terkumpul di mana pun.
+  //
+  // Tidak di-await: pencatatan tidak boleh menunda pelemparan error ke pemanggil.
+  try {
+    catatError({
+      fitur: 'Database',
+      aksi: 'permintaan ke Supabase',
+      error,
+      konteks: { hint: error?.hint || null, details: String(error?.details || '').slice(0, 200) || null },
+    })
+  } catch { /* pencatat tidak boleh pernah menjatuhkan alur error */ }
   throw error
 }
 

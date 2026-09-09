@@ -24,6 +24,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildNational } from '../_shared/sp2kp.ts'
 import { getPlatformGeminiClient, GeminiCallError } from '../_shared/ai/gemini-client.ts'
+import { catatErrorServer } from '../_shared/log-error.ts'
 import { corsHeaders, originDitolak } from '../_shared/cors.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -350,6 +351,17 @@ ATURAN KERAS (pelanggaran = jawaban tidak dipakai):
           ? `${e.code}${e.status ? ` HTTP ${e.status}` : ''} pada ${e.model}: ${e.detail.slice(0, 200)}`
           : String(e).slice(0, 240)
         console.error(`[makro] Gemini gagal: ${aiDetail}`)
+        // Sampai ke tab Log Error admin, bukan hanya ke log fungsi yang tidak
+        // pernah dibuka siapa pun. Inilah kelas kegagalan yang bertahan 32 hari
+        // pada Agustus–September 2026.
+        await catatErrorServer({
+          fitur: 'Radar Harga (sinyal AI)',
+          aksi: 'memanggil Gemini untuk sinyal harga harian',
+          error: e,
+          tingkat: 'error',
+          sumber: 'cron',
+          konteks: { jumlah_komoditas: COMMODITIES.length },
+        })
       }
     }
 
@@ -413,6 +425,13 @@ ATURAN KERAS (pelanggaran = jawaban tidak dipakai):
       ai: { status: aiStatus, model: aiModel || null, tokens: aiTokens, detail: aiDetail || null },
     })
   } catch (e) {
+    await catatErrorServer({
+      fitur: 'Radar Harga (pipeline harian)',
+      aksi: 'menjalankan pipeline makro-harian',
+      error: e,
+      tingkat: 'fatal',
+      sumber: 'cron',
+    })
     return json({ error: 'Terjadi kesalahan pipeline makro.', detail: String(e).slice(0, 300) }, 500)
   }
 })
