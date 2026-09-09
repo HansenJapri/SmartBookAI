@@ -20,6 +20,27 @@ export interface ReceiptData {
   total: number
   legibility: 'cetak_jelas' | 'buram' | 'tulisan_tangan'
   items: ReceiptItem[]
+  /**
+   * Rincian di ANTARA jumlah item dan total yang dibayar.
+   *
+   * Tanpa bagian ini, jumlah item tidak akan pernah sama dengan total pada
+   * struk mana pun yang memungut pajak — dan itu mayoritas struk restoran,
+   * kafe, dan toko modern di Indonesia.
+   */
+  subtotal?: number
+  tax?: number
+  service?: number
+  discount?: number
+  rounding?: number
+}
+
+/** Komponen yang menjelaskan selisih jumlah item terhadap total dibayar. */
+export interface ReceiptBreakdown {
+  subtotal?: number
+  tax?: number
+  service?: number
+  discount?: number
+  rounding?: number
 }
 
 export class ChecksumMismatchError extends Error {
@@ -40,19 +61,62 @@ export class ChecksumMismatchError extends Error {
 export const CHECKSUM_TOLERANCE = 0.02 // 2%
 
 /**
- * Bandingkan jumlah item terhadap total struk.
- * Mengembalikan true bila cocok dalam toleransi, atau bila total tidak terbaca
- * (statedTotal <= 0) — kasus itu tidak bisa divalidasi, bukan berarti salah.
+ * Bandingkan jumlah item terhadap total struk, DENGAN memperhitungkan pajak,
+ * service charge, diskon, dan pembulatan.
+ *
+ * Versi sebelumnya membandingkan jumlah item langsung ke total yang dibayar.
+ * Itu benar hanya untuk struk warung tanpa pajak. Pada struk restoran mana pun:
+ *
+ *     Sub Total   : 169.555   <- item berjumlah ke sini
+ *     PPN         :  16.956
+ *     Rounding    :     -11
+ *     Grand Total : 186.500   <- yang dibandingkan validator lama
+ *
+ * Selisihnya 10% sementara toleransinya 2%, jadi struk ber-PPN DIJAMIN
+ * ditolak — dan pesan errornya menyalahkan kualitas foto pengguna untuk
+ * kegagalan yang sepenuhnya ada di sisi kita.
+ *
+ * Dua jalur penerimaan, dicoba berurutan:
+ *   1. Bila SUBTOTAL terbaca -> jumlah item dibandingkan ke subtotal. Inilah
+ *      pembanding yang benar secara akuntansi.
+ *   2. Selain itu -> identitas lengkap:
+ *      item + pajak + layanan - diskon + pembulatan ~= total dibayar.
+ *
+ * Subtotal yang keliru terbaca TIDAK boleh jadi celah: bila jalur 1 gagal,
+ * jalur 2 tetap diuji, dan struk yang benar-benar salah baca tetap ditolak
+ * oleh keduanya.
  */
 export function isChecksumValid(
   itemsSum: number,
   statedTotal: number,
-  tolerance = CHECKSUM_TOLERANCE,
+  breakdown: ReceiptBreakdown | number = {},
+  toleranceArg = CHECKSUM_TOLERANCE,
 ): boolean {
+  // Tanda tangan lama isChecksumValid(sum, total, tolerance) tetap didukung
+  // supaya pemanggil yang belum diperbarui tidak diam-diam berubah artinya.
+  const tolerance = typeof breakdown === 'number' ? breakdown : toleranceArg
+  const b: ReceiptBreakdown = typeof breakdown === 'number' ? {} : (breakdown || {})
+
   if (!Number.isFinite(itemsSum) || !Number.isFinite(statedTotal)) return false
   if (statedTotal <= 0) return true          // total tidak terbaca — lewati validasi
   if (itemsSum <= 0) return false            // ada total tapi tidak ada item -> gagal
-  return Math.abs(itemsSum - statedTotal) / statedTotal <= tolerance
+
+  const dekat = (a: number, b2: number) => {
+    const acuan = Math.max(Math.abs(b2), 1)
+    // Toleransi absolut kecil menutup pembulatan rupiah pada nominal kecil,
+    // yang secara persentase bisa terlihat besar.
+    return Math.abs(a - b2) <= Math.max(acuan * tolerance, 100)
+  }
+
+  const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0)
+
+  // Jalur 1 — subtotal terbaca.
+  const subtotal = n(b.subtotal)
+  if (subtotal > 0 && dekat(itemsSum, subtotal)) return true
+
+  // Jalur 2 — identitas lengkap.
+  const dihitung = itemsSum + n(b.tax) + n(b.service) - n(b.discount) + n(b.rounding)
+  return dekat(dihitung, statedTotal)
 }
 
 export function sumItems(items: ReceiptItem[]): number {
@@ -92,7 +156,21 @@ export function parseAndValidateReceipt(rawText: string): ReceiptData {
   const statedTotal = Math.round(Number(parsed.total) || 0)
   const itemsSum = sumItems(items)
 
-  if (!isChecksumValid(itemsSum, statedTotal)) {
+  // Rincian antara jumlah item dan total dibayar. Tanpa ini, struk ber-PPN
+  // atau ber-service-charge tidak akan pernah lolos validasi.
+  const angka = (v: unknown) => {
+    const n = Math.round(Number(v) || 0)
+    return Number.isFinite(n) ? n : 0
+  }
+  const breakdown = {
+    subtotal: angka(parsed.subtotal),
+    tax: angka(parsed.tax),
+    service: angka(parsed.service),
+    discount: angka(parsed.discount),
+    rounding: angka(parsed.rounding),
+  }
+
+  if (!isChecksumValid(itemsSum, statedTotal, breakdown)) {
     throw new ChecksumMismatchError(itemsSum, statedTotal, CHECKSUM_TOLERANCE)
   }
 
@@ -109,5 +187,6 @@ export function parseAndValidateReceipt(rawText: string): ReceiptData {
     total: statedTotal,
     legibility,
     items,
+    ...breakdown,
   }
 }

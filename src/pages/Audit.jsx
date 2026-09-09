@@ -24,9 +24,19 @@ export default function Audit() {
       const extra = Object.keys(c).length > 3 ? ` ${a.moreCols.replace('{n}', Object.keys(c).length - 3)}` : ''
       return parts.join('; ') + extra || a.noColChange
     }
-    const name = c.description || c.name || c.po_number || c.opname_number || ''
+    // Kolom yang menjadi "judul" sebuah baris BERBEDA per tabel, dan daftar
+    // lama hanya memuat empat di antaranya. `tasks` menyimpan judulnya di
+    // kolom `title` — tidak ada di daftar — sehingga setiap tugas yang dicatat
+    // muncul sebagai "id b7cf7acf". Bagi pemilik usaha yang membuka Audit Log
+    // untuk menelusuri siapa mengubah apa, potongan UUID tidak memberitahu
+    // apa pun; ia justru membuat log terlihat rusak.
+    const name = c.title || c.description || c.name || c.po_number
+      || c.opname_number || c.label || c.keyword || c.email || c.month || ''
     const amt = c.amount ? ` — ${rupiah(Number(c.amount))}` : ''
-    return `${name}${amt}` || `id ${String(log.row_id || '').slice(0, 8)}`
+    const ringkas = `${name}${amt}`.trim()
+    // Fallback terakhir tetap ada, tapi kini menyebut JENIS datanya, bukan
+    // hanya potongan id yang tidak bisa dibaca siapa pun.
+    return ringkas || `${a.tables[log.table_name] || log.table_name} (${String(log.row_id || '').slice(0, 8)})`
   }
   const [logs, setLogs] = useState(null)
   const [staff, setStaff] = useState([])
@@ -55,7 +65,10 @@ export default function Audit() {
     if (!id) return a.actorSystem
     if (id === me) return a.actorYou
     const s = staff.find((x) => x.member_id === id)
-    return s?.email || a.actorStaff
+    // NAMA, bukan email. Audit Log dibaca pemilik usaha, dan yang ia kenali
+    // adalah "Budi" — bukan alamat surel yang harus dicocokkan lebih dulu ke
+    // orangnya. Email tetap ada di menu Pengguna & Akses bila perlu dipastikan.
+    return s?.name || a.actorStaff
   }, [me, staff, a])
 
   if (!logs) return <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
@@ -137,15 +150,32 @@ export default function Audit() {
         ) : (
           <div className="table-wrap">
             <table className="tbl">
-              <thead><tr><th>{a.thTime}</th><th>{a.aiThFeature}</th><th>{a.aiThOutcome}</th><th>{a.thActor}</th></tr></thead>
+              <thead><tr><th>{a.thTime}</th><th>{a.thAction}</th><th>{a.thData}</th><th>{a.thSummary}</th><th>{a.thActor}</th></tr></thead>
               <tbody>
-                {aiRows.slice(0, 100).map((r) => (
+                {aiRows.slice(0, 100).map((r) => {
+                  // Bentuk baris aktivitas AI disamakan dengan tabel audit di
+                  // atas: waktu, aksi, data, ringkasan, pelaku. Sebelumnya
+                  // hanya fitur & hasil, sehingga "AI melakukan apa, pada data
+                  // apa" tidak bisa dijawab tanpa membuka database.
+                  const aksiList = Array.isArray(r.meta?.aksi) ? r.meta.aksi : []
+                  const opLabel = { create: a.actions.INSERT, update: a.actions.UPDATE, delete: a.actions.DELETE }
+                  const aksiTeks = aksiList.length
+                    ? [...new Set(aksiList.map((x) => opLabel[x.operation] || x.operation))].join(', ')
+                    : (a.aiFeatures[r.feature] || r.feature)
+                  const dataTeks = aksiList.length
+                    ? [...new Set(aksiList.map((x) => a.tables[x.entity] || x.entity))].join(', ')
+                    : (r.meta?.fokus || '—')
+                  return (
                   <tr key={r.id}>
                     <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(r.created_at)}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{a.aiFeatures[r.feature] || r.feature}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{aksiTeks}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{dataTeks}</td>
                     <td>
                       <span className={`badge ${r.outcome === 'ok' ? 'badge-green' : r.outcome === 'limit' ? 'badge-amber' : 'badge-red'}`}>
                         {a.aiOutcomes[r.outcome] || r.outcome}
+                      </span>
+                      <span className="muted-sm" style={{ marginLeft: 6 }}>
+                        {a.aiFeatures[r.feature] || r.feature}
                       </span>
                       {/* Domain yang DITOLAK hak akses ikut ditampilkan: itu
                           justru informasi audit yang paling berguna di sini —
@@ -158,7 +188,8 @@ export default function Audit() {
                     </td>
                     <td className="muted-sm" style={{ whiteSpace: 'nowrap' }}>{actorLabel(r.actor_id)}</td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

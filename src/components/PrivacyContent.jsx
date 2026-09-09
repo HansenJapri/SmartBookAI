@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { APP_NAME, TERMS_VERSION, TERMS_EFFECTIVE, CONTROLLER_NAME, CONTACT_EMAIL } from '../lib/legal'
+import {APP_NAME, CONTROLLER_NAME, CONTACT_EMAIL} from '../lib/legal'
 import LegalDoc from './LegalDoc'
 
 // Isi bawaan (fallback) Kebijakan Privasi, dipakai bila dokumen di basis data
@@ -8,7 +8,6 @@ import LegalDoc from './LegalDoc'
 function PrivacyFallback() {
   return (
     <div className="legal-doc">
-      <p className="legal-meta">Versi {TERMS_VERSION}. Berlaku sejak {TERMS_EFFECTIVE}.</p>
 
       <div className="alert alert-info" style={{ marginBottom: 22 }}>
         Kebijakan Privasi ini menjelaskan cara {APP_NAME} (selanjutnya disebut "Aplikasi")

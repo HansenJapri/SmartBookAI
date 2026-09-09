@@ -9,7 +9,7 @@ export default function Privacy() {
   return (
     <div className="legal-page">
       <header className="legal-head">
-        <div className="brand"><img src="/logo-mark.png" alt="" /><span>Buku<b>Pintar</b> AI</span></div>
+        <div className="brand"><img src="/logo-mark.png" alt="" /><span>Smart<b>Book</b> AI</span></div>
         <button className="btn btn-ghost" onClick={() => (window.history.length > 1 ? nav(-1) : nav('/'))}>Kembali</button>
       </header>
       <main className="legal-main">

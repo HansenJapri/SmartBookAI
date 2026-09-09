@@ -30,6 +30,11 @@ Ekstrak isinya menjadi JSON dengan struktur PERSIS:
   "merchant": string,            // nama toko/penjual, "" jika tidak jelas
   "date": string,                // tanggal pada struk format YYYY-MM-DD, "" jika tidak ada
   "total": number,               // total akhir yang dibayar (angka, tanpa titik/Rp)
+  "subtotal": number,            // SUB TOTAL sebelum pajak/layanan. 0 bila tidak tertulis.
+  "tax": number,                 // PPN/PB1/pajak. 0 bila tidak ada.
+  "service": number,             // service charge. 0 bila tidak ada.
+  "discount": number,            // potongan/diskon (angka POSITIF). 0 bila tidak ada.
+  "rounding": number,            // pembulatan, boleh negatif. 0 bila tidak ada.
   "legibility": string,          // "cetak_jelas" | "buram" | "tulisan_tangan"
   "items": [
     { "name": string, "qty": number, "unit": string, "unit_price": number, "total": number }
@@ -99,8 +104,21 @@ serve(async (req) => {
       if (e instanceof ChecksumMismatchError) {
         // Fallback pun gagal → jangan silent fail, beri arahan konkret.
         return json({
-          error: 'Gagal membaca struk dengan yakin: rincian item tidak cocok dengan total di struk. '
-            + 'Coba foto ulang lebih terang dan tegak lurus, atau isi item manual.',
+          // Pesan menyebut ANGKANYA, bukan menyalahkan foto.
+          //
+          // Kalimat lama ("coba foto ulang lebih terang") menuduh kualitas foto
+          // untuk kegagalan yang, sampai 9 September 2026, hampir selalu ada di
+          // sisi kita: validator membandingkan item ke grand total padahal item
+          // berjumlah ke subtotal. Pengguna memotret ulang struk yang sudah
+          // sempurna, berkali-kali, dan tetap gagal.
+          //
+          // Menyebut kedua angka membuat pengguna bisa menilai sendiri mana yang
+          // meleset — dan bila memang fotonya buram, selisihnya akan terlihat
+          // acak, bukan sebesar pajak.
+          error: `Rincian item terbaca Rp ${e.itemsSum.toLocaleString('id-ID')}, `
+            + `sedangkan total di struk Rp ${e.statedTotal.toLocaleString('id-ID')}. `
+            + 'Selisihnya belum bisa dijelaskan oleh pajak, layanan, atau diskon yang terbaca. '
+            + 'Periksa apakah ada baris item yang terpotong di foto, atau isi item manual.',
           code: 'OCR_CHECKSUM_FAILED',
           detail: e.message,
         }, 422)

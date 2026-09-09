@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { renderLegalMarkdown } from '../lib/legalRender'
-import { TERMS_VERSION, TERMS_EFFECTIVE } from '../lib/legal'
 
 // Menampilkan dokumen legal (Syarat & Ketentuan / Kebijakan Privasi) dari
 // basis data, dan mengikuti perubahan admin secara real-time. Bila tabel
@@ -41,7 +40,6 @@ export default function LegalDoc({ slug, fallback = null }) {
 
   return (
     <div className="legal-doc">
-      <p className="legal-meta">Versi {TERMS_VERSION}. Berlaku sejak {TERMS_EFFECTIVE}.</p>
       <div dangerouslySetInnerHTML={{ __html: renderLegalMarkdown(content) }} />
     </div>
   )
