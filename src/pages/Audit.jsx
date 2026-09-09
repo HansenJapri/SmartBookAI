@@ -30,8 +30,14 @@ export default function Audit() {
     // muncul sebagai "id b7cf7acf". Bagi pemilik usaha yang membuka Audit Log
     // untuk menelusuri siapa mengubah apa, potongan UUID tidak memberitahu
     // apa pun; ia justru membuat log terlihat rusak.
+    // Beberapa tabel memang tidak punya satu kolom judul (penggajian, absensi):
+    // yang mengenali barisnya adalah gabungan periode + orangnya. Tanpa ini
+    // keduanya jatuh ke potongan UUID yang tidak memberitahu apa pun.
+    const periode = c.month || c.period || c.work_date || c.date || c.tanggal || ''
+    const orang = c.employee_name || c.customer_name || c.supplier_name || ''
     const name = c.title || c.description || c.name || c.po_number
-      || c.opname_number || c.label || c.keyword || c.email || c.month || ''
+      || c.opname_number || c.label || c.keyword || c.email
+      || [periode, orang].filter(Boolean).join(' — ') || ''
     const amt = c.amount ? ` — ${rupiah(Number(c.amount))}` : ''
     const ringkas = `${name}${amt}`.trim()
     // Fallback terakhir tetap ada, tapi kini menyebut JENIS datanya, bukan
@@ -175,7 +181,7 @@ export default function Audit() {
                         {a.aiOutcomes[r.outcome] || r.outcome}
                       </span>
                       <span className="muted-sm" style={{ marginLeft: 6 }}>
-                        {a.aiFeatures[r.feature] || r.feature}
+                        {'· '}{a.aiFeatures[r.feature] || r.feature}
                       </span>
                       {/* Domain yang DITOLAK hak akses ikut ditampilkan: itu
                           justru informasi audit yang paling berguna di sini —

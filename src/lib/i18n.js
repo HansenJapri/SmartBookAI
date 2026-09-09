@@ -407,7 +407,11 @@ export const translations = {
       aiOutcomes: { ok: 'Berhasil', gagal: 'Gagal', limit: 'Kuota habis' },
       aiDenied: 'ditolak: {modules}',
       aiFootNote: 'Catatan ini menyimpan metadata saja — waktu, fitur, hasil, dan modul yang ditolak. Kalimat yang diketik pengguna tidak ikut disimpan.',
-      tables: { transactions: 'Transaksi', products: 'Produk/Stok', suppliers: 'Pemasok', purchase_orders: 'Purchase Order', stock_opnames: 'Stock Opname', categories: 'Kategori', employees: 'Karyawan', payrolls: 'Penggajian', tasks: 'Tugas Operasional', attendance_rules: 'Aturan Absensi', kpi_bonus_rules: 'Jenjang KPI' },
+      tables: { transactions: 'Transaksi', products: 'Produk/Stok', suppliers: 'Pemasok', purchase_orders: 'Purchase Order', stock_opnames: 'Stock Opname', categories: 'Kategori', employees: 'Karyawan', payrolls: 'Penggajian', tasks: 'Tugas Operasional', attendance_rules: 'Aturan Absensi', kpi_bonus_rules: 'Jenjang KPI',
+        // Tabel yang sebelumnya muncul MENTAH di Audit Log (mis. "attendance (0edf5740)").
+        attendance: 'Absensi', customers: 'Pelanggan', reminders: 'Pengingat', ingredients: 'Bahan Baku', product_boms: 'Komposisi HPP', kpi_criteria: 'Kriteria KPI', kpi_scores: 'Nilai KPI', units: 'Satuan', product_categories: 'Kategori Produk', channels: 'Sumber/Channel', sales_targets: 'Target Penjualan',
+        // Nama ENTITAS yang dipakai kolom Data pada Aktivitas Asisten AI.
+        transaksi: 'Transaksi', produk: 'Produk/Stok', pemasok: 'Pemasok', pelanggan: 'Pelanggan', karyawan: 'Karyawan', absensi: 'Absensi', tugas: 'Tugas Operasional', pengingat: 'Pengingat', purchase_order: 'Purchase Order' },
       actions: { INSERT: 'Tambah', UPDATE: 'Ubah', DELETE: 'Hapus' },
       moreCols: '(+{n} kolom lain)', noColChange: '(tanpa perubahan kolom)',
       actorSystem: 'sistem', actorYou: 'Anda', actorStaff: 'staf',
@@ -1331,7 +1335,9 @@ export const translations = {
       aiOutcomes: { ok: 'Success', gagal: 'Failed', limit: 'Quota reached' },
       aiDenied: 'denied: {modules}',
       aiFootNote: 'This log stores metadata only — time, feature, outcome, and denied modules. Text typed by the user is not stored.',
-      tables: { transactions: 'Transactions', products: 'Products/Stock', suppliers: 'Suppliers', purchase_orders: 'Purchase Orders', stock_opnames: 'Stock Take', categories: 'Categories', employees: 'Employees', payrolls: 'Payroll', tasks: 'Operational Tasks', attendance_rules: 'Attendance Rules', kpi_bonus_rules: 'KPI Tiers' },
+      tables: { transactions: 'Transactions', products: 'Products/Stock', suppliers: 'Suppliers', purchase_orders: 'Purchase Orders', stock_opnames: 'Stock Take', categories: 'Categories', employees: 'Employees', payrolls: 'Payroll', tasks: 'Operational Tasks', attendance_rules: 'Attendance Rules', kpi_bonus_rules: 'KPI Tiers',
+        attendance: 'Attendance', customers: 'Customers', reminders: 'Reminders', ingredients: 'Ingredients', product_boms: 'Recipe/BOM', kpi_criteria: 'KPI Criteria', kpi_scores: 'KPI Scores', units: 'Units', product_categories: 'Product Categories', channels: 'Source/Channel', sales_targets: 'Sales Targets',
+        transaksi: 'Transactions', produk: 'Products/Stock', pemasok: 'Suppliers', pelanggan: 'Customers', karyawan: 'Employees', absensi: 'Attendance', tugas: 'Operational Tasks', pengingat: 'Reminders', purchase_order: 'Purchase Orders' },
       actions: { INSERT: 'Add', UPDATE: 'Edit', DELETE: 'Delete' },
       moreCols: '(+{n} more columns)', noColChange: '(no column changes)',
       actorSystem: 'system', actorYou: 'You', actorStaff: 'staff',
