@@ -123,7 +123,7 @@ describe('<TransactionModal> penyimpanan', () => {
     await user.type(screen.getByLabelText('Deskripsi'), 'Beli tepung')
     await isiNominal(user, '120000')
     await user.selectOptions(screen.getByLabelText('Kategori'), 'Belanja Stok')
-    // Kategori belanja stok -> pemasok wajib (P11).
+    // Pemasok opsional (lihat test di bawah), tapi bila diisi harus ikut terkirim.
     await user.type(screen.getByLabelText('Nama pemasok baru'), 'Toko Grosir Jaya')
     await user.click(screen.getByRole('button', { name: 'Simpan' }))
 
@@ -135,7 +135,20 @@ describe('<TransactionModal> penyimpanan', () => {
     })
   })
 
-  it('menolak pengeluaran belanja stok tanpa pemasok — pembelian tanpa lawan transaksi tidak bisa ditelusuri', async () => {
+  // CATATAN PERUBAHAN (9 September 2026)
+  // ------------------------------------
+  // Test ini DULU mengunci perilaku sebaliknya: penyimpanan pengeluaran
+  // "Belanja Stok" tanpa pemasok DITOLAK ("pembelian tanpa lawan transaksi
+  // tidak bisa ditelusuri" — P11).
+  //
+  // Diubah karena ternyata TIDAK KONSISTEN dengan jalur AI: entity-schemas.ts
+  // (dipakai AI Catat/CRUD) sudah lama menandai supplier_id transaksi sebagai
+  // `required: false`, sehingga AI bebas membuat transaksi pembelian stok
+  // TANPA pemasok. Modal ini lalu memblokir PENYUNTINGAN transaksi yang sama —
+  // data yang sudah sah tanpa pemasok tidak bisa disimpan ulang sampai
+  // pemasok diisi, membuat transaksi hasil AI tidak bisa diedit sama sekali.
+  // Dilaporkan langsung oleh pemilik produk dari layar edit transaksi nyata.
+  it('mengizinkan pengeluaran belanja stok TANPA pemasok — konsisten dengan jalur AI Catat', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn(async () => {})
     render(<TransactionModal onClose={() => {}} onSave={onSave} />)
@@ -146,8 +159,13 @@ describe('<TransactionModal> penyimpanan', () => {
     await user.selectOptions(screen.getByLabelText('Kategori'), 'Belanja Stok')
     await user.click(screen.getByRole('button', { name: 'Simpan' }))
 
-    expect(await screen.findByText(/Pilih pemasok/i)).toBeInTheDocument()
-    expect(onSave).not.toHaveBeenCalled()
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      direction: 'out',
+      category: 'Belanja Stok',
+      supplier_id: null,
+      supplier_name: null,
+    })
   })
 
   it('tidak mewajibkan pemasok untuk pengeluaran non-stok', async () => {

@@ -97,11 +97,16 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
   const linkedLines = lines.filter((l) => l.productId && Number(l.qty) > 0)
   const linesTotal = linkedLines.reduce((s, l) => s + (Number(l.total) || 0), 0)
 
-  // Pemasok wajib saat pengeluaran ini menambah stok (P11). Dua penanda:
-  // ada baris produk yang dibeli, atau kategorinya memang kategori pembelian
-  // stok — pengguna sering mencatat kulakan tanpa memilih baris produk.
-  const kategoriStok = /stok|pembelian|bahan baku|kulakan|supplier|pemasok/i.test(category || '')
-  const wajibPemasok = direction === 'out' && (linkedLines.length > 0 || kategoriStok)
+  // Pemasok SELALU opsional (diubah dari wajib pada 9 Sep 2026).
+  //
+  // Sebelumnya (P11) diwajibkan untuk pengeluaran yang menambah stok — dengan
+  // alasan pembelian tanpa pemasok tidak bisa ditelusuri kemudian. Tapi
+  // entity-schemas.ts (jalur AI Catat/CRUD) sudah lama menandai supplier_id
+  // transaksi sebagai `required: false`, sehingga AI bebas membuat transaksi
+  // pembelian stok TANPA pemasok. Modal ini lalu memblokir PENYUNTINGAN
+  // transaksi yang sama — data yang sudah sah tanpa pemasok tidak bisa
+  // disimpan ulang sampai pemasok diisi. Baris demi baris transaksi hasil AI
+  // menjadi tidak bisa diedit sama sekali.
 
   // Total produk otomatis menjadi Nominal transaksi (tetap bisa diubah manual di bawah).
   useEffect(() => {
@@ -169,11 +174,6 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
     if (!occurredAt || Number.isNaN(waktu.getTime())) return setErr('Tanggal & waktu wajib diisi.')
     // Simpan yang sudah pasti gagal hanya membuang isian yang sudah diketik.
     if (sedangOffline()) return setErr(t.koneksi.offlineSimpan)
-    // Pembelian stok tanpa pemasok tidak bisa ditelusuri lagi kemudian
-    // ("stok ini dibeli dari siapa, harganya berapa waktu itu?").
-    if (wajibPemasok && !supplierId && !newSupplier.trim()) {
-      return setErr('Pilih pemasok, atau isi nama pemasok baru.')
-    }
     setBusy(true)
     try {
       // Simpan product_id & qty bila tepat satu baris produk (untuk analitik granular).
@@ -368,15 +368,14 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
                 onChange={(e) => setDueDate(bersihkanTanggal(e.target.value))} />
             </div>
           )}
-          {/* Pemasok (P11). Ditampilkan untuk semua pengeluaran, WAJIB saat
-              pengeluaran itu menambah stok — pembelian stok tanpa pemasok tidak
-              bisa ditelusuri lagi berbulan-bulan kemudian. */}
+          {/* Pemasok — SELALU opsional (lihat catatan di dekat wajibPemasok
+              lama, di atas). Ditampilkan untuk semua pengeluaran; mengisinya
+              tetap berguna untuk menelusuri riwayat pembelian nanti, hanya
+              tidak lagi memblokir penyimpanan bila dikosongkan. */}
           {direction === 'out' && (
             <div className="field">
               <label htmlFor="tx-supplier">
-                Pemasok {wajibPemasok
-                  ? <span style={{ color: 'var(--red)' }}>*</span>
-                  : <span className="muted-sm">(opsional)</span>}
+                Pemasok <span className="muted-sm">(opsional)</span>
               </label>
               <select id="tx-supplier" className="input" value={supplierId}
                 onChange={(e) => { setSupplierId(e.target.value); if (e.target.value) setNewSupplier('') }}>
@@ -389,11 +388,9 @@ export default function TransactionModal({ initial, rules = [], onClose, onSave 
                   aria-label="Nama pemasok baru"
                   placeholder="atau ketik nama pemasok baru, cth: Toko Grosir Jaya" />
               )}
-              {wajibPemasok && (
-                <p className="muted-sm" style={{ margin: '4px 0 0' }}>
-                  Wajib diisi karena pengeluaran ini menambah stok. Pemasok baru otomatis tersimpan ke Daftar Pemasok.
-                </p>
-              )}
+              <p className="muted-sm" style={{ margin: '4px 0 0' }}>
+                Mengisi pemasok memudahkan penelusuran riwayat pembelian nanti. Pemasok baru otomatis tersimpan ke Daftar Pemasok.
+              </p>
             </div>
           )}
 
