@@ -322,9 +322,13 @@ function coerceField(f: FieldSpec, raw: unknown, issues: ValidationIssue[]): unk
       return v
     }
     case 'date': {
-      const v = String(raw).trim()
-      if (!/^\d{4}-\d{2}-\d{2}/.test(v)) {
-        issues.push({ field: f.name, message: `${f.label} harus format YYYY-MM-DD.` })
+      const v = parseTanggalManusiawi(raw)
+      if (!v) {
+        issues.push({
+          field: f.name,
+          message: `${f.label} belum terbaca sebagai tanggal. Contoh yang dikenali: `
+            + '2026-09-30, 30/09/2026, atau 30 September 2026.',
+        })
         return undefined
       }
       return v
@@ -337,6 +341,89 @@ function coerceField(f: FieldSpec, raw: unknown, issues: ValidationIssue[]): unk
       return v
     }
   }
+}
+
+const BULAN_ID: Record<string, number> = {
+  januari: 1, jan: 1, february: 2, februari: 2, feb: 2, pebruari: 2,
+  maret: 3, mar: 3, march: 3, april: 4, apr: 4, mei: 5, may: 5,
+  juni: 6, jun: 6, june: 6, juli: 7, jul: 7, july: 7,
+  agustus: 8, agu: 8, agt: 8, aug: 8, august: 8,
+  september: 9, sep: 9, sept: 9, oktober: 10, okt: 10, oct: 10, october: 10,
+  november: 11, nov: 11, nop: 11, desember: 12, des: 12, dec: 12, december: 12,
+}
+
+/**
+ * Terjemahkan jawaban tanggal dari BAHASA MANUSIA ke YYYY-MM-DD.
+ *
+ * Versi sebelumnya hanya menerima YYYY-MM-DD dan menolak selain itu. Terdengar
+ * wajar sampai seseorang benar-benar dijawab olehnya: ketika asisten bertanya
+ * "Kapan jatuh temponya?", jawaban paling alami adalah "30 September 2026" —
+ * dan itulah yang ditolak. Keluhan formatnya pun tidak pernah sampai ke layar,
+ * jadi pertanyaannya sekadar muncul lagi, tanpa sebab yang terlihat.
+ *
+ * Akibatnya rantai putus di tengah: draft tidak pernah dinyatakan siap,
+ * tombol Simpan tidak pernah muncul, dan transaksi piutang yang sudah diketik
+ * lengkap tidak pernah masuk ke Piutang & Utang. Terlapor 9 September 2026.
+ *
+ * Yang dikenali: 2026-09-30, 30/09/2026, 30-9-2026, "30 September 2026",
+ * "30 sep 2026", "hari ini", "besok", "lusa".
+ *
+ * SENGAJA TIDAK memakai `new Date(string)`: parser bawaan JS menafsirkan
+ * "03/09/2026" sebagai 9 Maret (bulan dulu, gaya Amerika), sementara pengguna
+ * Indonesia menulisnya sebagai 3 September. Menebak salah pada tanggal jatuh
+ * tempo berarti menagih pelanggan di bulan yang keliru.
+ */
+export function parseTanggalManusiawi(raw: unknown): string | null {
+  const v = String(raw ?? '').trim().toLowerCase()
+  if (!v) return null
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dariOffset = (hari: number) => {
+    // Hari berjalan menurut WIB, bukan UTC: sebelum pukul 07.00 WIB keduanya
+    // berbeda tanggal, dan "hari ini" yang meleset sehari pada catatan piutang
+    // langsung menggeser umur tagihannya.
+    const t = new Date(Date.now() + 7 * 3600 * 1000 + hari * 86400000)
+    return t.toISOString().slice(0, 10)
+  }
+
+  if (/^(hari ini|sekarang|today)$/.test(v)) return dariOffset(0)
+  if (/^(besok|esok|tomorrow)$/.test(v)) return dariOffset(1)
+  if (/^(lusa)$/.test(v)) return dariOffset(2)
+  if (/^(kemarin|yesterday)$/.test(v)) return dariOffset(-1)
+
+  // 2026-09-30 (dengan atau tanpa bagian waktu)
+  const iso = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (iso) {
+    const [, y, m, d] = iso
+    return sahkanTanggal(Number(y), Number(m), Number(d)) ? `${y}-${pad(Number(m))}-${pad(Number(d))}` : null
+  }
+
+  // 30/09/2026, 30-9-2026, 30.09.2026  -> HARI dulu (konvensi Indonesia)
+  const dmy = v.match(/^(\d{1,2})[\/\-. ](\d{1,2})[\/\-. ](\d{4})$/)
+  if (dmy) {
+    const d = Number(dmy[1]); const m = Number(dmy[2]); const y = Number(dmy[3])
+    return sahkanTanggal(y, m, d) ? `${y}-${pad(m)}-${pad(d)}` : null
+  }
+
+  // "30 september 2026" / "30 sep 2026" / "1 des 2026"
+  const teks = v.match(/^(\d{1,2})\s+([a-z]+)\.?\s+(\d{4})$/)
+  if (teks) {
+    const d = Number(teks[1])
+    const m = BULAN_ID[teks[2]]
+    const y = Number(teks[3])
+    if (m && sahkanTanggal(y, m, d)) return `${y}-${pad(m)}-${pad(d)}`
+    return null
+  }
+
+  return null
+}
+
+/** Tanggal yang benar-benar ada — menolak 31 Februari dan sejenisnya. */
+function sahkanTanggal(y: number, m: number, d: number): boolean {
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return false
+  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return false
+  const t = new Date(Date.UTC(y, m - 1, d))
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d
 }
 
 // ---------- 3. Resolusi referensi (nama -> ID, lalu pastikan ID itu ada) ----------

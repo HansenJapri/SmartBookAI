@@ -206,6 +206,58 @@ function pastikanRefBerupaId(values = {}) {
  *
  * @returns {Promise<string>} kalimat ringkas untuk ditampilkan di percakapan.
  */
+/**
+ * Ke MANA data ini tersimpan — daftar menu yang benar-benar akan memuatnya.
+ *
+ * Kebutuhannya datang dari laporan pengguna 9 September 2026: setelah asisten
+ * menjawab "Transaksi tersimpan", tidak ada satu pun petunjuk di mana barisnya
+ * bisa dilihat. Untuk piutang ini terasa seperti data hilang — halaman
+ * Transaksi memang memuatnya, tetapi yang dibuka pengguna adalah Piutang &
+ * Utang, dan tidak ada yang pernah memberitahu bahwa keduanya berbeda halaman.
+ *
+ * Satu catatan bisa mendarat di LEBIH DARI SATU tempat, dan justru itu yang
+ * paling membingungkan kalau tidak disebut: transaksi belum lunas masuk
+ * Transaksi DAN Piutang & Utang; produk baru bermodal masuk Stok Produk DAN
+ * Transaksi (sebagai pengeluaran).
+ *
+ * Dipakai HANYA setelah penyimpanan benar-benar berhasil. Menyebut tujuan
+ * untuk data yang gagal tersimpan adalah kebohongan yang paling mahal:
+ * pengguna berhenti mencari, lalu menemukan lubangnya berminggu-minggu kemudian.
+ */
+export function tujuanSimpan(draft) {
+  const { entity, values = {}, operation = 'create' } = draft || {}
+  if (operation === 'delete') return []
+
+  const t = []
+  switch (entity) {
+    case 'transaksi':
+      t.push({ label: 'Transaksi', to: '/app/transaksi' })
+      // 'belum' pada pemasukan = piutang; pada pengeluaran = utang.
+      if (values.payment_status === 'belum') {
+        t.push({ label: 'Piutang & Utang', to: '/app/piutang' })
+      }
+      break
+    case 'produk':
+      t.push({ label: 'Stok Produk', to: '/app/stok' })
+      if (values.catat_pengeluaran) t.push({ label: 'Transaksi', to: '/app/transaksi' })
+      break
+    case 'supplier':       t.push({ label: 'Pemasok', to: '/app/supplier' }); break
+    case 'pelanggan':
+    case 'customer':       t.push({ label: 'Piutang & Utang', to: '/app/piutang' }); break
+    case 'purchase_order': t.push({ label: 'Purchase Order', to: '/app/po' }); break
+    case 'karyawan':       t.push({ label: 'Karyawan', to: '/app/karyawan' }); break
+    case 'absensi':        t.push({ label: 'Absensi', to: '/app/absensi' }); break
+    case 'kpi_criteria':
+    case 'kpi_score':      t.push({ label: 'KPI', to: '/app/kpi' }); break
+    case 'tugas':
+    case 'task':           t.push({ label: 'Papan Tugas', to: '/app/tugas' }); break
+    case 'pengingat':
+    case 'reminder':       t.push({ label: 'Dashboard (Pengingat)', to: '/app/dashboard' }); break
+    default: break
+  }
+  return t
+}
+
 export async function saveDraftAction(draft) {
   setAsalAI(true)
   try {

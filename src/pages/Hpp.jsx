@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sparkles, Plus, Trash2, Calculator } from 'lucide-react'
+import { Plus, Trash2, Calculator } from 'lucide-react'
 import {
   fetchProducts, updateProduct, fetchProfile,
   fetchIngredients, fetchBom, saveBom, fetchMacroSignals, fetchProductYield,
 } from '../lib/api'
-import { hppDraftAI } from '../lib/ai'
 import { rupiah } from '../lib/format'
 import {
   COMMODITIES, marginPct, priceForMargin, applyAdjustments, applyKursScenario,
@@ -41,7 +40,6 @@ export default function Hpp() {
   const [kursPct, setKursPct] = useState('')
   const [targetMargin, setTargetMargin] = useState('')
   const [loadingBom, setLoadingBom] = useState(false)
-  const [drafting, setDrafting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -118,32 +116,14 @@ export default function Hpp() {
   const addRow = () => setRows((a) => [...a, blankRow()])
   const removeRow = (i) => setRows((a) => a.filter((_, idx) => idx !== i))
 
-  // Draf AI (hybrid): AI mengusulkan komposisi, pengguna WAJIB meninjau.
-  const makeDraft = async () => {
-    if (!product) return
-    setDrafting(true); setErr(''); setMsg('')
-    try {
-      const res = await hppDraftAI({
-        productName: product.name,
-        businessType: businessType || 'UMKM umum',
-        unit: product.unit,
-        sellPrice: product.price,
-      })
-      const comps = (res?.components || []).map((c) => ({
-        ingredient_id: '',
-        name: c.name, type: c.type, unit: c.unit,
-        price_per_unit: String(c.est_price_per_unit),
-        commodity_key: c.commodity_key || '',
-        import_exposure: c.import_exposure || 'rendah',
-        qty_per_unit: String(c.qty),
-        is_ai_estimated: true,
-        simPct: '',
-      }))
-      if (!comps.length) { setErr(hp.errNoAiDraft); return }
-      setRows(comps)
-      setNote(res?.note || '')
-    } catch (e) { setErr(e.message) } finally { setDrafting(false) }
-  }
+  // Draf komposisi oleh AI DIHAPUS (keputusan pemilik produk, 9 September 2026).
+  //
+  // Fitur itu menebak bahan dan harga satuan sebuah produk, lalu menandainya
+  // is_ai_estimated. Angka tebakan yang tampil di kolom yang sama dengan angka
+  // hasil pencatatan nyata terlalu mudah ikut terbawa ke keputusan harga jual —
+  // dan HPP yang salah menyebar ke margin, target penjualan, dan simulasi
+  // kenaikan harga bahan. Komposisi kini diisi manual, dari angka yang memang
+  // diketahui pemiliknya.
 
   // Baris per_periode tidak butuh takaran — biayanya datang dari
   // (biaya periode / hasil periode), bukan dari qty x harga.
@@ -317,11 +297,7 @@ export default function Hpp() {
                     </div>
                   </div>
                   <div className="flex gap" style={{ flexDirection: 'column' }}>
-                    <button className="btn btn-primary" onClick={makeDraft} disabled={drafting}>
-                      <Sparkles size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />
-                      {drafting ? hp.drafting : hp.makeAiDraft}
-                    </button>
-                    <button className="btn btn-ghost" onClick={addRow}>{hp.fillManual}</button>
+                    <button className="btn btn-primary" onClick={addRow}>{hp.fillManual}</button>
                   </div>
                 </div>
               )}
@@ -469,9 +445,6 @@ export default function Hpp() {
                   <div className="flex between gap" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
                     <div className="flex gap">
                       <button type="button" className="btn btn-ghost" onClick={addRow}><Plus size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />{hp.addComponent}</button>
-                      <button type="button" className="btn btn-ghost" onClick={makeDraft} disabled={drafting}>
-                        <Sparkles size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />{drafting ? hp.redrafting : hp.redraftAI}
-                      </button>
                     </div>
                     <div style={{ fontSize: 16 }}>{hp.hppLabel} <b>{rupiah(hppBase)}</b> / {product.unit}</div>
                   </div>

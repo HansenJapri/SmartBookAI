@@ -971,6 +971,14 @@ table.tbl tr:hover td { background: var(--bg-soft); }
    tempat pertanyaannya muncul, bukan di kotak ketik paling bawah layar yang
    membuat pembaruan kartunya terjadi di luar pandangan pengguna. */
 .chat-answer { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+
+/* Tautan "Buka <menu>" pada kartu konfirmasi tersimpan. Sengaja berbentuk chip
+   seperti tombol pilihan lain di percakapan, bukan tautan teks biasa: ia adalah
+   langkah berikutnya yang ditawarkan sistem, bukan catatan kaki. */
+.chip-link { display: inline-block; text-decoration: none; background: var(--card);
+  border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px;
+  font-size: 13px; color: var(--indigo); font-weight: 600; }
+.chip-link:hover { border-color: var(--indigo); }
 .chat-answer .input { flex: 1; min-width: 0; font-size: 13.5px; padding: 8px 10px; }
 .chat-answer .btn { flex: none; padding: 8px 14px; font-size: 13.5px; }
 @media (max-width: 480px) {

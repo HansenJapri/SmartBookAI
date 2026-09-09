@@ -116,12 +116,38 @@ function optionsFor(f: any, values: Record<string, unknown>, ctx: any): string[]
   }
 }
 
-/** Isi opsi dinamis pada pertanyaan slot-filling agar UI/voice bisa menyebutkannya. */
-function enrichQuestionOptions(q: any, entity: string, values: Record<string, unknown>, ctx: any) {
+/**
+ * Isi opsi dinamis pada pertanyaan slot-filling agar UI/voice bisa menyebutkannya.
+ *
+ * Sekaligus menyertakan TIPE field dan KELUHAN validasi yang masih menempel
+ * padanya. Keduanya dulu tidak pernah ikut, dan ketiadaannya berpasangan
+ * menjadi kegagalan senyap yang dilaporkan 9 September 2026:
+ *
+ *   - Tanpa `type`, klien tidak tahu bahwa "Kapan jatuh temponya?" meminta
+ *     TANGGAL, sehingga ia hanya bisa menyodorkan kotak teks kosong dan
+ *     berharap pengguna menebak formatnya.
+ *   - Tanpa `issue`, penolakan "harus format YYYY-MM-DD" tidak pernah sampai
+ *     ke layar. Pertanyaannya sekadar muncul lagi, tampak seperti aplikasi
+ *     yang mengabaikan jawaban.
+ *
+ * Gabungan keduanya membuat transaksi piutang yang sudah diketik lengkap
+ * berhenti di tengah dan tidak pernah tersimpan.
+ */
+function enrichQuestionOptions(
+  q: any,
+  entity: string,
+  values: Record<string, unknown>,
+  ctx: any,
+  issues?: Array<{ field: string; message: string }>,
+) {
   const spec = getEntitySpec(entity)
   const f = spec?.fields.find((x) => x.name === q.field)
   const opts = f ? optionsFor(f, values, ctx) : undefined
   if (opts) q.options = opts
+  if (f?.type) q.type = f.type
+  if (f?.label) q.label = f.label
+  const iss = (issues || []).find((i) => i.field === q.field)
+  if (iss) q.issue = iss.message
   return q
 }
 
@@ -304,7 +330,7 @@ serve(async (req) => {
       if (refIssues.length) d.issues.push(...refIssues)
 
       const plan = computeClarifications(d)
-      if (plan.next) enrichQuestionOptions(plan.next, d.entity, d.values, ctx)
+      if (plan.next) enrichQuestionOptions(plan.next, d.entity, d.values, ctx, d.issues)
 
       return json({
         draft: d,
@@ -440,7 +466,7 @@ ATURAN KERAS:
       if (refIssues.length) d.issues.push(...refIssues)
 
       const plan = computeClarifications(d)
-      if (plan.next) enrichQuestionOptions(plan.next, d.entity, d.values, ctx)
+      if (plan.next) enrichQuestionOptions(plan.next, d.entity, d.values, ctx, d.issues)
 
       actions.push({
         draft: d,

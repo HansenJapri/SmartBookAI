@@ -4,7 +4,18 @@ dist
 .env.local
 .DS_Store
 *.log
-admin-dashboard/.env
+# ADMIN DASHBOARD — SELURUHNYA, bukan hanya .env-nya.
+#
+# Repo ini PUBLIK. Panel admin memuat permukaan istimewa aplikasi: daftar RPC
+# admin, alur autentikasi & MFA, skrip pembuatan akun admin, dan skrip pentest.
+# Tidak satu pun berisi kredensial (.env memang sudah diabaikan sejak awal),
+# tetapi seluruhnya adalah peta yang mempermudah penyerang menemukan ke mana
+# harus menekan. Keputusan pemilik produk 9 September 2026: panel admin tidak
+# pernah boleh ikut ke repo publik.
+#
+# CATATAN: aturan ini hanya menghentikan commit BERIKUTNYA. Riwayat yang sudah
+# terdorong tetap publik — lihat bagian "Riwayat" di admin-dashboard/README-KEAMANAN.md.
+admin-dashboard/
 supabase/.env
 
 # Playwright E2E

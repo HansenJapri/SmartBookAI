@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { MessageCircle, X, Send, Trash2, HelpCircle, PencilLine, AudioLines } from 'lucide-react'
 import { askAI, catatAI, crudAI } from '../lib/ai'
 import { addTransactionsBulk, fetchCategories, fetchTodayTotals } from '../lib/api'
-import { saveDraftAction } from '../lib/aiActions'
+import { saveDraftAction, tujuanSimpan } from '../lib/aiActions'
 import { rupiah } from '../lib/format'
 import AIDisclaimer from './AIDisclaimer'
 import VoiceAssistant from './VoiceAssistant'
 import { liveVoiceSupported } from '../lib/liveAudio'
 import { useLang } from '../context/LangContext'
 import { BATAS_DATE, bersihkanTanggal } from '../lib/dateInput'
+import { Link } from 'react-router-dom'
 
 const CONSENT_KEY = 'bukupintar_ai_consent'
 
@@ -248,7 +249,17 @@ export default function Chatbot() {
     setSaving(true); setErr('')
     try {
       const text = await saveDraftAction(m.draft)
+      const tujuan = tujuanSimpan(m.draft)
       setMessages((all) => all.map((x, i) => (i === idx ? { ...x, saved: true, savedText: text } : x)))
+
+      // Sebutkan KE MANA datanya mendarat — hanya setelah benar-benar tersimpan.
+      //
+      // Untuk transaksi belum lunas ini menutup kebingungan yang dilaporkan
+      // 9 September 2026: barisnya ada di Transaksi DAN Piutang & Utang, tapi
+      // pengguna hanya membuka salah satunya lalu menyimpulkan datanya hilang.
+      if (tujuan.length) {
+        setMessages((all) => [...all, { role: 'assistant', type: 'tujuan', tujuan }])
+      }
       // Rekap angka DIHITUNG DARI DATABASE, bukan dari AI — pola bebas
       // halusinasi yang sama dengan alur draf transaksi lama.
       //
@@ -268,6 +279,13 @@ export default function Chatbot() {
       }
     } catch (e) {
       setErr('Gagal menyimpan: ' + e.message)
+      // Kegagalan diumumkan di ALUR percakapan juga, bukan hanya di kotak error
+      // di atas yang mudah tergulung keluar layar. Diam setelah menekan Simpan
+      // tidak boleh bisa disalahartikan sebagai berhasil.
+      setMessages((all) => [...all, {
+        role: 'assistant',
+        text: `Gagal menyimpan — data TIDAK tersimpan. ${e.message}`,
+      }])
     } finally {
       setSaving(false)
     }
@@ -496,6 +514,23 @@ export default function Chatbot() {
             )}
 
             {messages.map((m, i) => {
+              // Kartu "tersimpan ke mana". Hanya lahir setelah penyimpanan
+              // benar-benar berhasil (lihat saveAction), jadi kehadirannya
+              // sendiri sudah menjadi konfirmasi.
+              if (m.type === 'tujuan') {
+                return (
+                  <div key={i} className="chat-msg assistant">
+                    <div style={{ marginBottom: 6 }}>Tersimpan ke:</div>
+                    <div className="chat-chips">
+                      {m.tujuan.map((t) => (
+                        <Link key={t.to + t.label} to={t.to} className="chip-link">
+                          Buka {t.label} →
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
               if (m.type === 'action') {
                 const op = m.draft?.operation
                 const judul = op === 'delete' ? 'Menghapus' : op === 'update' ? 'Mengubah' : 'Menambah'
@@ -513,6 +548,15 @@ export default function Chatbot() {
                     {!m.saved && m.needsClarification && m.question && (
                       <div className="draft-card">
                         <div>{m.question.question}</div>
+                        {/* Keluhan validasi dari putaran sebelumnya.
+                            Dulu ditelan diam-diam: jawaban ditolak, pertanyaan
+                            muncul lagi, dan pengguna tidak pernah tahu apa yang
+                            salah dengan jawabannya. */}
+                        {m.question.issue && (
+                          <div className="alert alert-err" style={{ margin: '6px 0 0', fontSize: 13 }}>
+                            {m.question.issue}
+                          </div>
+                        )}
                         {!!m.question.options?.length && (
                           <div className="chat-chips">
                             {m.question.options.slice(0, 12).map((o) => (
@@ -529,10 +573,16 @@ export default function Chatbot() {
                           <input
                             id={`jawab-${i}`}
                             className="input"
-                            type="text"
+                            /* Tipe kolom MENGIKUTI tipe field yang ditanyakan.
+                               Untuk pertanyaan tanggal ini memunculkan pemilih
+                               kalender bawaan peramban, sehingga pengguna tidak
+                               perlu menebak format sama sekali — sistem yang
+                               mengarahkan, bukan sebaliknya. */
+                            type={m.question.type === 'date' ? 'date'
+                              : m.question.type === 'number' ? 'number' : 'text'}
                             autoComplete="off"
                             aria-label={`Jawaban untuk: ${m.question.question}`}
-                            placeholder="Ketik jawaban Anda di sini..."
+                            placeholder={m.question.type === 'date' ? 'Pilih tanggal' : m.question.type === 'number' ? 'Ketik angka' : 'Ketik jawaban Anda di sini...'}
                             value={jawabanKartu[i] ?? ''}
                             disabled={busy}
                             onChange={(e) => setJawabanKartu((j) => ({ ...j, [i]: e.target.value }))}
