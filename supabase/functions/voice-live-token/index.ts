@@ -24,7 +24,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { FEATURE_ROUTES, resolveKey, type FeatureName } from '../_shared/ai/config.ts'
-import { checkQuota, commitQuota } from '../_shared/ai/rate-limiter.ts'
+import { checkQuota, commitQuota, quotaBlockedPayload } from '../_shared/ai/rate-limiter.ts'
 import { resolveScope } from '../_shared/ai/workspace-scope.ts'
 import { corsHeaders, originDitolak } from '../_shared/cors.ts'
 
@@ -203,15 +203,12 @@ serve(async (req) => {
       }, 503)
     }
     if (!quota.allowed) {
-      return json({
-        error: `Kuota suara harian workspace Anda sudah habis (${Math.round(quota.cap / 60)} menit/hari). `
-          + 'Kuota dibagi bersama seluruh anggota dan direset otomatis besok.',
-        code: 'DAILY_LIMIT_REACHED',
-        feature: route.quotaFeature,
-        used: quota.used,
-        cap: quota.cap,
-        resetAt: quota.resetAt,
-      }, 429)
+      // quotaBlockedPayload, BUKAN pesan "habis harian" yang ditulis tangan.
+      // Versi lama selalu menjawab DAILY_LIMIT_REACHED apa pun sebabnya, jadi
+      // pengguna yang KREDITNYA habis — atau yang AI-nya dimatikan admin —
+      // tetap disuruh "menunggu besok", dan besok ia tetap tidak bisa apa-apa.
+      // Ini satu-satunya endpoint AI yang belum memakai corong bersama itu.
+      return json(quotaBlockedPayload(route.quotaFeature, quota), 429)
     }
 
     // ---------- Pilih model ----------

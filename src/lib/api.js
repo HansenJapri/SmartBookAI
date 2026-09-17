@@ -1057,6 +1057,24 @@ function sanitizeStaffName(name) {
   return clean
 }
 
+/**
+ * Kuota AI & anggota milik workspace yang sedang dibuka.
+ *
+ * RPC `my_ai_credits` sudah lama ada di database tapi tidak pernah dipanggil
+ * dari aplikasi, sehingga pemilik usaha tidak punya satu pun cara melihat sisa
+ * kreditnya sampai AI berhenti menjawab. Batas yang hanya terasa saat ditabrak
+ * bukan batas, melainkan kejutan.
+ *
+ * Mengembalikan null bila RPC-nya belum terpasang, supaya layar yang
+ * memakainya bisa diam saja alih-alih menampilkan error kepada pengguna yang
+ * tidak bisa berbuat apa-apa soal itu.
+ */
+export async function fetchAiCredits() {
+  const { data, error } = await supabase.rpc('my_ai_credits')
+  if (error) return null
+  return data && Object.keys(data).length > 0 ? data : null
+}
+
 export async function addStaff(email, modules, role = 'staf', name = '') {
   const user = await assertOwnerView()
   const clean = email.trim().toLowerCase()
@@ -1077,6 +1095,20 @@ export async function addStaff(email, modules, role = 'staf', name = '') {
       role: STAFF_ROLES.includes(role) ? role : 'staf',
     })
     .select().single()
+  // Batas anggota ditegakkan oleh trigger database (trg_seat_limit), jadi yang
+  // sampai ke sini adalah teks exception mentah berawalan kode — "SEAT_LIMIT_
+  // REACHED: Paket Anda maksimal 2 anggota...". Itu memang sudah berbahasa
+  // Indonesia, tapi menempelkan kode internal di depan kalimat yang dibaca
+  // pemilik toko membuat batas yang disengaja terlihat seperti aplikasi rusak.
+  //
+  // Ditandai `code` alih-alih sekadar diganti teksnya supaya layar pemanggil
+  // bisa menawarkan jalan keluarnya (naikkan paket / cabut anggota), bukan
+  // hanya mengeluh.
+  if (error && /SEAT_LIMIT_REACHED|FREE_PLAN_SEAT_LIMIT/i.test(error.message || '')) {
+    const e = new Error(String(error.message).replace(/^.*?SEAT_LIMIT[^:]*:\s*/i, '').trim())
+    e.code = 'SEAT_LIMIT_REACHED'
+    throw e
+  }
   if (error) periksaGalat(error)
   track('staff_invited')
   // Email undangan bersifat best-effort: undangannya sudah sah tanpa email.

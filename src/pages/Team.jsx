@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Users, Trash2, Pencil } from 'lucide-react'
 import Modal from '../components/Modal'
-import { fetchStaff, addStaff, updateStaff, deleteStaff, reinviteStaff } from '../lib/api'
+import { fetchStaff, addStaff, updateStaff, deleteStaff, reinviteStaff, fetchAiCredits } from '../lib/api'
 import { MODULES, STAFF_STATUS, canManageUsers, staffDisplayName } from '../lib/rbac'
 import { fmtDate } from '../lib/format'
 import { useLang } from '../context/LangContext'
@@ -33,10 +33,21 @@ export default function Team() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
 
+  // Kuota anggota dibaca terpisah dari daftar staf: daftar staf menjawab
+  // "siapa saja", kuota menjawab "masih boleh berapa lagi" — dan yang kedua
+  // tidak bisa disimpulkan dari yang pertama, karena batasnya milik paket.
+  const [kuota, setKuota] = useState(null)
+
   useEffect(() => {
     if (!canManage) { setList([]); return }
     fetchStaff().then(setList).catch(() => setList([]))
+    fetchAiCredits().then(setKuota).catch(() => setKuota(null))
   }, [canManage])
+
+  const seatMax = Number(kuota?.seat_maks) || null
+  const seatUsed = Number(kuota?.seat_terpakai) || null
+  const seatPenuh = seatMax != null && seatUsed != null && seatUsed >= seatMax
+  const planLabel = kuota?.paket_label || kuota?.paket || '-'
 
   const toggleModule = (key) => setForm((f) => ({
     ...f,
@@ -67,10 +78,20 @@ export default function Team() {
         const created = await addStaff(email, form.modules, 'staf', name)
         setList((prev) => [created, ...(prev || [])])
         setMsg(tm.invitedMsg.replace('{name}', staffDisplayName(created)))
+        fetchAiCredits().then(setKuota).catch(() => {})
       }
       setForm(null)
     } catch (e2) {
-      setErr(e2.message?.includes('duplicate') ? tm.emailTakenErr : e2.message)
+      // Batas anggota punya pesannya sendiri: ia bukan kegagalan teknis
+      // melainkan keputusan paket, dan pengguna butuh tahu jalan keluarnya.
+      if (e2.code === 'SEAT_LIMIT_REACHED') {
+        setErr(tm.seatFullErr
+          .replace('{plan}', planLabel)
+          .replace('{max}', String(seatMax ?? '-')))
+        fetchAiCredits().then(setKuota).catch(() => {})
+      } else {
+        setErr(e2.message?.includes('duplicate') ? tm.emailTakenErr : e2.message)
+      }
     } finally { setBusy(false) }
   })
 
@@ -89,6 +110,8 @@ export default function Team() {
       const upd = await updateStaff(s.id, { status })
       setList((prev) => prev.map((x) => (x.id === upd.id ? upd : x)))
       setMsg(tm.accessChangedMsg.replace('{name}', who).replace('{status}', labels[status] || status))
+      // Mencabut akses MENGOSONGKAN slot; mengaktifkan lagi memakainya.
+      fetchAiCredits().then(setKuota).catch(() => {})
     } catch (e2) { setErr(e2.message) }
   })
 
@@ -102,6 +125,7 @@ export default function Team() {
     try {
       await deleteStaff(s.id)
       setList((prev) => prev.filter((x) => x.id !== s.id))
+      fetchAiCredits().then(setKuota).catch(() => {})
     } catch (e2) { setErr(e2.message) }
   })
 
@@ -139,11 +163,39 @@ export default function Team() {
       )}
       {err && !form && <div className="alert alert-err">{err}</div>}
 
+      {/* Slot penuh diumumkan SEBELUM tombol ditekan. Sebelumnya batas ini
+          hanya muncul sebagai error database setelah owner mengisi seluruh
+          form — menolak pekerjaan yang sudah terlanjur dikerjakan. */}
+      {seatPenuh && (
+        <div className="alert" style={{ background: '#fffbeb', color: '#92400e' }}>
+          <b>{tm.seatFullTitle}</b>
+          <div style={{ marginTop: 4 }}>
+            {tm.seatFullDesc
+              .replace('{plan}', planLabel)
+              .replace('{max}', String(seatMax))
+              .replace('{staff}', String(Math.max(0, seatMax - 1)))}
+          </div>
+        </div>
+      )}
+
       <div className="toolbar">
         <p className="muted-sm" style={{ flex: 1, margin: 0 }}>
           {tm.hint}
+          {seatMax != null && (
+            <>
+              {' '}
+              <b style={{ color: seatPenuh ? '#b45309' : undefined }}>
+                {tm.seatUsage
+                  .replace('{used}', String(seatUsed))
+                  .replace('{max}', String(seatMax))
+                  .replace('{plan}', planLabel)}
+              </b>
+            </>
+          )}
         </p>
-        <button className="btn btn-primary" onClick={() => { setErr(''); setForm(blankForm()) }}>{tm.addStaff}</button>
+        <button className="btn btn-primary" disabled={seatPenuh}
+          title={seatPenuh ? tm.seatFullTitle : undefined}
+          onClick={() => { setErr(''); setForm(blankForm()) }}>{tm.addStaff}</button>
       </div>
 
       {list.length === 0 ? (
