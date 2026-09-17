@@ -41,27 +41,40 @@ export interface QuotaStatus {
   /**
    * APA yang memblokir, bukan sekadar bahwa sesuatu memblokir.
    *
-   * 'daily'     → guardrail teknis; tunggu reset, kredit TIDAK terpotong
-   * 'credits'   → jatah komersial habis; bisa dibeli/di-upgrade sekarang
-   * 'suspended' → dimatikan admin secara sadar
+   * 'daily'          → guardrail teknis; tunggu reset, kredit TIDAK terpotong
+   * 'credits'        → jatah komersial habis; bisa dibeli/di-upgrade sekarang
+   * 'tokens_daily'   → rem darurat biaya harian dari admin; tunggu besok
+   * 'tokens_monthly' → anggaran biaya sebulan dari admin habis; TIDAK bisa dibeli
+   * 'suspended'      → dimatikan admin secara sadar
    *
    * Perbedaan 'daily' dan 'credits' adalah perbedaan antara "tunggu tiga jam"
    * dan "beli lagi" — dua kalimat yang sangat berbeda bagi pemilik toko, dan
    * dua tindakan yang sangat berbeda bagi tim penjualan.
    */
-  blockedBy?: 'daily' | 'credits' | 'suspended' | 'no_workspace' | null
+  blockedBy?: 'daily' | 'credits' | 'suspended' | 'tokens_daily' | 'tokens_monthly' | 'no_workspace' | null
   creditsUsed?: number
   /** null = tanpa batas kredit (Enterprise). */
   creditsCap?: number | null
   cycleStart?: string | null
   cycleEnd?: string | null
   planCode?: string | null
+
+  // ---- Anggaran token (plafon biaya yang diatur admin) ----
+  // Dipisah dari kredit karena keduanya mengukur hal berbeda: kredit adalah
+  // satuan yang DIJUAL, token adalah satuan yang DITAGIH Google. Satu kredit
+  // di `crud` memakan ~10x token satu kredit di `hpp_draft`, jadi membatasi
+  // kredit saja bukan pengendalian biaya.
+  tokensDay?: number
+  tokensDayCap?: number | null
+  tokensCycle?: number
+  tokensCycleCap?: number | null
 }
 
 /** Bentuk error terstruktur saat sebuah permintaan AI ditolak kuota. */
 export interface QuotaBlockedError {
   error: string
   code: 'DAILY_LIMIT_REACHED' | 'CREDIT_LIMIT_REACHED' | 'AI_SUSPENDED'
+      | 'TOKEN_BUDGET_DAILY' | 'TOKEN_BUDGET_MONTHLY'
   feature: QuotaFeature
   used: number
   cap: number
@@ -125,6 +138,14 @@ export async function checkQuota(
     cycleStart: row?.cycle_start ?? null,
     cycleEnd: row?.cycle_end ?? null,
     planCode: row?.plan_code ?? null,
+    tokensDay: angka(row?.tokens_day, 0),
+    // null = tanpa batas, jadi ia tidak boleh ikut dijadikan 0 — 0 berarti
+    // kebalikannya persis: tidak boleh memakai apa pun.
+    tokensDayCap: row?.tokens_day_cap === null || row?.tokens_day_cap === undefined
+      ? null : Number(row.tokens_day_cap),
+    tokensCycle: angka(row?.tokens_cycle, 0),
+    tokensCycleCap: row?.tokens_cycle_cap === null || row?.tokens_cycle_cap === undefined
+      ? null : Number(row.tokens_cycle_cap),
   }
 }
 
@@ -254,6 +275,32 @@ export function quotaBlockedPayload(
         + 'Hubungi admin aplikasi untuk mengaktifkannya kembali. '
         + 'Seluruh pencatatan manual tetap bisa Anda pakai seperti biasa.',
       code: 'AI_SUSPENDED',
+    }
+  }
+
+  // Ditempatkan SEBELUM cabang 'credits' mengikuti urutan pemeriksaan di
+  // ai_quota_resolve. Kalau yang memblokir adalah plafon admin, menyuruh
+  // pengguna membeli kredit berarti menjual sesuatu yang tidak akan
+  // menyelesaikan masalahnya.
+  if (status.blockedBy === 'tokens_monthly') {
+    return {
+      ...bersama,
+      error: 'Anggaran pemakaian AI untuk akun ini sudah habis pada siklus berjalan. '
+        + `Anggaran baru dimulai ${tanggalID(status.cycleEnd)}. `
+        + 'Anggaran ini ditetapkan admin aplikasi, jadi tidak bisa ditambah dengan membeli kredit — '
+        + 'hubungi admin bila Anda membutuhkannya lebih besar. '
+        + 'Seluruh form manual tetap bisa dipakai tanpa batas.',
+      code: 'TOKEN_BUDGET_MONTHLY',
+    }
+  }
+
+  if (status.blockedBy === 'tokens_daily') {
+    return {
+      ...bersama,
+      error: 'Pemakaian AI akun ini hari ini sudah menyentuh batas harian yang ditetapkan admin. '
+        + 'Batas ini direset otomatis besok, dan kredit Anda TIDAK berkurang. '
+        + 'Sementara itu seluruh form manual tetap bisa dipakai tanpa batas.',
+      code: 'TOKEN_BUDGET_DAILY',
     }
   }
 

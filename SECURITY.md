@@ -38,8 +38,20 @@ sesuai peraturan.
 
 ## 3. Alur Respons Insiden (Runbook)
 
+> **Perkakasnya ada di Dashboard Admin > tab "Insiden & PDP".** Runbook di bawah
+> mengacu ke sana di tiga langkah yang paling menentukan: mencatat jam nol,
+> menyusun daftar korban, dan mencatat bukti pelaporan. Jangan mengerjakan
+> ketiganya di spreadsheet terpisah — spanduk hitung mundur di dashboard hanya
+> membaca register itu, dan insiden yang tidak tercatat di sana tidak akan
+> mengingatkan siapa pun.
+
 ### Jam ke-0 — Deteksi & Penahanan (containment)
-- [ ] Catat waktu insiden diketahui (mulai hitung mundur 3 x 24 jam).
+- [ ] **Catat insiden di tab "Insiden & PDP"**, isi *Diketahui pada* dengan waktu
+      tim benar-benar pertama tahu — bukan waktu form diisi. Nilai ini memulai
+      hitung mundur dan **tidak bisa diubah** setelah disimpan.
+      Catat lebih awal walau masih dugaan; status "bukan insiden" tersedia untuk
+      menutup dugaan yang ternyata keliru, dan itu jauh lebih murah daripada
+      kehilangan jam-jam pertama dari 72.
 - [ ] **Rotasi seluruh kunci & rahasia**: `GEMINI_API_KEY`, Service Role Key
       Supabase, kredensial SMTP (Resend). Buat baru, cabut yang lama.
 - [ ] **Cabut sesi aktif** di Supabase Auth (force sign-out) bila akun
@@ -50,14 +62,34 @@ sesuai peraturan.
 
 ### Jam ke-1 sampai 24 — Investigasi
 - [ ] Tentukan ruang lingkup: tabel/akun mana yang terpapar.
+- [ ] Isi *Kejadian mulai/sampai* pada insiden. Ini yang menyaring daftar korban.
+      Kosongkan bila belum diketahui — jendela kosong diperlakukan **terbuka**,
+      jadi daftarnya terlalu luas, bukan kosong. Daftar terlalu luas bisa
+      dipersempit nanti; daftar kosong yang tampak meyakinkan tidak bisa.
+- [ ] Buka **"Daftar korban"** pada insiden, lalu **Unduh CSV**. Berisi email dan
+      telepon subjek data yang jejaknya jatuh di jendela itu. Perlakukan berkas
+      unduhannya sebagaimana data pribadi.
+- [ ] Periksa juga daftar **akun yang sudah dihapus** pada insiden yang sama.
+      Datanya masih hidup di sistem saat jendela berjalan, jadi ia tetap masuk
+      laporan ke otoritas meski subjeknya tidak bisa lagi dihubungi dari sini.
+- [ ] Untuk satu akun tertentu, pakai tombol **🕵️ Jejak** di tab Pengguna:
+      pemakaian aplikasi, perubahan data, pemakaian AI, dan perubahan kebijakan
+      admin — digabung dan terurut waktu.
 - [ ] Periksa log Supabase (Auth logs, Postgres logs, Edge Function logs).
-- [ ] Identifikasi data pribadi apa yang terungkap dan berapa pengguna terdampak.
+- [ ] Centang *data pribadi apa yang terungkap* pada insiden. Ini butir wajib
+      pertama dalam surat pemberitahuan.
 - [ ] Simpan bukti (log, tangkapan layar) untuk pelaporan.
 
 ### Sebelum 3 x 24 jam — Pemberitahuan
 - [ ] Kirim pemberitahuan ke pengguna terdampak (template di Bagian 4).
 - [ ] Laporkan ke lembaga berwenang sesuai kanal resmi yang berlaku.
-- [ ] Dokumentasikan tanggal & isi pelaporan.
+- [ ] Isi *Dilaporkan ke otoritas pada*, *nomor tanda terima*, dan *Pemberitahuan
+      ke subjek data dikirim pada* di tab Insiden, lalu ubah status menjadi
+      **"Sudah dilaporkan"**. Sistem menolak status itu tanpa tanggal pelaporan:
+      tanggal inilah yang ditanyakan saat audit, dan status tanpa tanggal hanya
+      tampak patuh tanpa bisa membuktikan apa pun.
+- [ ] Ingat Pasal 46 mewajibkan **dua** pemberitahuan — ke lembaga *dan* ke setiap
+      subjek data. Memenuhi salah satunya saja belum memenuhi kewajiban.
 
 ### Setelah insiden — Pemulihan
 - [ ] Perbaiki akar masalah (patch kode, perketat RLS, perbaiki konfigurasi).
@@ -105,6 +137,36 @@ sesuai peraturan.
   Privasi (sudah dimuat pada Bagian 6 dokumen privasi).
 - **Log akses admin**: tabel `admin_audit_log` mencatat tindakan admin
   (lihat migration_audit.sql).
+
+---
+
+## 5b. Catatan Aktivitas yang Menopang Pelaporan 72 Jam
+
+Kewajiban "korban teridentifikasi cepat" bersandar pada empat jejak. Ketiganya
+yang pertama ditulis otomatis; yang keempat ditulis tiap kali admin mengubah
+kebijakan.
+
+| Tabel | Isi | Bisa diubah/dihapus dari aplikasi? |
+|---|---|---|
+| `app_events` | Pemakaian aplikasi per pengguna | Tidak (tanpa policy update/delete) |
+| `audit_logs` | Setiap INSERT/UPDATE/DELETE data, plus penanda manual/AI | Tidak |
+| `ai_activity_log` | Pemakaian fitur AI — tanpa isi pertanyaan, disengaja | Tidak |
+| `admin_quota_actions` | Perubahan kuota/paket/suspend oleh admin, nilai sebelum & sesudah | Tidak |
+| `admin_audit_log` | Tindakan admin lain | Tidak |
+| `deleted_accounts` | "Nisan" akun yang dihapus: sidik email, alasan, rincian data yang ikut lenyap | Tidak |
+
+Dua hal yang perlu diketahui saat menyusun laporan:
+
+- **`deleted_accounts` sengaja pseudonim.** Yang disimpan sidik SHA-256 email,
+  bukan emailnya; nama pemilik dan nomor telepon tidak disimpan sama sekali. Hak
+  penghapusan (Pasal 8) dan kewajiban jejak audit saling menarik ke arah
+  berlawanan, dan ini titik tengahnya: cukup untuk membuktikan sebuah alamat
+  pernah terdaftar bila kelak muncul dump data, tidak cukup untuk menghubungi
+  atau memasarkan.
+
+- **Penanda `via = 'ai'` pada `audit_logs` bersifat informasional.** Ia dibaca
+  dari header permintaan dan klien yang dimodifikasi bisa memalsukannya. Jangan
+  memakainya sebagai bukti anti-sangkal dalam laporan.
 
 ---
 
