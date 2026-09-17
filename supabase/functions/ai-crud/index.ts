@@ -36,6 +36,7 @@ import { catatAktivitasAI } from '../_shared/ai/activity-log.ts'
 import { logBlockedAttempt } from '../_shared/ai/guards/action-blocklist.ts'
 import { getEntitySpec } from '../_shared/ai/tools/entity-schemas.ts'
 import { resolveScope, type WorkspaceScope } from '../_shared/ai/workspace-scope.ts'
+import { penjagaSatuKejadian } from '../_shared/ai/satu-kejadian.ts'
 import { corsHeaders, originDitolak } from '../_shared/cors.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -378,14 +379,21 @@ ATURAN KERAS:
   menanyakannya, dan itu jauh lebih baik daripada menautkan ke barang yang keliru.
 - Pahami angka informal: "45rb" = 45000, "1,5jt" = 1500000, "seratus ribu" = 100000.
 - "laku/terjual/masuk" = pemasukan (in). "beli/kulakan/bayar" = pengeluaran (out).
-- Satu kalimat boleh berisi BEBERAPA catatan terpisah. Contoh: "beli gas 22rb sama
-  plastik 10rb" = DUA pengeluaran, panggil fungsinya dua kali dengan nominal
-  masing-masing. JANGAN menjumlahkan menjadi satu.
-- Tetapi JANGAN memecah satu kejadian menjadi beberapa panggilan. "jual 2 kue ke
+- SATU PESAN = SATU KEJADIAN. Satu kejadian boleh memercik ke beberapa JENIS
+  catatan, tapi TIDAK BOLEH jadi dua catatan berjenis sama.
+  BOLEH  : "beli stok indomie 24 bungkus" → transaksi pengeluaran + catatan stok
+           produk. Dua fungsi berbeda, satu kejadian.
+  DILARANG: "kopi hitam 5pcs dan kopi latte 2pcs" → itu DUA penjualan. Panggil
+           fungsi transaksi SATU KALI saja untuk yang pertama.
+  DILARANG: "beli gas 22rb sama plastik 10rb" → DUA pengeluaran. Ambil yang
+           pertama saja.
+- Jadi: panggil setiap fungsi PALING BANYAK SEKALI per kalimat. Kalau pengguna
+  menyebut dua kejadian berjenis sama, ambil yang pertama dan abaikan sisanya —
+  sistem akan memberi tahu pengguna untuk mengirimnya di pesan terpisah.
+- JANGAN memecah satu kejadian menjadi beberapa panggilan sejenis. "jual 2 kue ke
   Budi 50rb" tetap SATU transaksi (nama pelanggan adalah bagian dari transaksi
   itu, bukan catatan tersendiri).
-- Maksimal ${MAX_ACTIONS} panggilan per kalimat. Kalau pengguna menyebut lebih
-  banyak, ambil ${MAX_ACTIONS} yang paling jelas saja.
+- Maksimal ${MAX_ACTIONS} panggilan per kalimat, dan semuanya harus berbeda jenis.
 - Kamu TIDAK punya akses ke login, password, 2FA, PIN, atau pengaturan akun.`
 
     let calls: Array<{ name: string; args: Record<string, unknown> }> = []
@@ -430,6 +438,26 @@ ATURAN KERAS:
     const dipakai = calls.slice(0, MAX_ACTIONS)
     const actions: unknown[] = []
 
+    // ---- SATU KEJADIAN PER PESAN ----
+    //
+    // Batasnya BUKAN "satu aksi per pesan", melainkan satu aksi PER ENTITAS.
+    // Perbedaannya penting dan halus:
+    //
+    //   "beli stok indomie 24 bungkus"     → transaksi + produk  = DUA entitas,
+    //                                        satu kejadian nyata → DIIZINKAN
+    //   "kopi hitam 5pcs dan latte 2pcs"   → transaksi + transaksi = SATU entitas
+    //                                        dua kejadian berbeda → DITOLAK
+    //
+    // Satu pembelian stok memang wajar memercik ke beberapa catatan sekaligus;
+    // memaksanya jadi dua pesan hanya menyusahkan tanpa alasan. Sebaliknya, dua
+    // penjualan berbeda yang digabung dalam satu pesan adalah tempat kesalahan
+    // paling sering lolos: kartu-kartunya mirip, pengguna menyetujui sekaligus,
+    // dan yang salah baru ketahuan saat tutup buku.
+    // Aturannya hidup di satu berkas (_shared/ai/satu-kejadian.ts) dan dipakai
+    // ai-catat juga. Dua salinan aturan yang sama pada akhirnya selalu menua ke
+    // arah berbeda.
+    const penjaga = penjagaSatuKejadian()
+
     for (const call of dipakai) {
       const validated = validateDraft(call.name, call.args)
 
@@ -457,6 +485,11 @@ ATURAN KERAS:
       // satu entitas di luar hak akses menolak seluruh rencana.
       const denied = guardEntity(d.entity)
       if (denied) return denied
+
+      // Aksi kedua pada entitas yang sama = kejadian kedua. Dilewati, tapi
+      // DICATAT — pengguna harus diberi tahu apa yang tidak jadi dicatat,
+      // bukan dibiarkan mengira semuanya sudah masuk.
+      if (!penjaga.terima(d.entity)) continue
 
       // Pastikan ID yang disebut AI benar-benar ada di database pengguna.
       normalizeChannel(d.values, ctx)
@@ -495,6 +528,7 @@ ATURAN KERAS:
           perluKonfirmasi: Boolean(a?.requiresConfirmation),
         })),
         terpotong: calls.length > MAX_ACTIONS,
+        dilewatiEntitasSama: penjaga.dilewati.length,
       },
       model: tele?.model,
       keySlot: ai.route.key,
@@ -511,6 +545,12 @@ ATURAN KERAS:
       ...(actions[0] as Record<string, unknown>),
       actions,
       truncated: calls.length > MAX_ACTIONS,
+      // Aksi yang dibuang karena menyentuh entitas yang sudah terpakai di pesan
+      // ini. Dipisah dari `truncated` dengan sengaja: keduanya sama-sama berarti
+      // "ada yang tidak diproses", tapi menuntut kalimat yang berbeda kepada
+      // pengguna — yang satu "kalimatnya terlalu panjang", yang satu "itu dua
+      // kejadian berbeda, kirim terpisah".
+      dilewatiEntitasSama: penjaga.dilewati,
     })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan saat memproses perintah.', detail: String(e).slice(0, 300) }, 500)

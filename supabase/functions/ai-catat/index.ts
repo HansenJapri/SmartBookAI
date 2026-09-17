@@ -101,7 +101,13 @@ ATURAN KERAS:
 - Hanya buat transaksi yang BENAR-BENAR disebut pengguna. Dilarang menambah, menebak, atau membulatkan nominal yang tidak disebut.
 - Pahami angka informal Indonesia: "45rb"/"45 ribu" = 45000; "1,5jt"/"1.5 juta" = 1500000; "seratus ribu" = 100000.
 - Kata "laku", "terjual", "dapat orderan", "pembayaran masuk" = pemasukan (in). "beli", "kulakan", "bayar", "setor listrik" = pengeluaran (out).
-- Satu kalimat bisa berisi BEBERAPA transaksi — pecah semuanya.
+- SATU PESAN = SATU TRANSAKSI. "transactions" berisi PALING BANYAK satu isi.
+  Bila kalimat menyebut beberapa transaksi berbeda (mis. "kopi hitam 5pcs dan
+  kopi latte 2pcs" = dua penjualan), ambil YANG PERTAMA saja, lalu sebutkan di
+  "note" transaksi mana yang belum dicatat supaya pengguna mengirimnya terpisah.
+- Yang BUKAN dua transaksi: satu kejadian yang kebetulan menyentuh beberapa
+  catatan. "beli stok indomie 24 bungkus" tetap SATU transaksi (pengeluaran) —
+  pencatatan stoknya diurus terpisah, bukan dengan menambah baris di sini.
 - Bila nominal suatu transaksi tidak disebut, JANGAN masukkan transaksi itu ke "transactions"; jelaskan di "note" apa yang perlu dilengkapi.
 - "payment_status" = "belum" hanya bila pengguna bilang belum dibayar/utang/bon.
 - category WAJIB persis salah satu dari daftar. Bila ragu pakai "${inFallback}" (pemasukan) atau "${outFallback}" (pengeluaran).`
@@ -144,10 +150,47 @@ ATURAN KERAS:
       })
     }
 
+    // ---- SATU PESAN = SATU TRANSAKSI (penegakan deterministik) ----
+    //
+    // Prompt sudah meminta satu, tapi prompt adalah permintaan, bukan jaminan:
+    // model tetap bisa mengembalikan dua, dan aturan yang hanya hidup di prompt
+    // akan bocor persis pada kalimat yang paling ambigu. Pemotongan di sini
+    // yang membuatnya pasti.
+    //
+    // Yang dipotong BUKAN "satu kejadian yang menyentuh beberapa catatan" —
+    // "beli stok indomie 24 bungkus" adalah satu pengeluaran, dan pencatatan
+    // stoknya berjalan di jalur terpisah (ai-crud), bukan sebagai baris kedua
+    // di sini. Yang dipotong adalah transaksi yang benar-benar berbeda, seperti
+    // "kopi hitam 5pcs dan kopi latte 2pcs".
+    //
+    // Sisanya TIDAK dibuang diam-diam. Membuang tanpa memberi tahu berarti
+    // pengguna mengira semuanya tercatat, lalu menemukan selisih saat tutup
+    // buku — kegagalan yang jauh lebih mahal daripada disuruh mengetik ulang.
+    const dipakai = out.slice(0, 1)
+    const dilewati = out.length - dipakai.length
+
+    let note = String(parsed.note || '').slice(0, 300)
+    if (dilewati > 0) {
+      const ringkas = out.slice(1)
+        .map((t) => `${t.description} (Rp${t.amount.toLocaleString('id-ID')})`)
+        .join(', ')
+      note = [
+        note,
+        `Saya hanya mencatat transaksi pertama. ${dilewati} transaksi lain belum dicatat: ${ringkas}. `
+          + 'Kirim satu per satu di pesan terpisah ya.',
+      ].filter(Boolean).join(' ')
+    }
+
     // Kuota naik hanya setelah panggilan AI benar-benar sukses.
     await commitQuota(supabase, ai.quotaFeature, 1, tele)
 
-    return json({ transactions: out, note: String(parsed.note || '').slice(0, 300) })
+    return json({
+      transactions: dipakai,
+      note: note.slice(0, 500),
+      // Dipisah dari `note` supaya UI bisa menampilkannya berbeda dari catatan
+      // biasa, dan supaya alasannya bisa diuji tanpa mencocokkan teks.
+      dilewati,
+    })
   } catch (e) {
     return json({ error: 'Terjadi kesalahan saat membaca kalimat.', detail: String(e).slice(0, 300) }, 500)
   }

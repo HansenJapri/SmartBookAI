@@ -318,6 +318,18 @@ export default function Chatbot() {
             ? [{ role: 'assistant', text: `Saya menangkap ${daftar.length} catatan dari kalimat itu. Periksa satu per satu ya:` }]
             : []),
           ...daftar.map(actionMessage),
+          // Dua sebab berbeda, dua kalimat berbeda. Menyamakannya jadi
+          // "sisanya tidak diproses" membuat pengguna mengira kalimatnya
+          // kepanjangan, padahal yang terjadi adalah ia menggabungkan dua
+          // kejadian yang memang harus dipisah.
+          ...(res?.dilewatiEntitasSama?.length
+            ? [{
+                role: 'assistant',
+                text: 'Sepertinya ada lebih dari satu kejadian di kalimat itu. '
+                  + 'Satu pesan hanya untuk satu kejadian, jadi saya catat yang pertama saja — '
+                  + 'kirim sisanya di pesan terpisah ya.',
+              }]
+            : []),
           ...(res?.truncated
             ? [{ role: 'assistant', text: `Saya hanya memproses ${daftar.length} catatan pertama. Sisanya kirim di pesan terpisah ya.` }]
             : []),
