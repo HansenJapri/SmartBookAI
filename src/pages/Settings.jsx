@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import {
   fetchProfile, updateProfile, fetchRules, addRule, deleteRule,
   addCategory, updateCategory, deleteCategory, addChannel, updateChannel, deleteChannel,
-  exportMyData, deleteMyData,
+  exportMyData, deleteMyData, fetchAiCredits,
 } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import { useCatalog } from '../context/CatalogContext'
@@ -216,6 +216,13 @@ export default function Settings() {
         <button className="btn btn-primary">{sg.saveProfile}</button>
       </form>
 
+      {/* PAKET & KUOTA AI */}
+      {/* Pesan penolakan AI menyuruh pengguna "tingkatkan paket lewat menu
+          Pengaturan", padahal sampai sekarang halaman ini tidak menyebut paket
+          sama sekali. Menyuruh orang ke tempat yang tidak punya jawabannya
+          lebih buruk daripada tidak menyuruh apa-apa. */}
+      <KartuKuotaAi sg={sg} />
+
       {/* STATUS PERSETUJUAN */}
       <div className="card card-pad" style={{ marginBottom: 20 }}>
         <h3 className="card-title">{sg.consentTitle}</h3>
@@ -366,6 +373,87 @@ export default function Settings() {
         ))}
       </div>
       </details>
+    </div>
+  )
+}
+
+/**
+ * Paket, sisa kredit AI, dan slot anggota — milik workspace yang sedang dibuka.
+ *
+ * KENAPA KARTU INI ADA: kuota AI sudah lama ditegakkan di database, lengkap
+ * dengan pesan penolakan yang menyuruh pengguna "tingkatkan paket lewat menu
+ * Pengaturan". Hanya saja tidak ada satu pun layar yang menampilkan paket atau
+ * sisa kredit, jadi pemilik usaha baru tahu jatahnya habis pada saat AI
+ * berhenti menjawab — lalu diarahkan ke halaman yang tidak menyebut paket sama
+ * sekali.
+ *
+ * Diam-diam gagal bila RPC-nya belum terpasang: pengguna tidak bisa berbuat
+ * apa-apa soal migrasi yang belum dijalankan, jadi menampilkan error kepadanya
+ * hanya memindahkan kecemasan tanpa memindahkan kendali.
+ */
+function KartuKuotaAi({ sg }) {
+  const [k, setK] = useState(null)
+
+  useEffect(() => { fetchAiCredits().then(setK).catch(() => setK(null)) }, [])
+
+  if (!k) return null
+
+  const jatah = k.kredit_jatah == null ? null : Math.round(Number(k.kredit_jatah))
+  const pakai = Math.round(Number(k.kredit_terpakai) || 0)
+  const sisa = k.kredit_sisa == null ? null : Math.round(Number(k.kredit_sisa))
+  const persen = jatah ? Math.min(100, Math.round((pakai / jatah) * 100)) : 0
+  const habis = k.status === 'penuh'
+  const kritis = k.status === 'kritis'
+
+  const warna = habis ? '#dc2626' : kritis ? '#b45309' : '#4f46e5'
+
+  return (
+    <div className="card card-pad" style={{ marginBottom: 20 }}>
+      <h3 className="card-title">{sg.planTitle}</h3>
+      <div className="card-sub">{sg.planSub}</div>
+
+      {k.ditangguhkan && (
+        <div className="alert alert-err" style={{ marginBottom: 12 }}>{sg.planSuspended}</div>
+      )}
+
+      <div className="field">
+        <label>{sg.planLabel}</label>
+        <div><span className="badge badge-indigo">{k.paket_label || k.paket}</span></div>
+      </div>
+
+      <div className="field">
+        <label>
+          {sg.planCredits}{' '}
+          <span className="muted-sm">
+            {jatah == null
+              ? sg.planUnlimited
+              : sg.planCreditsUsed.replace('{used}', String(pakai)).replace('{cap}', String(jatah))}
+          </span>
+        </label>
+        {jatah != null && (
+          <>
+            <div style={{ height: 8, background: 'var(--bg)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ width: `${persen}%`, height: '100%', background: warna }} />
+            </div>
+            <div className="muted-sm" style={{ marginTop: 6, color: habis ? '#dc2626' : undefined }}>
+              {habis
+                ? sg.planCreditsEmpty.replace('{date}', k.siklus_selesai || '-')
+                : sg.planCreditsLeft
+                    .replace('{left}', String(sisa))
+                    .replace('{date}', k.siklus_selesai || '-')}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="field" style={{ marginBottom: 0 }}>
+        <label>{sg.planSeats}</label>
+        <div className="muted-sm">
+          {sg.planSeatsUsed
+            .replace('{used}', String(k.seat_terpakai ?? '-'))
+            .replace('{max}', String(k.seat_maks ?? '-'))}
+        </div>
+      </div>
     </div>
   )
 }

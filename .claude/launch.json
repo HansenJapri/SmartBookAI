@@ -5,7 +5,14 @@
       "_catatan": "JANGAN ubah port ini. Edge Function AI memakai allowlist CORS tetap: http://localhost:5173, http://localhost:5174, dan APP_ORIGIN (produksi). Menjalankan dev di port lain membuat browser memblokir POST setelah preflight — gejalanya semua fitur AI error padahal login normal, dan di log Supabase hanya terlihat OPTIONS tanpa POST sama sekali.",
       "name": "bukupintar",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173,
       "autoPort": false
     },
@@ -13,9 +20,31 @@
       "_catatan": "5174 juga ada di allowlist CORS Edge Function.",
       "name": "admin-dashboard",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "admin-dashboard", "run", "dev", "--", "--port", "5174", "--strictPort"],
+      "runtimeArgs": [
+        "--prefix",
+        "admin-dashboard",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
       "port": 5174,
       "autoPort": false
+    },
+    {
+      "_catatan": "Entri CADANGAN untuk sesi chat kedua, saat port 5174 sudah dipakai sesi lain. Entri \"admin-dashboard\" di atas SENGAJA dibiarkan apa adanya: port 5174 ada di allowlist CORS Edge Function, dan membalik autoPort di sana akan memindahkan sesi mana pun ke port di luar allowlist. PERINGATAN: entri ini berjalan di port di LUAR allowlist CORS, jadi Chatbot AI admin (Edge Function BukuPencatatanAdmin) akan gagal preflight di sini. Halaman yang memakai RPC Supabase langsung — Pengguna, Kuota AI, Insiden & PDP — tetap normal. Untuk menguji fitur AI admin, pakai entri \"admin-dashboard\" di port 5174.",
+      "name": "admin-dashboard-sesi-lain",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "admin-dashboard",
+        "run",
+        "dev"
+      ],
+      "port": 5175,
+      "autoPort": true
     }
   ]
 }
