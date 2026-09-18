@@ -1070,7 +1070,15 @@ function sanitizeStaffName(name) {
  * tidak bisa berbuat apa-apa soal itu.
  */
 export async function fetchAiCredits() {
-  const { data, error } = await supabase.rpc('my_ai_credits')
+  // Workspace yang SEDANG DIBUKA, bukan dibiarkan ditebak database.
+  //
+  // Tanpa argumen ini, my_ai_credits() mundur ke ai_workspace_id(), yang selalu
+  // memilih majikan bila pemanggilnya staf aktif. Akibatnya seorang staf yang
+  // sedang membuka usahanya sendiri melihat sisa kredit MAJIKANNYA di halaman
+  // Pengaturan, sementara pemakaiannya dicatat ke workspace-nya sendiri — dua
+  // angka yang saling bertentangan di layar yang sama.
+  const owner = await effectiveOwnerId().catch(() => null)
+  const { data, error } = await supabase.rpc('my_ai_credits', { p_workspace: owner ?? null })
   if (error) return null
   return data && Object.keys(data).length > 0 ? data : null
 }

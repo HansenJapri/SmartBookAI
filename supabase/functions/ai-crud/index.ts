@@ -351,7 +351,7 @@ serve(async (req) => {
 
     // Kuota dicek SEBELUM memanggil Gemini.
     const ai = getGeminiClient('crud')
-    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap, scope.owner)
     if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     const SYSTEM = `Kamu asisten pencatatan untuk pemilik UMKM Indonesia.
@@ -420,7 +420,7 @@ ATURAN KERAS:
       if (tele) {
         await commitQuota(supabase, ai.quotaFeature, 0, {
           ...tele, wastedTokens: tele.totalTokens,
-        })
+        }, scope.owner)
       }
       return json({
         error: 'Saya belum paham maksudnya. Coba tulis ulang lebih spesifik, '
@@ -430,7 +430,7 @@ ATURAN KERAS:
     }
 
     // Kuota naik: panggilan AI sudah sukses.
-    await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    await commitQuota(supabase, ai.quotaFeature, 1, tele, scope.owner)
 
     // Satu kalimat boleh menghasilkan beberapa catatan terpisah ("beli gas 22rb
     // sama plastik 10rb"). Tiap aksi divalidasi SENDIRI-SENDIRI dan menjadi satu
