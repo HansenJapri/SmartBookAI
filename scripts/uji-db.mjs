@@ -27,14 +27,21 @@
 // Untuk repo utama, rahasianya ada sehingga gerbangnya benar-benar berjalan.
 
 import { execFileSync } from 'node:child_process'
-import { uraikanKeluaran, nilaiHasil, formatBaris, normalisasiUrlDb } from './ujiDbParse.mjs'
+import {
+  uraikanKeluaran, nilaiHasil, formatBaris, normalisasiUrlDb, putuskanTanpaUrl,
+} from './ujiDbParse.mjs'
 
 const konfigUrl = normalisasiUrlDb(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL)
 
 if (!konfigUrl.ada) {
-  console.log('[uji-db] SUPABASE_DB_URL tidak diset — pengujian database DILEWATI.')
-  console.log('[uji-db] Ini bukan kelulusan. Gerbang DB hanya berjalan bila rahasianya tersedia.')
-  process.exit(0)
+  const putusan = putuskanTanpaUrl(process.env.UJI_DB_WAJIB)
+  if (putusan.kode === 0) {
+    console.log(`[uji-db] ${putusan.pesan}`)
+  } else {
+    console.error(`::error::${putusan.pesan}`)
+    console.error(`[uji-db] ${putusan.pesan}`)
+  }
+  process.exit(putusan.kode)
 }
 
 // Rahasia yang ADA tapi rusak bukan alasan untuk melewati gerbang. "Dilewati"

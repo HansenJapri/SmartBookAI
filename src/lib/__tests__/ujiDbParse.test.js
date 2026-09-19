@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { uraikanKeluaran, nilaiHasil, formatBaris, normalisasiUrlDb } from '../../../scripts/ujiDbParse.mjs'
+import { uraikanKeluaran, nilaiHasil, formatBaris, normalisasiUrlDb, putuskanTanpaUrl } from '../../../scripts/ujiDbParse.mjs'
 
 // Gerbang CI sisi database (job "db") bergantung pada penguraian ini. Kalau ia
 // salah menilai, seluruh 26 kasus SQL bisa merah tanpa terlihat — atau lebih
@@ -128,5 +128,35 @@ describe('normalisasiUrlDb', () => {
   it('memperingatkan transaction pooler (6543) yang merusak BEGIN/ROLLBACK', () => {
     expect(normalisasiUrlDb(URL_SAH.replace(':5432', ':6543')).peringatan).toMatch(/6543/)
     expect(normalisasiUrlDb(URL_SAH).peringatan).toBeNull()
+  })
+})
+
+describe('putuskanTanpaUrl', () => {
+  it('MERAH bila run berhak atas rahasia tapi secretnya kosong', () => {
+    // Hijau palsu 19 Sep 2026: secret ter-set kosong, gerbang melewati dirinya
+    // sendiri, seluruh run dilaporkan hijau tanpa satu kasus SQL pun berjalan.
+    const p = putuskanTanpaUrl('true')
+    expect(p.kode).toBe(1)
+    expect(p.pesan).toMatch(/KOSONG/)
+  })
+
+  it('hijau (dilewati) hanya untuk run yang memang tidak berhak, yaitu PR fork', () => {
+    const p = putuskanTanpaUrl('false')
+    expect(p.kode).toBe(0)
+    expect(p.pesan).toMatch(/fork/)
+  })
+
+  it("memperlakukan string 'false' sebagai false, bukan truthy", () => {
+    // Nilainya datang dari ekspresi YAML sebagai string. Boolean('false') === true,
+    // dan kekeliruan itu mengembalikan lubangnya persis seperti semula.
+    expect(putuskanTanpaUrl('false').kode).toBe(0)
+    expect(putuskanTanpaUrl(false).kode).toBe(0)
+    expect(putuskanTanpaUrl('FALSE').kode).toBe(0)
+  })
+
+  it('default aman: nilai tak dikenal atau kosong TIDAK mewajibkan', () => {
+    // UJI_DB_WAJIB belum ada saat skrip dijalankan dari mesin lokal.
+    expect(putuskanTanpaUrl(undefined).kode).toBe(0)
+    expect(putuskanTanpaUrl('').kode).toBe(0)
   })
 })

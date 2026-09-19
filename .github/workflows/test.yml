@@ -141,6 +141,19 @@ jobs:
       - name: Jalankan public.test_semua()
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          # Penjaga anti-"gerbang hampa" untuk job ini — pasangan langkah
+          # "Pastikan test benar-benar dijalankan" milik job unit.
+          #
+          # 19 Sep 2026 secret ini pernah ter-set jadi KOSONG. Skripnya mengambil
+          # jalur "dilewati" yang sebenarnya diperuntukkan bagi PR dari fork,
+          # mencetak DILEWATI, lalu keluar 0 — dan seluruh run dilaporkan HIJAU
+          # tanpa satu pun kasus SQL berjalan.
+          #
+          # Ekspresi ini bernilai false HANYA untuk pull request dari fork, yaitu
+          # satu-satunya keadaan di mana rahasia memang tidak tersedia dan
+          # melewatinya masuk akal. Di semua keadaan lain, rahasia yang hilang
+          # adalah konfigurasi rusak dan gerbangnya wajib merah.
+          UJI_DB_WAJIB: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: node scripts/uji-db.mjs
 
   # ---- Gerbang 4: build produksi + audit rahasia (G-13, G-07) ----
