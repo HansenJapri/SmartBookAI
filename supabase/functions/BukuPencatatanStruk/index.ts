@@ -115,9 +115,19 @@ serve(async (req) => {
           // Menyebut kedua angka membuat pengguna bisa menilai sendiri mana yang
           // meleset — dan bila memang fotonya buram, selisihnya akan terlihat
           // acak, bukan sebesar pajak.
-          error: `Rincian item terbaca Rp ${e.itemsSum.toLocaleString('id-ID')}, `
-            + `sedangkan total di struk Rp ${e.statedTotal.toLocaleString('id-ID')}. `
-            + 'Selisihnya belum bisa dijelaskan oleh pajak, layanan, atau diskon yang terbaca. '
+          // Menyebut juga angka SETELAH pajak/layanan/diskon kalau ia berbeda
+          // dari jumlah item mentah. Versi sebelumnya hanya mencetak itemsSum
+          // dan statedTotal, padahal yang diadu jalur validasi adalah nilai
+          // turunan — pada struk ber-PPN inklusif keduanya sama persis, dan
+          // pengguna membaca kalimat mustahil: "Rp 22.400 tidak cocok dengan
+          // Rp 22.400". Angka yang benar-benar dibandingkan harus terlihat,
+          // kalau tidak pesan ini menyuruh orang mencari selisih yang tidak
+          // ada di layar.
+          error: `Rincian item terbaca Rp ${e.itemsSum.toLocaleString('id-ID')}`
+            + (e.computedTotal !== e.itemsSum
+              ? ` (menjadi Rp ${e.computedTotal.toLocaleString('id-ID')} setelah pajak/layanan/diskon yang terbaca)`
+              : '')
+            + `, sedangkan total di struk Rp ${e.statedTotal.toLocaleString('id-ID')}. `
             + 'Periksa apakah ada baris item yang terpotong di foto, atau isi item manual.',
           code: 'OCR_CHECKSUM_FAILED',
           detail: e.message,

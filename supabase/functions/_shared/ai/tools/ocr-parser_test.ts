@@ -22,7 +22,7 @@
 // Angka pada test pertama diambil apa adanya dari struk sungguhan yang gagal.
 // ============================================================
 import { assert, assertEquals, assertFalse } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { isChecksumValid, sumItems, type ReceiptItem } from './ocr-parser.ts'
+import { isChecksumValid, sumItems, totalSetelahRincian, type ReceiptItem } from './ocr-parser.ts'
 
 const item = (name: string, total: number): ReceiptItem =>
   ({ name, qty: 1, unit: 'pcs', unit_price: total, total })
@@ -90,4 +90,70 @@ Deno.test('subtotal yang keliru terbaca tidak boleh melemahkan validasi', () => 
   // kembali ke identitas total. Subtotal salah baca tidak boleh jadi celah
   // yang meloloskan struk yang memang gagal dibaca.
   assertFalse(isChecksumValid(50_000, 500_000, { subtotal: 490_000 }))
+})
+
+// ============================================================
+// PPN INKLUSIF — struk ritel Indonesia
+//
+// Ditambahkan 19 September 2026, dari kegagalan yang dilaporkan pengguna:
+// setiap struk minimarket ditolak, dengan pesan yang mustahil dibaca —
+// "Rincian item terbaca Rp 22.400, sedangkan total di struk Rp 22.400.
+//  Selisihnya belum bisa dijelaskan..."
+//
+// Dua angka identik, disebut tidak cocok. Penyebabnya: validator memakai
+// identitas `item + pajak = total`, yang hanya berlaku kalau pajaknya
+// EKSKLUSIF. Di ritel Indonesia PPN sudah ada DI DALAM harga rak, jadi
+// menambahkannya lagi menghitung pajak dua kali.
+//
+// Test di berkas ini memakai angka apa adanya dari struk yang gagal itu.
+// ============================================================
+
+Deno.test('struk minimarket PPN INKLUSIF: item sudah sama dengan total', () => {
+  // Indomaret, 19 Sep 2026:
+  //   INDOMI KARI AYAM 72G   4 x 2.700 = 10.800
+  //   INDOMI GORENG SPC 80   4 x 2.900 = 11.600
+  //   HARGA JUAL / TOTAL               = 22.400
+  //   PPN: DPP = 20.180, PPn = 2.220   (20.180 + 2.220 = 22.400)
+  const items = [item('INDOMI KARI AYAM 72G', 10_800), item('INDOMI GORENG SPC 80', 11_600)]
+  const jumlah = sumItems(items)
+  assertEquals(jumlah, 22_400)
+
+  // PPn terbaca 2.220 — tapi ia INFORMATIF, bukan tambahan. Sebelum perbaikan,
+  // jalur "item + pajak" menghitung 24.620 dan menolak struk ini.
+  assert(
+    isChecksumValid(jumlah, 22_400, { tax: 2_220 }),
+    'struk PPN inklusif ditolak — pajak dihitung dua kali',
+  )
+})
+
+Deno.test('PPN inklusif tetap lolos walau DPP ikut terbaca sebagai subtotal', () => {
+  // Sebagian struk menuliskan DPP di baris terpisah dan model membacanya
+  // sebagai subtotal. DPP (20.180) BUKAN jumlah item (22.400), jadi jalur
+  // subtotal tidak cocok — yang menyelamatkan adalah jalur PPN inklusif.
+  assert(isChecksumValid(22_400, 22_400, { subtotal: 20_180, tax: 2_220 }))
+})
+
+Deno.test('struk tanpa pajak sama sekali tetap lolos', () => {
+  assert(isChecksumValid(50_000, 50_000, {}))
+})
+
+Deno.test('jalur PPN inklusif TIDAK melonggarkan penolakan struk yang memang salah', () => {
+  // Ini yang membuat jalur baru aman: ia hanya menerima kalau jumlah item
+  // memang SUDAH sama dengan total. Struk yang benar-benar meleset tetap
+  // ditolak, tidak peduli pajaknya inklusif atau tidak.
+  assertFalse(isChecksumValid(50_000, 500_000, { tax: 20_000 }))
+  assertFalse(isChecksumValid(10_000, 22_400, { tax: 2_220 }))
+  // Setengah item terpotong di foto: 11.600 dari 22.400 — harus MERAH.
+  assertFalse(isChecksumValid(11_600, 22_400, { tax: 2_220 }))
+})
+
+Deno.test('totalSetelahRincian melaporkan angka yang BENAR-BENAR dibandingkan', () => {
+  // Pesan error lama mencetak itemsSum dan statedTotal, padahal yang diadu
+  // adalah nilai turunan ini. Pada struk PPN inklusif keduanya sama persis,
+  // sehingga pesannya menyuruh pengguna mencari selisih antara dua angka
+  // yang identik.
+  assertEquals(totalSetelahRincian(22_400, { tax: 2_220 }), 24_620)
+  assertEquals(totalSetelahRincian(100_000, { service: 10_000, tax: 11_000 }), 121_000)
+  assertEquals(totalSetelahRincian(50_000, { discount: 5_000 }), 45_000)
+  assertEquals(totalSetelahRincian(50_000, {}), 50_000)
 })

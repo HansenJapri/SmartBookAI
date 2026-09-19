@@ -48,9 +48,23 @@ export class ChecksumMismatchError extends Error {
     public itemsSum: number,
     public statedTotal: number,
     public tolerance: number,
+    // Angka yang BENAR-BENAR dibandingkan: jumlah item setelah pajak, layanan,
+    // diskon dan pembulatan diperhitungkan.
+    //
+    // KENAPA INI ADA. Sebelumnya error ini hanya membawa itemsSum dan
+    // statedTotal, sementara perbandingan yang menggagalkannya memakai nilai
+    // TURUNAN. Pada struk minimarket ber-PPN inklusif, keduanya kebetulan sama
+    // persis — sehingga pengguna dihadapkan pada kalimat mustahil:
+    // "Rincian item terbaca Rp 22.400, sedangkan total di struk Rp 22.400.
+    //  Selisihnya belum bisa dijelaskan..."
+    // Pesan yang menyuruh orang mencari selisih antara dua angka yang identik
+    // lebih buruk daripada tidak ada pesan: ia membuat pengguna meragukan
+    // matanya sendiri, lalu memotret ulang struk yang sudah sempurna.
+    public computedTotal: number = itemsSum,
   ) {
     super(
-      `Checksum struk tidak cocok: jumlah item ${itemsSum} vs total tertera ${statedTotal} `
+      `Checksum struk tidak cocok: jumlah item ${itemsSum} (setelah pajak/layanan/diskon: `
+      + `${computedTotal}) vs total tertera ${statedTotal} `
       + `(toleransi ${Math.round(tolerance * 100)}%).`,
     )
     this.name = 'ChecksumMismatchError'
@@ -76,11 +90,18 @@ export const CHECKSUM_TOLERANCE = 0.02 // 2%
  * ditolak — dan pesan errornya menyalahkan kualitas foto pengguna untuk
  * kegagalan yang sepenuhnya ada di sisi kita.
  *
- * Dua jalur penerimaan, dicoba berurutan:
+ * TIGA jalur penerimaan, dicoba berurutan:
+ *   0. PPN INKLUSIF -> jumlah item sudah sama dengan total dibayar. Default
+ *      ritel Indonesia (minimarket, warung, toko): pajak ada DI DALAM harga
+ *      rak, dan baris "PPN" di struk sifatnya informatif.
  *   1. Bila SUBTOTAL terbaca -> jumlah item dibandingkan ke subtotal. Inilah
  *      pembanding yang benar secara akuntansi.
- *   2. Selain itu -> identitas lengkap:
+ *   2. Selain itu -> identitas lengkap untuk pajak EKSKLUSIF:
  *      item + pajak + layanan - diskon + pembulatan ~= total dibayar.
+ *
+ * Urutannya penting. Jalur 2 menambahkan pajak ke jumlah item, jadi kalau ia
+ * dijalankan lebih dulu pada struk PPN inklusif, pajaknya terhitung DUA KALI
+ * dan struk yang sempurna ditolak.
  *
  * Subtotal yang keliru terbaca TIDAK boleh jadi celah: bila jalur 1 gagal,
  * jalur 2 tetap diuji, dan struk yang benar-benar salah baca tetap ditolak
@@ -110,13 +131,50 @@ export function isChecksumValid(
 
   const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0)
 
+  // Jalur 0 — PPN SUDAH TERMASUK di harga item. Ini default ritel Indonesia,
+  // dan sebelumnya tidak pernah diperiksa sama sekali.
+  //
+  // Struk Indomaret 19 Sep 2026 yang menggagalkan fitur ini:
+  //   INDOMI KARI AYAM  4 x 2.700 = 10.800
+  //   INDOMI GORENG     4 x 2.900 = 11.600
+  //   TOTAL                         22.400
+  //   PPN: DPP = 20.180, PPn = 2.220     (20.180 + 2.220 = 22.400)
+  //
+  // Jumlah item SUDAH sama dengan total. Tapi jalur 2 di bawah menambahkan
+  // PPN sekali lagi — 22.400 + 2.220 = 24.620 — lalu menyatakannya meleset
+  // 2.220 dari 22.400, jauh di luar toleransi. Struk yang sempurna ditolak.
+  //
+  // Sebabnya: identitas `item + pajak = total` hanya berlaku bila pajaknya
+  // EKSKLUSIF (ditambahkan di atas harga), seperti struk restoran yang sudah
+  // ditangani jalur 1 dan 2. Di minimarket, warung, dan hampir semua ritel
+  // Indonesia, PPN sudah di dalam harga rak — baris "PPN" di struk itu
+  // INFORMATIF (rincian DPP/PPn untuk keperluan pajak), bukan tambahan.
+  //
+  // Diperiksa PALING AWAL karena ia kasus yang paling sering, dan karena
+  // mencocokkannya tidak butuh satu pun angka turunan.
+  if (dekat(itemsSum, statedTotal)) return true
+
   // Jalur 1 — subtotal terbaca.
   const subtotal = n(b.subtotal)
   if (subtotal > 0 && dekat(itemsSum, subtotal)) return true
 
-  // Jalur 2 — identitas lengkap.
+  // Jalur 2 — identitas lengkap (pajak EKSKLUSIF, ditambahkan di atas harga).
   const dihitung = itemsSum + n(b.tax) + n(b.service) - n(b.discount) + n(b.rounding)
   return dekat(dihitung, statedTotal)
+}
+
+/**
+ * Nilai yang dibandingkan jalur 2 — dipakai HANYA untuk menyusun pesan error
+ * yang jujur. Tanpa ini, pengguna diberi tahu dua angka yang tidak pernah
+ * benar-benar diadu satu sama lain.
+ */
+export function totalSetelahRincian(
+  itemsSum: number,
+  breakdown: ReceiptBreakdown = {},
+): number {
+  const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0)
+  const b = breakdown || {}
+  return itemsSum + n(b.tax) + n(b.service) - n(b.discount) + n(b.rounding)
 }
 
 export function sumItems(items: ReceiptItem[]): number {
@@ -171,7 +229,10 @@ export function parseAndValidateReceipt(rawText: string): ReceiptData {
   }
 
   if (!isChecksumValid(itemsSum, statedTotal, breakdown)) {
-    throw new ChecksumMismatchError(itemsSum, statedTotal, CHECKSUM_TOLERANCE)
+    throw new ChecksumMismatchError(
+      itemsSum, statedTotal, CHECKSUM_TOLERANCE,
+      totalSetelahRincian(itemsSum, breakdown),
+    )
   }
 
   const legibilityRaw = String(parsed.legibility ?? 'cetak_jelas')
