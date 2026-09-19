@@ -29,6 +29,16 @@ COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
 
+CREATE SCHEMA IF NOT EXISTS "ops";
+
+
+ALTER SCHEMA "ops" OWNER TO "postgres";
+
+
+COMMENT ON SCHEMA "ops" IS 'Data operasional server (heartbeat cron, konfigurasi internal). SENGAJA tidak diekspos PostgREST: bukan bagian dari permukaan API aplikasi, dan tidak boleh tercampur dengan data bisnis pengguna di schema public.';
+
+
+
 CREATE TYPE "auth"."aal_level" AS ENUM (
     'aal1',
     'aal2',
@@ -186,6 +196,79 @@ COMMENT ON FUNCTION "auth"."uid"() IS 'Deprecated. Use auth.jwt() -> ''sub'' ins
 
 
 
+CREATE OR REPLACE FUNCTION "ops"."panggil_keepalive"("p_sumber" "text" DEFAULT 'cron-6-hari'::"text") RETURNS bigint
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'ops', 'public', 'extensions'
+    AS $$
+declare
+  v_token text;
+  v_req   bigint;
+begin
+  select nilai into v_token from ops.service_config where kunci = 'keepalive_token';
+  if v_token is null or length(v_token) < 24 then
+    raise exception 'keepalive_token belum ada di ops.service_config';
+  end if;
+
+  select net.http_post(
+    url     := 'https://vbzmtnpmtgrhovmwjqqk.supabase.co/functions/v1/keepalive?sumber=' || p_sumber,
+    body    := '{}'::jsonb,
+    headers := jsonb_build_object(
+      'Content-Type',      'application/json',
+      'x-keepalive-token', v_token
+    )
+  ) into v_req;
+
+  return v_req;
+end;
+$$;
+
+
+ALTER FUNCTION "ops"."panggil_keepalive"("p_sumber" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "ops"."pangkas_heartbeat"() RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'ops', 'public'
+    AS $$
+declare
+  v_hapus integer;
+begin
+  delete from ops.service_heartbeat where beat_at < now() - interval '3 months';
+  get diagnostics v_hapus = row_count;
+  return v_hapus;
+end;
+$$;
+
+
+ALTER FUNCTION "ops"."pangkas_heartbeat"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "ops"."ringkasan_kesehatan"() RETURNS "jsonb"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'ops', 'public'
+    AS $$
+  select jsonb_build_object(
+    'diperiksa_pada', now(),
+    'makro_run_terakhir', (select max(run_date) from public.macro_runs),
+    'makro_ai_status_terakhir', (select ai_status from public.macro_runs order by run_date desc limit 1),
+    'makro_ai_terakhir_ok', (select max(run_date) from public.macro_runs where ai_status = 'ok'),
+    'makro_hari_sejak_ai_ok', (select (current_date - max(run_date)) from public.macro_runs where ai_status = 'ok'),
+    'harga_price_date_terakhir', (select max(price_date) from public.commodity_prices),
+    'harga_baris_hari_ini', (
+      select count(*) from public.commodity_prices
+      where run_date = (select max(run_date) from public.commodity_prices)
+    ),
+    'kurs_tanggal_terakhir', (select max(rate_date) from public.exchange_rates),
+    'inflasi_bulan_terakhir', (select max(month) from public.macro_config),
+    'transaksi_terakhir', (select max(created_at) from public.transactions),
+    'event_terakhir', (select max(created_at) from public.app_events)
+  );
+$$;
+
+
+ALTER FUNCTION "ops"."ringkasan_kesehatan"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."accept_invitation"("p_invite_id" "uuid") RETURNS TABLE("id" "uuid", "owner_id" "uuid", "business_name" "text", "modules" "text"[], "role" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'auth'
@@ -297,7 +380,8 @@ begin
   insert into transactions
     (user_id, description, amount, direction, category, channel, occurred_at,
      payment_status, due_date, customer_name, customer_contact, product_id, qty,
-     supplier_id)
+     supplier_id,
+     receipt_url, source_ref, customer_id, raw, import_confidence)
   values
     (v_owner,
      p_tx->>'description',
@@ -312,7 +396,12 @@ begin
      nullif(p_tx->>'customer_contact',''),
      nullif(p_tx->>'product_id','')::uuid,
      nullif(p_tx->>'qty','')::numeric,
-     nullif(p_tx->>'supplier_id','')::uuid)
+     nullif(p_tx->>'supplier_id','')::uuid,
+     nullif(p_tx->>'receipt_url',''),
+     nullif(p_tx->>'source_ref',''),
+     nullif(p_tx->>'customer_id','')::uuid,
+     nullif(p_tx->>'raw',''),
+     nullif(p_tx->>'import_confidence',''))
   returning * into v_txn;
 
   for v_l in select * from jsonb_array_elements(coalesce(p_lines, '[]'::jsonb)) loop
@@ -357,6 +446,10 @@ end $$;
 
 
 ALTER FUNCTION "public"."add_transaction_with_stock"("p_tx" "jsonb", "p_lines" "jsonb", "p_owner" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."add_transaction_with_stock"("p_tx" "jsonb", "p_lines" "jsonb", "p_owner" "uuid") IS 'Menyimpan transaksi + menggerakkan stok secara atomik, dan mencatat setiap pergerakan ke stock_movements. Daftar kolom INSERT-nya HARUS ikut diperbarui setiap kali kolom baru ditambahkan ke transactions — kolom yang tidak disebut hilang tanpa error.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."admin__jaga"("p_workspace" "uuid") RETURNS "void"
@@ -3764,6 +3857,72 @@ COMMENT ON FUNCTION "public"."test_bom"() IS '18 kasus mesin pemotongan stok: co
 
 
 
+CREATE OR REPLACE FUNCTION "public"."test_kolom_transaksi"() RETURNS TABLE("suite" "text", "kasus" "text", "hasil" "text", "lulus" boolean)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_uid  uuid := 'dbdbdbdb-0000-4000-8000-000000000004';
+  v_cust uuid;
+  v_hasil jsonb;
+  v_tx   uuid;
+  r      record;
+  v_hilang text := '';
+begin
+  perform public.uji_bersihkan(v_uid);
+  insert into auth.users (id, email) values (v_uid, 'uji-kolom@contoh.invalid');
+  perform set_config('request.jwt.claims',
+                     json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
+
+  insert into public.customers (user_id, name) values (v_uid, 'UJI Pelanggan')
+  returning id into v_cust;
+
+  v_hasil := public.add_transaction_with_stock(
+    jsonb_build_object(
+      'description','UJI kolom lengkap',
+      'amount', 12345,
+      'direction','out',
+      'channel','struk',
+      'receipt_url','uji/struk.jpg',
+      'source_ref','struk.jpg',
+      'customer_id', v_cust,
+      'raw','teks mentah',
+      'import_confidence','tinggi'),
+    '[]'::jsonb, v_uid);
+  v_tx := (v_hasil->'txn'->>'id')::uuid;
+
+  select * into r from public.transactions where id = v_tx;
+
+  if r.receipt_url       is distinct from 'uji/struk.jpg' then v_hilang := v_hilang || 'receipt_url '; end if;
+  if r.source_ref        is distinct from 'struk.jpg'     then v_hilang := v_hilang || 'source_ref '; end if;
+  if r.customer_id       is distinct from v_cust          then v_hilang := v_hilang || 'customer_id '; end if;
+  if r.raw               is distinct from 'teks mentah'   then v_hilang := v_hilang || 'raw '; end if;
+  if r.import_confidence is distinct from 'tinggi'        then v_hilang := v_hilang || 'import_confidence '; end if;
+
+  return query select * from public.uji_kasus('kolom_transaksi',
+    'P10 receipt_url/source_ref/customer_id/raw/import_confidence ikut tersimpan',
+    'semua tersimpan',
+    case when v_hilang = '' then 'semua tersimpan' else 'DIBUANG: ' || btrim(v_hilang) end);
+
+  perform public.uji_bersihkan(v_uid);
+  return;
+
+exception when others then
+  return query select * from public.uji_kasus('kolom_transaksi',
+    'harness kolom gagal sebelum selesai', 'tanpa error', sqlstate || ' ' || sqlerrm);
+  perform public.uji_bersihkan(v_uid);
+  return;
+end
+$$;
+
+
+ALTER FUNCTION "public"."test_kolom_transaksi"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."test_kolom_transaksi"() IS 'Menjaga agar add_transaction_with_stock tidak diam-diam membuang kolom yang dikirim klien. Lahir dari bug foto struk yatim, 19 Sep 2026.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."test_pembatalan"() RETURNS TABLE("suite" "text", "kasus" "text", "hasil" "text", "lulus" boolean)
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -3884,6 +4043,7 @@ declare
 begin
   return query select * from public.test_bom();
   return query select * from public.test_pembatalan();
+  return query select * from public.test_kolom_transaksi();
 
   select count(*) into v_n from public.rls_lint();
   if v_n = 0 then
@@ -3907,6 +4067,9 @@ begin
     end loop;
   end if;
 
+  -- PALING AKHIR, dan itu disengaja: ia memeriksa sisa yang ditinggalkan
+  -- harness DI ATASNYA. Menaruhnya lebih awal akan membuatnya selalu hijau.
+  return query select * from public.test_sisa_harness();
   return;
 end
 $$;
@@ -3916,6 +4079,69 @@ ALTER FUNCTION "public"."test_semua"() OWNER TO "postgres";
 
 
 COMMENT ON FUNCTION "public"."test_semua"() IS 'Gerbang uji database: test_bom + rls_lint + tenancy_lint. Dipanggil scripts/uji-db.mjs di CI. Lint bersih tetap mengembalikan satu baris lulus, supaya "0 kasus" selalu berarti gerbangnya rusak.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."test_sisa_harness"() RETURNS TABLE("suite" "text", "kasus" "text", "hasil" "text", "lulus" boolean)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  r record;
+  v_n bigint;
+  v_sisa text := '';
+begin
+  -- Setiap tabel public yang punya kolom user_id uuid disapu, bukan hanya
+  -- yang kebetulan terpikirkan saat menulis ini. Tabel yang ditambahkan nanti
+  -- ikut terperiksa tanpa ada yang perlu mengingat memperbarui daftar.
+  for r in
+    select c.relname
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    join pg_attribute a on a.attrelid = c.oid and a.attname = 'user_id' and not a.attisdropped
+    where n.nspname = 'public' and c.relkind = 'r'
+      and format_type(a.atttypid, null) = 'uuid'
+  loop
+    execute format(
+      'select count(*) from public.%I where user_id::text like ''dbdbdbdb-%%''', r.relname)
+      into v_n;
+    if v_n > 0 then v_sisa := v_sisa || r.relname || '(' || v_n || ') '; end if;
+  end loop;
+
+  -- Tabel bersama memakai owner_id/actor_id, bukan user_id, dan sengaja tidak
+  -- ikut cascade saat akun dihapus — justru di sinilah residu paling mungkin
+  -- tertinggal tanpa ada yang menyadarinya.
+  for r in
+    select c.relname, a.attname
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    join pg_attribute a on a.attrelid = c.oid and not a.attisdropped
+    where n.nspname = 'public' and c.relkind = 'r'
+      and a.attname in ('owner_id', 'actor_id', 'workspace_id', 'holder_id', 'admin_id')
+      and format_type(a.atttypid, null) = 'uuid'
+  loop
+    execute format(
+      'select count(*) from public.%I where %I::text like ''dbdbdbdb-%%''', r.relname, r.attname)
+      into v_n;
+    if v_n > 0 then v_sisa := v_sisa || r.relname || '.' || r.attname || '(' || v_n || ') '; end if;
+  end loop;
+
+  select count(*) into v_n from auth.users where id::text like 'dbdbdbdb-%';
+  if v_n > 0 then v_sisa := v_sisa || 'auth.users(' || v_n || ') '; end if;
+
+  return query select * from public.uji_kasus('sisa_harness',
+    'P11 harness tidak meninggalkan satu baris pun',
+    'tidak ada sisa',
+    case when v_sisa = '' then 'tidak ada sisa' else 'TERTINGGAL: ' || btrim(v_sisa) end);
+  return;
+end
+$$;
+
+
+ALTER FUNCTION "public"."test_sisa_harness"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."test_sisa_harness"() IS 'Menyapu SETIAP tabel public untuk baris milik akun uji sintetis (dbdbdbdb-%). Dijalankan PALING AKHIR di test_semua, setelah semua harness selesai.';
 
 
 
@@ -3956,6 +4182,40 @@ $$;
 
 
 ALTER FUNCTION "public"."topeng_email"("p_email" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+begin
+  -- URUTANNYA PENTING, dan versi pertama fungsi ini salah.
+  --
+  -- Menghapus audit_logs LEBIH DULU tidak menyelesaikan apa pun: penghapusan
+  -- akun di bawah memicu cascade ke customers, trigger audit menulis baris
+  -- DELETE yang baru, dan baris itu lahir SETELAH pembersihan lewat. Residunya
+  -- justru diciptakan oleh pembersihnya sendiri.
+  --
+  -- Akun dulu, jejaknya kemudian.
+  delete from public.profiles where id = p_uid;
+  delete from auth.users      where id = p_uid;
+
+  -- Tabel bersama sengaja TIDAK punya FK cascade ke auth.users: jejak audit
+  -- harus bertahan justru ketika akunnya dihapus. Karena itu ia harus disebut
+  -- satu per satu, dan disebut PALING AKHIR.
+  delete from public.audit_logs      where owner_id = p_uid or actor_id = p_uid;
+  delete from public.ai_activity_log where owner_id = p_uid or actor_id = p_uid;
+  delete from public.app_events      where user_id = p_uid;
+  delete from public.error_logs      where user_id = p_uid or workspace_id = p_uid;
+end
+$$;
+
+
+ALTER FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") IS 'Membersihkan SELURUH jejak satu akun uji sintetis. Akun dihapus lebih dulu, jejak di tabel bersama (audit_logs, ai_activity_log, app_events, error_logs) dihapus SETELAHNYA — karena cascade penghapusan akun itu sendiri memicu trigger audit yang menulis baris baru.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."uji_kasus"("p_suite" "text", "p_kasus" "text", "p_harap" "text", "p_aktual" "text") RETURNS TABLE("suite" "text", "kasus" "text", "hasil" "text", "lulus" boolean)
@@ -4668,6 +4928,52 @@ CREATE TABLE IF NOT EXISTS "auth"."webauthn_credentials" (
 
 
 ALTER TABLE "auth"."webauthn_credentials" OWNER TO "supabase_auth_admin";
+
+
+CREATE TABLE IF NOT EXISTS "ops"."service_config" (
+    "kunci" "text" NOT NULL,
+    "nilai" "text" NOT NULL,
+    "dibuat_pada" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "ops"."service_config" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "ops"."service_config" IS 'Rahasia internal server (mis. token keepalive). Nilainya dibuat di dalam Postgres dan tidak pernah ditulis ke definisi cron, agar tidak ikut terbaca setiap kali jadwal cron dilihat atau diekspor.';
+
+
+
+CREATE TABLE IF NOT EXISTS "ops"."service_heartbeat" (
+    "id" bigint NOT NULL,
+    "beat_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "sumber" "text" NOT NULL,
+    "kesehatan" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "sehat" boolean DEFAULT true NOT NULL,
+    "catatan" "text"
+);
+
+
+ALTER TABLE "ops"."service_heartbeat" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "ops"."service_heartbeat" IS 'Detak keep-alive + rekam medis berkala. Ditulis cron tiap <= 6 hari agar proyek Supabase gratis tidak pernah menyentuh ambang jeda 7 hari, sekaligus menjadi jejak historis kesehatan layanan (kunci AI, harga, kurs).';
+
+
+
+CREATE SEQUENCE IF NOT EXISTS "ops"."service_heartbeat_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE "ops"."service_heartbeat_id_seq" OWNER TO "postgres";
+
+
+ALTER SEQUENCE "ops"."service_heartbeat_id_seq" OWNED BY "ops"."service_heartbeat"."id";
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."admin_audit_log" (
@@ -5697,6 +6003,10 @@ ALTER TABLE ONLY "auth"."refresh_tokens" ALTER COLUMN "id" SET DEFAULT "nextval"
 
 
 
+ALTER TABLE ONLY "ops"."service_heartbeat" ALTER COLUMN "id" SET DEFAULT "nextval"('"ops"."service_heartbeat_id_seq"'::"regclass");
+
+
+
 ALTER TABLE ONLY "public"."error_logs" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."error_logs_id_seq"'::"regclass");
 
 
@@ -5893,6 +6203,16 @@ ALTER TABLE ONLY "auth"."webauthn_challenges"
 
 ALTER TABLE ONLY "auth"."webauthn_credentials"
     ADD CONSTRAINT "webauthn_credentials_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "ops"."service_config"
+    ADD CONSTRAINT "service_config_pkey" PRIMARY KEY ("kunci");
+
+
+
+ALTER TABLE ONLY "ops"."service_heartbeat"
+    ADD CONSTRAINT "service_heartbeat_pkey" PRIMARY KEY ("id");
 
 
 
@@ -6554,6 +6874,10 @@ CREATE UNIQUE INDEX "webauthn_credentials_credential_id_key" ON "auth"."webauthn
 
 
 CREATE INDEX "webauthn_credentials_user_id_idx" ON "auth"."webauthn_credentials" USING "btree" ("user_id");
+
+
+
+CREATE INDEX "service_heartbeat_beat_at_idx" ON "ops"."service_heartbeat" USING "btree" ("beat_at" DESC);
 
 
 
@@ -7276,6 +7600,12 @@ ALTER TABLE "auth"."sso_providers" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "auth"."users" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "ops"."service_config" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "ops"."service_heartbeat" ENABLE ROW LEVEL SECURITY;
+
+
 CREATE POLICY "admin all categories" ON "public"."categories" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
 
 
@@ -7865,6 +8195,10 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+GRANT USAGE ON SCHEMA "ops" TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "auth"."email"() TO "dashboard_user";
 
 
@@ -7879,6 +8213,20 @@ GRANT ALL ON FUNCTION "auth"."role"() TO "dashboard_user";
 
 
 GRANT ALL ON FUNCTION "auth"."uid"() TO "dashboard_user";
+
+
+
+REVOKE ALL ON FUNCTION "ops"."panggil_keepalive"("p_sumber" "text") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "ops"."pangkas_heartbeat"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "ops"."pangkas_heartbeat"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "ops"."ringkasan_kesehatan"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "ops"."ringkasan_kesehatan"() TO "service_role";
 
 
 
@@ -8469,6 +8817,12 @@ GRANT ALL ON FUNCTION "public"."test_bom"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."test_kolom_transaksi"() TO "anon";
+GRANT ALL ON FUNCTION "public"."test_kolom_transaksi"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."test_kolom_transaksi"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."test_pembatalan"() TO "anon";
 GRANT ALL ON FUNCTION "public"."test_pembatalan"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."test_pembatalan"() TO "service_role";
@@ -8481,6 +8835,12 @@ GRANT ALL ON FUNCTION "public"."test_semua"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."test_sisa_harness"() TO "anon";
+GRANT ALL ON FUNCTION "public"."test_sisa_harness"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."test_sisa_harness"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "anon";
 GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "service_role";
@@ -8490,6 +8850,12 @@ GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."topeng_email"("p_email" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."topeng_email"("p_email" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."topeng_email"("p_email" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") TO "service_role";
 
 
 
@@ -8671,6 +9037,20 @@ GRANT ALL ON TABLE "auth"."webauthn_challenges" TO "dashboard_user";
 
 GRANT ALL ON TABLE "auth"."webauthn_credentials" TO "postgres";
 GRANT ALL ON TABLE "auth"."webauthn_credentials" TO "dashboard_user";
+
+
+
+GRANT ALL ON TABLE "ops"."service_config" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "ops"."service_heartbeat" TO "service_role";
+
+
+
+GRANT ALL ON SEQUENCE "ops"."service_heartbeat_id_seq" TO "anon";
+GRANT ALL ON SEQUENCE "ops"."service_heartbeat_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "ops"."service_heartbeat_id_seq" TO "service_role";
 
 
 

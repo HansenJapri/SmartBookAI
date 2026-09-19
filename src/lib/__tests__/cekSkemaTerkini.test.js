@@ -58,26 +58,42 @@ describe('periksaSkemaTerkini', () => {
     expect(kurang).toEqual([])
   })
 
-  it('memisahkan "dump basi" dari "migrasi tidak pernah diterapkan"', () => {
+  it('memisahkan "dump basi" dari objek yang memang di luar jangkauan dump', () => {
     // Dua masalah berbeda. Menggabungkannya membuat utang lama memblokir setiap
     // perubahan yang tidak ada hubungannya — cara tercepat mengajari orang
     // mengabaikan warna merah.
-    const jalur = Object.keys(BELUM_DITERAPKAN)[0]
+    //
+    // Peta pengecualiannya disuntikkan, bukan diambil dari konstanta modul,
+    // supaya test ini tetap menguji MEKANISMENYA walau daftar aslinya kosong.
+    const jalur = 'supabase/migration_contoh.sql'
     const { kurang, dikecualikan } = periksaSkemaTerkini(
       [{ path: jalur, isi: 'create or replace function public.objek_yang_tidak_ada_di_dump()' }],
       'dump tanpa apa pun',
+      { [jalur]: 'alasan yang cukup panjang untuk menjelaskan kenapa dikecualikan' },
     )
     expect(kurang).toEqual([])
     expect(dikecualikan).toEqual([jalur])
   })
 
-  it('setiap pengecualian wajib menyertakan alasan yang bisa dibaca', () => {
+  it('setiap pengecualian yang TERDAFTAR wajib menyertakan alasan yang bisa dibaca', () => {
     // Daftar pengecualian tanpa alasan berubah jadi tempat sampah dalam
-    // beberapa bulan.
+    // beberapa bulan. Saat ini daftarnya sengaja kosong — utang skema ops
+    // sudah lunas sejak dump menyertakan --schema ops.
     for (const [jalur, alasan] of Object.entries(BELUM_DITERAPKAN)) {
       expect(jalur).toMatch(/^supabase\/migration_.*\.sql$/)
       expect(alasan.length).toBeGreaterThan(40)
     }
+  })
+
+  it('pengecualian TIDAK berlaku untuk berkas yang tidak terdaftar', () => {
+    // Penjaga yang mengecualikan terlalu longgar sama saja dengan tidak ada.
+    const { kurang, dikecualikan } = periksaSkemaTerkini(
+      [{ path: 'supabase/migration_lain.sql', isi: 'create table public.tabel_hilang (' }],
+      'dump tanpa apa pun',
+      { 'supabase/migration_contoh.sql': 'alasan panjang yang tidak berlaku di sini sama sekali' },
+    )
+    expect(dikecualikan).toEqual([])
+    expect(kurang).toHaveLength(1)
   })
 })
 
