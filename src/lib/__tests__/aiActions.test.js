@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // murni kita cukup memalsukannya.
 vi.mock('../api', () => ({
   addTransaction: vi.fn(), addTransactionWithStock: vi.fn(), updateTransaction: vi.fn(),
-  deleteTransaction: vi.fn(), addProduct: vi.fn(), updateProduct: vi.fn(), deleteProduct: vi.fn(),
+  batalkanTransaksi: vi.fn(), addProduct: vi.fn(), updateProduct: vi.fn(), deleteProduct: vi.fn(),
   addSupplier: vi.fn(), updateSupplier: vi.fn(), deleteSupplier: vi.fn(),
   addCustomer: vi.fn(), updateCustomer: vi.fn(), deleteCustomer: vi.fn(),
   resolveCustomer: vi.fn(async () => ({ customer: null, created: false })),

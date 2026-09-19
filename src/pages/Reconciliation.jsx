@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchTransactions, deleteTransaction, updateTransaction } from '../lib/api'
+import { fetchTransactions, batalkanTransaksi, updateTransaction } from '../lib/api'
 import { findDuplicateGroups } from '../lib/analytics'
 import { rupiah, fmtDateTime } from '../lib/format'
 import { CheckCircle2 } from 'lucide-react'
@@ -31,7 +31,12 @@ export default function Reconciliation() {
   const keepOne = async (group, keepId) => {
     if (!await showConfirm({ message: `${r.mergeA} ${group.length} ${r.mergeB} ${group.length - 1} ${r.mergeC}`, type: 'error' })) return
     const toDelete = group.filter((g) => g.id !== keepId)
-    await Promise.all(toDelete.map((g) => deleteTransaction(g.id)))
+    // Duplikat DIBATALKAN, bukan dihapus — jejak impornya tetap utuh, yang
+    // berguna justru saat pengguna ragu apakah impornya sudah benar.
+    await Promise.all(toDelete.map((g) => batalkanTransaksi(g.id, 'Duplikat impor')))
+    // Tetap dibuang dari daftar di layar ini: halaman rekonsiliasi hanya
+    // berurusan dengan duplikat yang belum diselesaikan, dan baris batal sudah
+    // selesai urusannya. Di halaman Transaksi ia tetap terlihat bertanda batal.
     setTx((prev) => prev.filter((t2) => !toDelete.some((dd) => dd.id === t2.id)))
   }
 

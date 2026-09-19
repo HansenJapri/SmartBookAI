@@ -144,6 +144,11 @@ serve(async (req) => {
     const { data: txs } = await supabase
       .from('transactions')
       .select('direction, amount, category, payment_status, occurred_at')
+      // Nota yang sudah DIBATALKAN tidak boleh ikut dihitung. Seluruh metrik
+      // di bawah — laba, tren mingguan, margin — masuk ke narasi Gemini dan
+      // kembali ke pengguna sebagai kalimat yang terdengar pasti. Angka yang
+      // salah di sini jauh lebih sulit ditangkap daripada angka salah di layar.
+      .eq('status', 'aktif')
       .order('occurred_at', { ascending: false })
       .limit(3000)
 

@@ -65,6 +65,15 @@ jobs:
             echo "::error::NOL test berjalan — gerbang ini tidak menguji apa pun. Periksa kompatibilitas versi Node dengan jsdom/undici."
             exit 1
           fi
+      # Transaksi yang DIBATALKAN tidak boleh ikut dihitung sebagai uang.
+      # Menyaringnya sekali di semua tempat yang ada sekarang menyelesaikan
+      # hari ini dan tidak menyelesaikan apa pun setelahnya: pembacaan
+      # berikutnya akan ditulis oleh orang yang tidak pernah membaca keputusan
+      # itu, dan akan menjumlahkan nota batal sebagai pendapatan nyata tanpa
+      # error, tanpa test merah, tanpa satu pun tanda.
+      - name: Saringan transaksi batal
+        run: node scripts/cek-saringan-batal.mjs
+
       - name: Unggah laporan coverage
         if: always()
         uses: actions/upload-artifact@v5

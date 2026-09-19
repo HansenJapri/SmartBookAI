@@ -248,3 +248,37 @@ Deno.test('agregat modul terlarang tidak menyumbang baris bernilai nol', async (
   assert(baris.some((b) => b.startsWith('Jumlah produk:')), 'baris produk hilang untuk staf produk')
   assertEquals(db.jejak.filter((j) => j.tabel === 'transactions'), [], 'transaksi tetap di-query')
 })
+
+// ------------------------------------------------------------
+// Transaksi yang dibatalkan tidak pernah sampai ke model
+// ------------------------------------------------------------
+//
+// Nota batal yang lolos ke konteks AI lebih berbahaya daripada angka salah di
+// layar: ia kembali ke pengguna sebagai kalimat yang terdengar meyakinkan,
+// dalam narasi pembukuan, tanpa satu pun tanda bahwa angkanya keliru.
+
+Deno.test('nota batal tidak masuk blok konteks transaksi', async () => {
+  const db = fakeSupabase(ISI())
+  const { blok } = await ambilDomain(db, owner(), 'transaksi', 'fokus')
+  const teks = blok.map((b) => b.baris.map((r) => r.join(' ')).join('\n')).join('\n')
+  assert(!teks.includes('NOTA BATAL'), 'deskripsi nota batal bocor ke konteks AI')
+  assert(!teks.includes('99000000'), 'nominal nota batal bocor ke konteks AI')
+})
+
+Deno.test('nota batal tidak ikut dijumlahkan di agregat', async () => {
+  const db = fakeSupabase(ISI())
+  const baris = await ambilAgregat(db, owner())
+  const teks = baris.join('\n')
+  // Versi pertama test ini memeriksa `!teks.includes('99000000')` dan TETAP
+  // HIJAU saat saringannya dicopot — karena angka di agregat sudah lewat
+  // rupiah() dan tidak pernah muncul sebagai deret digit polos. Test yang
+  // tidak bisa merah bukan test.
+  //
+  // Jumlah transaksi adalah angka mentah, bukan mata uang, jadi ia tidak
+  // bergantung pada format dan langsung menunjukkan berapa baris yang
+  // benar-benar terbaca: 1 (yang aktif), bukan 2.
+  assert(
+    teks.includes('Jumlah transaksi tercatat: 1'),
+    `nota batal ikut terbaca agregat — seharusnya 1 transaksi aktif. Dapat:\n${teks}`,
+  )
+})

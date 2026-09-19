@@ -89,7 +89,12 @@ export const ISI = () => ({
   tasks: [{ user_id: 'u-owner', title: 'Restock indomie', status: 'antre', priority: 'tinggi', due_date: '2026-08-15', assignee_id: 'e1' }],
   reminders: [] as any[],
   transactions: [
-    { user_id: 'u-owner', occurred_at: '2026-08-14', direction: 'in', amount: 45000, category: 'Penjualan', description: 'jual 3 kue', channel: 'manual', payment_status: 'belum', due_date: '2026-08-20', customer_name: 'Ibu Siti' },
+    { user_id: 'u-owner', occurred_at: '2026-08-14', direction: 'in', amount: 45000, category: 'Penjualan', description: 'jual 3 kue', channel: 'manual', payment_status: 'belum', due_date: '2026-08-20', customer_name: 'Ibu Siti', status: 'aktif' },
+    // Nota yang SUDAH DIBATALKAN. Ia sengaja ada di sini, dengan nominal yang
+    // besar dan mencolok, supaya setiap test yang menjumlahkan uang akan
+    // meleset jauh kalau saringan status di scopedSelect() hilang. Tanpa baris
+    // seperti ini, penjaga itu bisa dicopot tanpa satu pun test berubah warna.
+    { user_id: 'u-owner', occurred_at: '2026-08-15', direction: 'in', amount: 99000000, category: 'Penjualan', description: 'NOTA BATAL jangan dihitung', channel: 'manual', payment_status: 'lunas', customer_name: 'Bapak Batal', status: 'batal' },
   ] as any[],
   sales_targets: [] as any[],
   staff_members: [{ owner_id: 'u-owner', user_id: 'u-owner', name: 'Andi', modules: ['produk'], status: 'active' }],

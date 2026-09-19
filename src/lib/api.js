@@ -207,8 +207,19 @@ function wsDelete(owner, table) {
 // bila data yang dimuat terpotong oleh plafon ini.
 export const TX_FETCH_LIMIT = 5000
 
-export async function fetchTransactions({ limit = TX_FETCH_LIMIT } = {}) {
-  const { data, error } = await wsSelect(await wsOwner(), 'transactions')
+// Transaksi yang DIBATALKAN dikecualikan secara DEFAULT, dan itu disengaja.
+//
+// Setiap pemanggil fungsi ini menjumlahkan uang: Dashboard, Reports, Kpi, Hpp,
+// narasi AI. Kalau saringannya harus diminta, satu pemanggil yang lupa akan
+// menghitung nota batal sebagai pendapatan nyata — diam-diam, tanpa error, dan
+// selisihnya baru ketahuan saat ada yang mencocokkan dengan uang di tangan.
+// Default yang aman membuat kelalaian itu mustahil; yang butuh melihat baris
+// batal harus memintanya secara eksplisit, dan permintaan eksplisit terbaca
+// saat review.
+export async function fetchTransactions({ limit = TX_FETCH_LIMIT, termasukBatal = false } = {}) {
+  let q = wsSelect(await wsOwner(), 'transactions')
+  if (!termasukBatal) q = q.eq('status', 'aktif')
+  const { data, error } = await q
     .order('occurred_at', { ascending: false })
     .limit(limit)
   if (error) periksaGalat(error)
@@ -229,6 +240,7 @@ export async function fetchTransactions({ limit = TX_FETCH_LIMIT } = {}) {
 // jumlahnya kecil menurut sifatnya, berapa pun total transaksinya.
 export async function fetchUnpaid() {
   const { data, error } = await wsSelect(await wsOwner(), 'transactions')
+    .eq('status', 'aktif')
     .eq('payment_status', 'belum')
     .order('due_date', { ascending: true, nullsFirst: false })
     .order('occurred_at', { ascending: false })
@@ -358,20 +370,32 @@ export async function updateTransaction(id, patch) {
   return data
 }
 
-// Menghapus transaksi SEKALIGUS membalik efek stoknya, dalam satu transaksi
-// database (RPC delete_transaction_with_stock).
+// MEMBATALKAN transaksi — tidak menghapusnya. Stoknya dibalik dalam transaksi
+// database yang sama (RPC batalkan_transaksi).
 //
-// Sebelumnya penghapusan hanya membuang barisnya. Padahal penjualan produk
-// ber-komposisi sudah memotong stok bahan otomatis, jadi salah catat lalu
-// menghapusnya meninggalkan stok yang berkurang selamanya — pengguna tidak
-// punya jalan membatalkan selain koreksi manual lewat Stock Opname. Itu
-// melanggar prinsip "setiap aksi harus mudah dibalik".
+// KENAPA BUKAN HAPUS
+// Nota yang lenyap merusak jejak audit keuangan: nomor yang hilang di tengah
+// urutan tidak bisa dibedakan dari nota yang memang tidak pernah ada, dan
+// itulah bentuk paling umum dari pembukuan yang tidak bisa dipercaya. Baris
+// batal tetap tersimpan lengkap dengan alasan dan waktunya.
+//
+// KENAPA GANTI NAMA DARI deleteTransaction
+// Nama lama menjanjikan penghapusan yang sekarang DITOLAK database lewat
+// trigger. Membiarkan namanya akan membuat pemanggil berikutnya mengira baris
+// itu hilang, lalu menulis laporan yang tidak menyaring status.
+//
+// CATATAN: jalur lama memanggil RPC delete_transaction_with_stock, dan fungsi
+// itu TIDAK PERNAH ada di database ini — ia ikut hilang bersama project
+// Supabase lama. Artinya penghapusan transaksi sudah rusak di produksi sejak
+// project berganti, di tiga tempat sekaligus (halaman Transaksi, dedupe
+// Rekonsiliasi, dan aksi AI), dan tidak ada yang melaporkannya.
 //
 // Mengembalikan daftar perubahan stok supaya UI bisa memberi tahu apa yang
-// dipulihkan, bukan menghapus diam-diam.
-export async function deleteTransaction(id) {
-  const { data, error } = await supabase.rpc('delete_transaction_with_stock', {
+// dipulihkan, bukan membatalkan diam-diam.
+export async function batalkanTransaksi(id, alasan = null) {
+  const { data, error } = await supabase.rpc('batalkan_transaksi', {
     p_id: id,
+    p_alasan: alasan,
     p_owner: await wsOwner(),
   })
   if (error) periksaGalat(error)
