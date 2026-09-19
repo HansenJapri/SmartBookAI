@@ -43,7 +43,16 @@ export default function Struk() {
 
   const cats = catNames(direction)
   useEffect(() => { if (!cats.includes(category)) setCategory(cats[0] || '') }, [direction, ready]) // eslint-disable-line
-  useEffect(() => { fetchProducts().then(setProducts).catch(() => {}) }, [])
+  // Kegagalan memuat produk TIDAK lagi ditelan diam-diam.
+  //
+  // Dropdown "tautkan ke produk" diisi dari daftar ini. Kalau pemuatannya
+  // gagal, daftarnya kosong dan satu-satunya pilihan yang tersisa adalah
+  // "tidak ditautkan" — tanpa sepatah kata pun penjelasan. Pengguna menyimpan,
+  // stoknya tidak bergerak, dan kesimpulan yang paling wajar dia ambil adalah
+  // "fitur stoknya rusak". Padahal yang rusak cuma satu permintaan jaringan.
+  useEffect(() => {
+    fetchProducts().then(setProducts).catch((e) => setErr(sk.productsLoadFailed.replace('{msg}', e.message)))
+  }, [])
 
   const pickFile = (f) => {
     if (!f) return
@@ -112,8 +121,18 @@ export default function Struk() {
   const doSave = async () => {
     setConfirming(false); setBusy(true); setErr('')
     try {
+      // Kegagalan unggah TIDAK lagi ditelan diam-diam.
+      //
+      // Sebelumnya catch-nya kosong dengan alasan "lampiran opsional". Secara
+      // teknis benar — transaksinya tetap bisa disimpan tanpa lampiran. Tapi
+      // dari sisi pengguna, ia menekan simpan sambil melihat fotonya
+      // terpampang, lalu diberi tahu semuanya berhasil, dan struknya tidak ada
+      // di mana pun. Ia tidak punya cara tahu, dan tidak punya cara mengulang.
       let receipt_url = null
-      if (file) { try { receipt_url = await uploadReceipt(file) } catch { /* lampiran opsional */ } }
+      let gagalLampiran = null
+      if (file) {
+        try { receipt_url = await uploadReceipt(file) } catch (e) { gagalLampiran = e.message }
+      }
       const desc = keterangan.trim()
         || (items.length ? sk.shoppingDesc.replace('{items}', items.slice(0, 3).map((it) => `${it.qty} ${it.unit} ${it.name}`).join(', ')) + (items.length > 3 ? sk.shoppingMore : '') : sk.shoppingFallback)
 
@@ -153,6 +172,9 @@ export default function Struk() {
         sk.savedMsg.replace('{n}', items.length)
         + (changes?.length ? sk.savedStockMsg.replace('{n}', changes.length) : '.'),
       )
+      // Transaksinya SUDAH tersimpan, jadi ini peringatan — bukan error yang
+      // membatalkan. Pengguna perlu tahu persis apa yang tidak ikut tersimpan.
+      if (gagalLampiran) setErr(sk.attachFailed.replace('{msg}', gagalLampiran))
       setFile(null); if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null)
       setItems([]); setKeterangan(''); setNamaToko(''); setAiMeta(null)
       fetchProducts().then(setProducts).catch(() => {})
