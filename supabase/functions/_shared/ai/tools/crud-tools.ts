@@ -13,6 +13,7 @@
 // ============================================================
 import { getEntitySpec, ENTITY_NAMES, type EntitySpec, type FieldSpec } from './entity-schemas.ts'
 import { checkActionAllowed } from '../guards/action-blocklist.ts'
+import { nilaiTerdukung } from './grounding.ts'
 
 export interface DraftAction {
   entity: string
@@ -123,6 +124,12 @@ function fieldToJsonType(f: FieldSpec): string {
 export function validateDraft(
   toolName: string,
   args: Record<string, unknown>,
+  /**
+   * Kalimat asli pengguna, dipakai memeriksa apakah angka yang diusulkan model
+   * punya dasar di sana. Opsional supaya pemanggil lama tidak patah — tapi
+   * tanpa ini, angka karangan lolos tanpa satu pun pemeriksaan.
+   */
+  teksPengguna?: string,
 ): ValidatedDraft | { ok: false; blocked: true; reason: string } {
   // Jaring pengaman kedua: cek blocklist sebelum apa pun diproses.
   const block = checkActionAllowed(toolName, args)
@@ -176,6 +183,26 @@ export function validateDraft(
 
   if (operation === 'create') {
     for (const f of spec.fields) {
+      // ---- ANGKA TANPA DASAR DIPERLAKUKAN SEPERTI KOSONG ----
+      //
+      // Penjaga di bawah hanya melihat field yang KOSONG. Model yang mengarang
+      // angka membuat field itu terisi, sehingga penjaganya diam — dan nominal
+      // karangan masuk ke pembukuan lewat kartu ringkasan yang tampak wajar.
+      // Kejadian nyatanya: "kejual kue 5 pcs" (tanpa satu pun harga) menghasilkan
+      // Nominal Rp5.000.
+      //
+      // Hanya berlaku untuk angka. Field teks memang menyadur ulang kalimat
+      // pengguna, jadi menuntut kecocokan harfiah di sana akan menolak parafrase
+      // yang justru diinginkan.
+      if (
+        teksPengguna
+        && (f.type === 'money' || f.type === 'number')
+        && values[f.name] !== undefined
+        && !nilaiTerdukung(values[f.name], teksPengguna)
+      ) {
+        delete values[f.name]
+      }
+
       const filled = values[f.name] !== undefined
       if (f.required && !filled) {
         missingRequired.push(toQuestion(f))

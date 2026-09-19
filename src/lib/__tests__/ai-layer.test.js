@@ -202,7 +202,7 @@ describe('rate limiter per workspace', () => {
     expect(s.cap).toBe(50)
     expect(s.allowed).toBe(true)
     expect(sb.rpc).toHaveBeenCalledWith('ai_quota_resolve', {
-      p_feature: 'ocr', p_fallback_cap: 10,
+      p_feature: 'ocr', p_fallback_cap: 10, p_workspace: null,
     })
   })
 

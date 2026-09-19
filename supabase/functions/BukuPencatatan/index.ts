@@ -237,11 +237,6 @@ serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData?.user) return json({ error: 'Sesi tidak valid. Silakan masuk kembali.' }, 401)
 
-    // Kuota harian PER WORKSPACE, dicek SEBELUM memanggil Gemini.
-    const ai = getGeminiClient('chat')
-    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
-    if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
-
     const { message, history, device, owner } = await req.json()
     if (!message || typeof message !== 'string') return json({ error: 'Pesan kosong.' }, 400)
     if (message.length > 2000) return json({ error: 'Pesan terlalu panjang.' }, 400)
@@ -255,6 +250,19 @@ serve(async (req) => {
     } catch (e) {
       return json({ error: String((e as Error)?.message || 'Akses workspace tidak sah.') }, 403)
     }
+
+    // Kuota harian PER WORKSPACE, dicek SEBELUM memanggil Gemini.
+    //
+    // Pemeriksaan ini dulu berada di ATAS pembacaan body, supaya permintaan
+    // yang kuotanya habis berhenti secepat mungkin. Ia dipindah ke sini karena
+    // workspace-nya sendiri baru diketahui SETELAH body dibaca — dan tanpa
+    // workspace, kuota yang diperiksa adalah milik workspace yang salah:
+    // database mundur ke ai_workspace_id(), yang selalu memilih majikan bila
+    // pemanggilnya staf aktif. Invariannya tetap utuh: yang haram adalah
+    // memanggil Gemini sebelum kuota diperiksa, bukan membaca body.
+    const ai = getGeminiClient('chat')
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap, scope.owner)
+    if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     // ---- Konteks RAG: blok data yang terbatas hak akses ----
     //
@@ -350,9 +358,9 @@ serve(async (req) => {
     }
 
     // Kuota naik hanya setelah jawaban benar-benar diterima.
-    if (reply) await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    if (reply) await commitQuota(supabase, ai.quotaFeature, 1, tele, scope.owner)
     // Model menjawab kosong: kuota tidak naik, tokennya tetap dicatat.
-    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele)
+    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele, scope.owner)
 
     await catatAktivitasAI(supabase, {
       owner: scope.owner,

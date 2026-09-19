@@ -1,4 +1,26 @@
 -- ============================================================
+-- PERINGATAN: BERKAS INI CATATAN, BUKAN MIGRASI — nol pernyataan SQL.
+-- DAN FITUR YANG DIJELASKANNYA TIDAK ADA DI DATABASE SEKARANG.
+--
+-- Diperiksa 19 Sep 2026 di project vbzmtnpmtgrhovmwjqqk:
+--   * transactions TIDAK punya kolom stock_applied;
+--   * tidak ada fungsi pembalikan stok saat transaksi dihapus;
+--   * test_pembatalan() dan test_stock_applied() tidak ada.
+--
+-- Semuanya hanya pernah dipasang di project lama hexaidoxmeycctpwfbst lewat
+-- migrasi ad-hoc dan tidak pernah dikomit. Waktu project itu hilang, fiturnya
+-- ikut hilang — dan karena yang tertinggal di repo cuma catatan ini, dari luar
+-- ia tetap terbaca seolah sudah terpasang.
+--
+-- Artinya, SAAT INI menghapus transaksi TIDAK membalik efek stoknya.
+-- Ini utang fitur yang terbuka, bukan sekadar utang uji. public.test_semua()
+-- sengaja TIDAK memanggil test_pembatalan(), karena uji untuk fungsi yang tidak
+-- ada hanya akan selalu hijau tanpa menguji apa pun.
+--
+-- Uraian di bawah dipertahankan sebagai spesifikasi untuk memulihkannya.
+-- ============================================================
+
+-- ============================================================
 -- Aturan 6 Shneiderman (pembalikan mudah): menghapus transaksi kini MEMBALIK
 -- efek stoknya, bukan hanya membuang barisnya.
 --

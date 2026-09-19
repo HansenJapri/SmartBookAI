@@ -16,6 +16,8 @@
     "test:e2e": "playwright test",
     "test:perf": "playwright test --project=performance --workers=1",
     "cek:bundle": "node scripts/cek-bundle.mjs",
+    "cek:batal": "node scripts/cek-saringan-batal.mjs",
+    "cek:skema": "node scripts/cek-skema-terkini.mjs",
     "eval:ai": "node eval/chatbot-eval.mjs",
     "eval:ai:list": "node eval/chatbot-eval.mjs --list",
     "seed:uji": "node scripts/seed-uji.mjs --seed",

@@ -57,7 +57,7 @@ serve(async (req) => {
     // Gemini tidak disentuh sama sekali. Penghitung baru naik di commitQuota()
     // setelah panggilan benar-benar sukses.
     const ai = getGeminiClient('catat')
-    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap, userData.user.id)
     if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     const { message } = await req.json()
@@ -182,7 +182,7 @@ ATURAN KERAS:
     }
 
     // Kuota naik hanya setelah panggilan AI benar-benar sukses.
-    await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    await commitQuota(supabase, ai.quotaFeature, 1, tele, userData.user.id)
 
     return json({
       transactions: dipakai,

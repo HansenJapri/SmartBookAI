@@ -103,6 +103,16 @@ export async function checkQuota(
   supabase: SupabaseClient,
   feature: QuotaFeature,
   cap: number,
+  /**
+   * Workspace yang ditagih — `scope.owner` dari resolveScope().
+   *
+   * WAJIB diisi oleh setiap endpoint AI. Tanpa ini database mundur ke
+   * ai_workspace_id(), yang selalu memilih MAJIKAN bila pemanggilnya staf
+   * aktif — sehingga permintaan bisa MEMBACA data workspace yang sedang dibuka
+   * tapi MENAGIH kuota workspace lain. Dibiarkan opsional hanya supaya fungsi
+   * yang belum sempat di-deploy ulang tidak mati di tengah jendela rilis.
+   */
+  workspace?: string | null,
 ): Promise<QuotaStatus> {
   // `cap` yang dikirim pemanggil (FEATURE_ROUTES.dailyCap) bukan lagi angka
   // penentu, melainkan CADANGAN TERAKHIR — dipakai hanya bila paket maupun
@@ -111,6 +121,7 @@ export async function checkQuota(
   const { data, error } = await supabase.rpc('ai_quota_resolve', {
     p_feature: feature,
     p_fallback_cap: cap,
+    p_workspace: workspace ?? null,
   })
   if (error) {
     // Tetap fail-closed demi biaya — tapi ditandai `unavailable` supaya
@@ -181,6 +192,8 @@ export async function commitQuota(
   feature: QuotaFeature,
   units = 1,
   telemetry?: QuotaTelemetry,
+  /** Workspace yang ditagih — HARUS sama dengan yang dipakai checkQuota(). */
+  workspace?: string | null,
 ): Promise<void> {
   const t = telemetry ?? {}
   const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : 0)
@@ -194,6 +207,7 @@ export async function commitQuota(
       p_total_tokens: n(t.totalTokens),
       p_wasted_tokens: n(t.wastedTokens),
       p_model: t.model ?? null,
+      p_workspace: workspace ?? null,
     })
   } catch {
     // Gagal mencatat pemakaian tidak boleh menggagalkan respons yang sudah jadi.

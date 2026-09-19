@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  fetchTransactions, addTransaction, updateTransaction, deleteTransaction, fetchRules, getReceiptUrl, fetchProfile,
+  fetchTransactions, addTransaction, updateTransaction, batalkanTransaksi, fetchRules, getReceiptUrl, fetchProfile,
   addTransactionWithStock,
 } from '../lib/api'
 import { rupiah, fmtDateTime } from '../lib/format'
@@ -33,7 +33,7 @@ export default function Transactions() {
   // Kegagalan TIDAK menulis `tx`. Menyetelnya ke [] akan menampilkan
   // "Belum ada transaksi" kepada orang yang catatannya utuh di server — dan
   // yang dia lakukan berikutnya adalah mencatat ulang semuanya.
-  const load = () => fetchTransactions()
+  const load = () => fetchTransactions({ termasukBatal: true })
     .then((d) => { setTx(d); setGagalMuat(null) })
     .catch((e) => setGagalMuat(e))
   useEffect(() => {
@@ -76,11 +76,14 @@ export default function Transactions() {
     if (!await showConfirm({ message: T.confirmDel, type: 'error' })) return
     setStockMsg('')
     try {
-      // Penghapusan sekarang membalik efek stoknya juga. Perubahannya
-      // ditampilkan, bukan dilakukan diam-diam: pengguna perlu tahu bahwa
-      // menghapus satu penjualan mengembalikan bahan bakunya ke gudang.
-      const changes = await deleteTransaction(id)
-      setTx((prev) => prev.filter((t2) => t2.id !== id))
+      // Pembatalan membalik efek stoknya juga. Perubahannya ditampilkan, bukan
+      // dilakukan diam-diam: pengguna perlu tahu bahwa membatalkan satu
+      // penjualan mengembalikan bahan bakunya ke gudang.
+      const changes = await batalkanTransaksi(id)
+      // Baris TIDAK dibuang dari daftar — ia hanya berganti status. Membuangnya
+      // akan membuat pengguna mengira notanya lenyap, padahal justru inti
+      // perubahan ini adalah nota yang tidak pernah hilang.
+      setTx((prev) => prev.map((t2) => (t2.id === id ? { ...t2, status: 'batal' } : t2)))
       if (changes?.length) {
         setStockMsg(T.stockRestored + ' ' + changes
           .map((c) => `${c.name}: ${Number(c.before)} → ${Number(c.after)} ${c.unit}`)
@@ -153,6 +156,10 @@ export default function Transactions() {
                   </td>
                   <td>
                     <b>{t2.description}</b>
+                    {t2.status === 'batal' && (
+                      <span className="pill" style={{ marginLeft: 8, background: 'var(--danger-bg, #fee)', color: 'var(--danger, #b00)' }}
+                        title={t2.alasan_batal || T.voidedBadge}>{T.voidedBadge}</span>
+                    )}
                     {t2.receipt_url && (
                       <button className="linklike" style={{ marginLeft: 8, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 3 }} title={T.viewReceipt}
                         onClick={() => openReceipt(t2.receipt_url)}><Paperclip size={12} /> {T.receipt}</button>
@@ -163,16 +170,28 @@ export default function Transactions() {
                   <td>
                     <span className={`pay-badge ${t2.payment_status === 'belum' ? 'pay-belum' : 'pay-lunas'}`}>{t2.payment_status === 'belum' ? T.payBelum : T.payLunas}</span>
                   </td>
-                  <td className={t2.direction === 'in' ? 'amt-in' : 'amt-out'}>
+                  {/* Nominal transaksi batal dicoret. Angka yang tetap tampil
+                      normal di tengah daftar akan ikut dijumlahkan oleh mata
+                      pembacanya, dan itu justru kesalahan yang dicegah seluruh
+                      perubahan ini. */}
+                  <td className={t2.direction === 'in' ? 'amt-in' : 'amt-out'}
+                    style={t2.status === 'batal' ? { textDecoration: 'line-through', opacity: 0.55 } : undefined}>
                     {t2.direction === 'in' ? '+' : '-'}{rupiah(t2.amount)}
                   </td>
                   <td>
                     <div className="row-actions">
-                      {t2.direction === 'in' && (
+                      {t2.direction === 'in' && t2.status !== 'batal' && (
                         <button className="linklike" title={T.invoiceTitle} onClick={() => setInvoiceTx(t2)}>{T.invoice}</button>
                       )}
-                      <button className="icon-btn" title={T.edit} aria-label={T.edit} onClick={() => setModal(t2)}><Pencil size={15} /></button>
-                      <button className="icon-btn danger" title={T.del} aria-label={T.del} onClick={() => remove(t2.id)}><Trash2 size={15} /></button>
+                      {/* Transaksi batal tidak bisa diubah atau dibatalkan lagi.
+                          Menyunting nota yang sudah batal hanya melahirkan
+                          pertanyaan "angka mana yang berlaku". */}
+                      {t2.status !== 'batal' && (
+                        <>
+                          <button className="icon-btn" title={T.edit} aria-label={T.edit} onClick={() => setModal(t2)}><Pencil size={15} /></button>
+                          <button className="icon-btn danger" title={T.del} aria-label={T.del} onClick={() => remove(t2.id)}><Trash2 size={15} /></button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

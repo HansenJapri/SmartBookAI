@@ -65,11 +65,29 @@ Deno.test('checkQuota memanggil ai_quota_resolve, dan cap kode jadi CADANGAN', a
   assertEquals(panggilan[0].fn, 'ai_quota_resolve')
   // p_fallback_cap, bukan p_limit: angka dari FEATURE_ROUTES tidak lagi
   // menentukan, ia hanya dipakai bila paket & override tidak menyebut fitur ini.
-  assertEquals(panggilan[0].args, { p_feature: 'chat', p_fallback_cap: 10 })
+  assertEquals(panggilan[0].args, { p_feature: 'chat', p_fallback_cap: 10, p_workspace: null })
   assertEquals(status.allowed, true)
   assertEquals(status.used, 3)
   assertEquals(status.cap, 10)
   assertEquals(status.resetAt, '2026-08-05T07:00:00Z')
+})
+
+// Penjaga untuk bug yang pernah nyata: kuota ditagih ke workspace yang BERBEDA
+// dari yang datanya dibaca. ai_workspace_id() di database selalu memilih
+// majikan bila pemanggilnya staf aktif, jadi seorang staf yang membuka
+// usahanya SENDIRI memotong kredit majikannya. Satu-satunya yang mencegahnya
+// adalah workspace yang ikut terkirim di sini.
+Deno.test('checkQuota meneruskan workspace yang sedang dibuka, bukan membiarkannya null', async () => {
+  const { klien, panggilan } = fakeSupabase({ data: [baris()] })
+  await checkQuota(klien, 'chat', 10, 'ws-abc')
+  assertEquals(panggilan[0].args, { p_feature: 'chat', p_fallback_cap: 10, p_workspace: 'ws-abc' })
+})
+
+Deno.test('commitQuota mencatat ke workspace yang sama dengan yang diperiksa', async () => {
+  const { klien, panggilan } = fakeSupabase({ data: 1 })
+  await commitQuota(klien, 'chat', 1, undefined, 'ws-abc')
+  assertEquals(panggilan[0].fn, 'ai_quota_commit')
+  assertEquals((panggilan[0].args as Record<string, unknown>).p_workspace, 'ws-abc')
 })
 
 Deno.test('checkQuota membawa serta keadaan kredit & siklus', async () => {

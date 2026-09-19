@@ -113,7 +113,7 @@ serve(async (req) => {
 
     // Kuota harian PER WORKSPACE, dicek sebelum memanggil Gemini.
     const ai = getGeminiClient('insight_stok')
-    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap, userData.user.id)
     if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     // ================= TAHAP 1: metrik deterministik =================
@@ -224,8 +224,8 @@ ATURAN KERAS:
     }
     const usedAI = Boolean(content)
     // Kuota hanya naik bila AI benar-benar menghasilkan narasi.
-    if (usedAI) await commitQuota(supabase, ai.quotaFeature, 1, tele)
-    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele)
+    if (usedAI) await commitQuota(supabase, ai.quotaFeature, 1, tele, userData.user.id)
+    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele, userData.user.id)
     if (!content) content = isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics)
 
     try {

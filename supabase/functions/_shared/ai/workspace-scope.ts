@@ -62,6 +62,16 @@ export async function resolveScope(supabase: any, requestedOwner?: string | null
  * SELECT yang terikat workspace aktif.
  * Semua pembacaan tabel ber-user_id di Edge Function AI harus lewat sini.
  */
+/**
+ * Tabel yang memakai kolom `status` dengan arti aktif/batal.
+ *
+ * Kalau nanti ada tabel lain yang ikut memakai pembatalan (misalnya
+ * purchase_orders), tambahkan namanya DI SINI — bukan dengan menyalin
+ * `.eq('status','aktif')` ke pemanggil baru, yang akan mengulang persis
+ * kelalaian yang aturan ini cegah.
+ */
+const TABEL_BERSTATUS_BATAL = new Set(['transactions'])
+
 export function scopedSelect(
   supabase: any,
   scope: WorkspaceScope,
@@ -75,7 +85,24 @@ export function scopedSelect(
   opsi?: Record<string, unknown>,
 ) {
   const q = opsi ? supabase.from(table).select(columns, opsi) : supabase.from(table).select(columns)
-  return q.eq('user_id', scope.owner)
+  const terikat = q.eq('user_id', scope.owner)
+
+  // Transaksi yang DIBATALKAN tidak pernah sampai ke model.
+  //
+  // Ini disaring di sini, bukan di tiap pemanggil, karena scopedSelect adalah
+  // SATU-SATUNYA pintu baca lapisan AI. Satu retriever yang lupa menyaring
+  // akan membuat model menjumlahkan nota batal sebagai pendapatan nyata, lalu
+  // menyatakannya dengan percaya diri di narasi pembukuan — kesalahan yang
+  // jauh lebih sulit ditangkap daripada angka salah di layar, karena ia sampai
+  // ke pengguna dalam bentuk kalimat yang terdengar meyakinkan.
+  //
+  // Daftarnya sengaja eksplisit, bukan "setiap tabel yang punya kolom status".
+  // Kolom `status` di tabel lain berarti hal yang sama sekali berbeda —
+  // tasks (antre/dikerjakan/selesai), staff_members (active), error_logs
+  // (baru/ditangani) — dan menyaringnya jadi 'aktif' akan mengosongkan
+  // konteks AI tanpa satu pun error.
+  if (TABEL_BERSTATUS_BATAL.has(table)) return terikat.eq('status', 'aktif')
+  return terikat
 }
 
 /**

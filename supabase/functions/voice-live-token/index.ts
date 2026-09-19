@@ -136,8 +136,14 @@ serve(async (req) => {
       return json({ error: 'Fitur suara tidak dikenal.', code: 'BAD_FEATURE' }, 400)
     }
 
+    // Hasilnya DIPAKAI, bukan cuma diperiksa. Sebelumnya nilai kembaliannya
+    // dibuang dan resolveScope hanya berfungsi sebagai penjaga akses — akibatnya
+    // kuota jatuh ke ai_workspace_id(), yang selalu memilih majikan bila
+    // pemanggilnya staf aktif. Sesi suara di usaha sendiri memotong menit
+    // majikannya.
+    let scope
     try {
-      await resolveScope(supabase, body?.owner)
+      scope = await resolveScope(supabase, body?.owner)
     } catch (e) {
       return json({
         error: String((e as Error)?.message || 'Akses workspace tidak sah.'),
@@ -161,7 +167,7 @@ serve(async (req) => {
     // workspace dalam satu panggilan.
     if (body?.action === 'usage') {
       const seconds = Math.max(0, Math.min(SESSION_TTL_SEC, Math.round(Number(body?.seconds) || 0)))
-      if (seconds > 0) await commitQuota(supabase, route.quotaFeature, seconds)
+      if (seconds > 0) await commitQuota(supabase, route.quotaFeature, seconds, undefined, scope.owner)
       return json({ ok: true, seconds })
     }
 
@@ -184,7 +190,7 @@ serve(async (req) => {
       } catch (e) {
         out.listModelsError = String((e as Error)?.message).slice(0, 300)
       }
-      const q = await checkQuota(supabase, route.quotaFeature, route.dailyCap)
+      const q = await checkQuota(supabase, route.quotaFeature, route.dailyCap, scope.owner)
       out.quota = q
       out.quotaSystemInstalled = !q.unavailable
       return json(out)
@@ -193,7 +199,7 @@ serve(async (req) => {
     // ---------- Kuota ----------
     // Diperiksa SEBELUM token dicetak: token yang terlanjur ada berarti sesi
     // bisa dibuka, dan sesi yang terbuka langsung memakan detik kuota.
-    const quota = await checkQuota(supabase, route.quotaFeature, route.dailyCap)
+    const quota = await checkQuota(supabase, route.quotaFeature, route.dailyCap, scope.owner)
     if (quota.unavailable) {
       // Bukan kuota habis — penghitungnya sendiri tidak terbaca.
       return json({

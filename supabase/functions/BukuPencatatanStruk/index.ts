@@ -71,7 +71,7 @@ serve(async (req) => {
 
     // Kuota harian PER WORKSPACE, dicek SEBELUM memanggil Gemini.
     const ai = getGeminiClient('ocr')
-    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap, userData.user.id)
     if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     const { image, mimeType } = await req.json()
@@ -127,7 +127,7 @@ serve(async (req) => {
     }
 
     // Kuota naik hanya setelah pembacaan sukses & lolos validasi.
-    await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    await commitQuota(supabase, ai.quotaFeature, 1, tele, userData.user.id)
 
     return json({ ...receipt, usedFallback })
   } catch (e) {

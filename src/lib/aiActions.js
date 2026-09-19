@@ -13,7 +13,7 @@
 // Pemetaan entitas -> tabel mengikuti `entity-schemas.ts` di Edge Function.
 // ============================================================
 import {
-  addTransaction, addTransactionWithStock, updateTransaction, deleteTransaction,
+  addTransaction, addTransactionWithStock, updateTransaction, batalkanTransaksi,
   addProduct, updateProduct, deleteProduct,
   addSupplier, updateSupplier, deleteSupplier,
   addCustomer, updateCustomer, deleteCustomer, resolveCustomer,
@@ -96,8 +96,11 @@ export function toTaskRow(values = {}) {
 
 async function saveTransaction(operation, targetId, values) {
   if (operation === 'delete') {
-    await deleteTransaction(targetId)
-    return 'Transaksi dihapus.'
+    // AI TIDAK menghapus transaksi, ia membatalkannya. Kalimatnya pun harus
+    // jujur soal itu: "dihapus" akan membuat pengguna mengira notanya lenyap,
+    // lalu bingung menemukannya masih ada di daftar dengan tanda batal.
+    await batalkanTransaksi(targetId, 'Dibatalkan lewat asisten AI')
+    return 'Transaksi dibatalkan. Notanya tetap tersimpan dan stoknya sudah dikembalikan.'
   }
   const row = toTransactionRow(values)
 

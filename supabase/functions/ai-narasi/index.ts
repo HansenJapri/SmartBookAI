@@ -137,13 +137,18 @@ serve(async (req) => {
     // Kuota harian PER WORKSPACE (cache-hit di atas tidak kena kuota).
     // Dicek SEBELUM memanggil Gemini supaya kuota asli di Google tidak terbuang.
     const ai = getGeminiClient('insight_dashboard')
-    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap)
+    const quota = await checkQuota(supabase, ai.quotaFeature, ai.dailyCap, userData.user.id)
     if (!quota.allowed) return json(quotaBlockedPayload(ai.quotaFeature, quota), 429)
 
     // ================= TAHAP 1: metrik deterministik =================
     const { data: txs } = await supabase
       .from('transactions')
       .select('direction, amount, category, payment_status, occurred_at')
+      // Nota yang sudah DIBATALKAN tidak boleh ikut dihitung. Seluruh metrik
+      // di bawah — laba, tren mingguan, margin — masuk ke narasi Gemini dan
+      // kembali ke pengguna sebagai kalimat yang terdengar pasti. Angka yang
+      // salah di sini jauh lebih sulit ditangkap daripada angka salah di layar.
+      .eq('status', 'aktif')
       .order('occurred_at', { ascending: false })
       .limit(3000)
 
@@ -342,9 +347,9 @@ ATURAN KERAS:
     }
     const usedAI = Boolean(content)
     // Penghitung kuota HANYA naik saat panggilan AI benar-benar menghasilkan narasi.
-    if (usedAI) await commitQuota(supabase, ai.quotaFeature, 1, tele)
+    if (usedAI) await commitQuota(supabase, ai.quotaFeature, 1, tele, userData.user.id)
     // Jawaban datang tapi dibuang: kuota tidak naik (units=0), token tetap dicatat.
-    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele)
+    else if (tele) await commitQuota(supabase, ai.quotaFeature, 0, tele, userData.user.id)
     if (!content) {
       content = metrics.tx_count > 0
         ? (isEn ? templateNarrativeEn(metrics) : templateNarrative(metrics))
