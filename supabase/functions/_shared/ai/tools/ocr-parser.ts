@@ -17,6 +17,12 @@ export interface ReceiptItem {
 export interface ReceiptData {
   merchant: string
   date: string | null
+  /**
+   * Tanggal yang TERBACA tapi ditolak karena terlalu jauh dari hari ini —
+   * hampir selalu nomor referensi struk yang menyerupai tanggal.
+   * Dilaporkan supaya UI bisa memberi tahu, bukan diam-diam menggantinya.
+   */
+  dateDiabaikan?: string | null
   total: number
   legibility: 'cetak_jelas' | 'buram' | 'tulisan_tangan'
   items: ReceiptItem[]
@@ -181,6 +187,43 @@ export function sumItems(items: ReceiptItem[]): number {
   return (items || []).reduce((s, it) => s + (Number(it.total) || 0), 0)
 }
 
+/** Sejauh apa tanggal struk boleh menyimpang dari hari ini. */
+export const HARI_TOLERANSI_DEPAN = 2     // beda zona waktu + jam kasir yang meleset
+export const HARI_TOLERANSI_BELAKANG = 400 // ~13 bulan: cukup untuk pembukuan menyusul
+
+/**
+ * Apakah tanggal yang terbaca di struk MASUK AKAL sebagai tanggal belanja?
+ *
+ * KENAPA INI ADA — kegagalan 19 September 2026.
+ * Parser hanya memeriksa BENTUK tanggal (`^\d{4}-\d{2}-\d{2}$`), tidak pernah
+ * kewajarannya. Struk Indomaret memuat baris referensi toko:
+ *
+ *     01.04.22-07/58/2.2.7/9902
+ *
+ * Model membacanya sebagai tanggal 1 April 2022. Bentuknya sah, jadi lolos —
+ * dan empat transaksi tersimpan dengan tanggal EMPAT TAHUN lalu.
+ *
+ * Akibatnya jauh lebih besar daripada satu kolom yang salah:
+ *
+ *   1. Halaman Transaksi mengurutkan berdasarkan tanggal transaksi, jadi baris
+ *      yang baru disimpan mendarat di DASAR daftar, di bawah semua transaksi
+ *      tahun berjalan. Pengguna melihat bagian atas, tidak menemukan apa-apa,
+ *      menyimpulkan simpanannya gagal, lalu mengulang. Empat kali.
+ *   2. Belanja hari ini masuk ke laporan April 2022. Laba bulan berjalan salah,
+ *      dan tidak ada satu pun pesan yang memberi tahu.
+ *
+ * Nomor referensi yang menyerupai tanggal ada di hampir setiap struk ritel.
+ * Menerimanya apa adanya berarti menyerahkan tanggal pembukuan kepada tebakan
+ * OCR — jadi yang di luar rentang wajar DITOLAK, dan pemanggil memakai hari ini.
+ */
+export function tanggalStrukMasukAkal(iso: string, hariIni: Date = new Date()): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const t = Date.parse(iso + 'T12:00:00Z')
+  if (!Number.isFinite(t)) return false
+  const selisihHari = (t - hariIni.getTime()) / 86_400_000
+  return selisihHari <= HARI_TOLERANSI_DEPAN && selisihHari >= -HARI_TOLERANSI_BELAKANG
+}
+
 /**
  * Ubah teks JSON mentah dari model menjadi ReceiptData tervalidasi.
  * MELEMPAR ChecksumMismatchError bila checksum gagal — pemanggil memakainya
@@ -241,10 +284,18 @@ export function parseAndValidateReceipt(rawText: string): ReceiptData {
       ? legibilityRaw
       : 'cetak_jelas'
 
+  // Tanggal yang bentuknya sah TAPI tidak masuk akal dibuang, dan nilai yang
+  // dibuang itu tetap dilaporkan lewat `dateDiabaikan`. Menghilangkannya
+  // diam-diam akan membuat pengguna mengira tanggalnya memang tidak terbaca,
+  // padahal yang terjadi adalah salah baca yang perlu dia ketahui — struknya
+  // mungkin memang lama, dan hanya dia yang tahu.
   const dateRaw = String(parsed.date ?? '')
+  const bentukSah = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw)
+  const masukAkal = bentukSah && tanggalStrukMasukAkal(dateRaw)
   return {
     merchant: String(parsed.merchant ?? '').slice(0, 160),
-    date: /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : null,
+    date: masukAkal ? dateRaw : null,
+    dateDiabaikan: bentukSah && !masukAkal ? dateRaw : null,
     total: statedTotal,
     legibility,
     items,

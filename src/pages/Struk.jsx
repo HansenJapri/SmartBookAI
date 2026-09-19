@@ -5,7 +5,7 @@ import { useCatalog } from '../context/CatalogContext'
 import { uploadReceipt, addTransactionWithStock, fetchProducts } from '../lib/api'
 import { readReceipt } from '../lib/ai'
 import { compressImage } from '../lib/imageCompress'
-import { toDateInput, rupiah } from '../lib/format'
+import { toDateInput, rupiah, fmtDate } from '../lib/format'
 import AIDisclaimer from '../components/AIDisclaimer'
 import Modal from '../components/Modal'
 import { useLang } from '../context/LangContext'
@@ -27,6 +27,7 @@ export default function Struk() {
   const [direction, setDirection] = useState('out')
   const [category, setCategory] = useState('')
   const [occurredAt, setOccurredAt] = useState(toDateInput())
+  const [tanggalDiabaikan, setTanggalDiabaikan] = useState(null)
   const [keterangan, setKeterangan] = useState('')
   // Nama toko hasil baca AI, terpisah dari keterangan supaya bisa ditautkan ke
   // Daftar Pemasok — dan tetap bisa dikoreksi pengguna sebelum disimpan.
@@ -91,6 +92,11 @@ export default function Struk() {
       setDirection('out')
       setAiMeta({ total: Number(res.total) || 0, legibility: res.legibility || 'cetak_jelas' })
       if (res.date) { try { setOccurredAt(toDateInput(res.date + 'T12:00')) } catch { /* abaikan */ } }
+      // Tanggal yang terbaca tapi DITOLAK karena terlalu jauh dari hari ini —
+      // hampir selalu nomor referensi struk yang menyerupai tanggal, seperti
+      // "01.04.22-07/58/..." di struk Indomaret. Pengguna harus tahu, karena
+      // hanya dia yang bisa memastikan apakah struknya memang selama itu.
+      setTanggalDiabaikan(res.dateDiabaikan || null)
       if (!mapped.length) setErr(sk.errNoItemsAI)
     } catch (e) { setErr(e.message) } finally { setAiBusy(false) }
   }
@@ -168,9 +174,22 @@ export default function Struk() {
         },
         lines,
       )
+      // Tanggal yang dipakai SELALU disebut di pesan berhasil.
+      //
+      // 19 Sep 2026: empat struk tersimpan dengan tanggal 1 April 2022 karena
+      // AI salah membaca nomor referensi toko sebagai tanggal. Daftar Transaksi
+      // diurutkan menurut tanggal transaksi, jadi baris itu mendarat di DASAR
+      // daftar — di bawah semua transaksi tahun berjalan. Pengguna tidak
+      // menemukannya di atas, menyimpulkan gagal, lalu mengulang empat kali.
+      //
+      // Menyebut tanggalnya di sini membuat salah-tanggal terlihat SEBELUM
+      // orang mencarinya di daftar, dan sekaligus menjelaskan kenapa barisnya
+      // tidak muncul di baris teratas kalau tanggalnya memang mundur.
+      const tglDipakai = new Date(occurredAt)
       setDoneMsg(
         sk.savedMsg.replace('{n}', items.length)
-        + (changes?.length ? sk.savedStockMsg.replace('{n}', changes.length) : '.'),
+        + (changes?.length ? sk.savedStockMsg.replace('{n}', changes.length) : '.')
+        + ' ' + sk.savedOnDate.replace('{date}', fmtDate(tglDipakai)),
       )
       // Transaksinya SUDAH tersimpan, jadi ini peringatan — bukan error yang
       // membatalkan. Pengguna perlu tahu persis apa yang tidak ikut tersimpan.
@@ -329,6 +348,15 @@ export default function Struk() {
             <button type="button" className="btn btn-ghost" onClick={addItem}><Plus size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />{sk.addItem}</button>
             <div style={{ fontSize: 16 }}>{sk.total} <b>{rupiah(grandTotal)}</b></div>
           </div>
+
+          {/* Tanggal yang ditolak disebut APA ADANYA. Pengguna satu-satunya yang
+              tahu apakah struknya memang lama; kita cuma tahu angkanya
+              mencurigakan. */}
+          {tanggalDiabaikan && (
+            <div className="alert alert-err" style={{ marginTop: 12 }}>
+              {sk.dateIgnored.replace('{date}', tanggalDiabaikan)}
+            </div>
+          )}
 
           {mismatchCount > 0 && (
             <div className="alert alert-err" style={{ marginTop: 12 }}>

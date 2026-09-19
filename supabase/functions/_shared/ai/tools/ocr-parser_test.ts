@@ -22,7 +22,10 @@
 // Angka pada test pertama diambil apa adanya dari struk sungguhan yang gagal.
 // ============================================================
 import { assert, assertEquals, assertFalse } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { isChecksumValid, sumItems, totalSetelahRincian, type ReceiptItem } from './ocr-parser.ts'
+import {
+  isChecksumValid, sumItems, totalSetelahRincian, tanggalStrukMasukAkal,
+  parseAndValidateReceipt, type ReceiptItem,
+} from './ocr-parser.ts'
 
 const item = (name: string, total: number): ReceiptItem =>
   ({ name, qty: 1, unit: 'pcs', unit_price: total, total })
@@ -156,4 +159,81 @@ Deno.test('totalSetelahRincian melaporkan angka yang BENAR-BENAR dibandingkan', 
   assertEquals(totalSetelahRincian(100_000, { service: 10_000, tax: 11_000 }), 121_000)
   assertEquals(totalSetelahRincian(50_000, { discount: 5_000 }), 45_000)
   assertEquals(totalSetelahRincian(50_000, {}), 50_000)
+})
+
+// ============================================================
+// KEWAJARAN TANGGAL STRUK
+//
+// Dari kegagalan 19 September 2026. Struk Indomaret memuat baris referensi:
+//
+//     01.04.22-07/58/2.2.7/9902
+//
+// Model membacanya sebagai tanggal 1 April 2022. Bentuknya sah
+// (^\d{4}-\d{2}-\d{2}$), jadi lolos validasi — dan EMPAT transaksi tersimpan
+// dengan tanggal empat tahun lalu.
+//
+// Akibatnya bukan sekadar satu kolom salah: daftar Transaksi diurutkan menurut
+// tanggal transaksi, jadi baris yang baru disimpan mendarat di DASAR daftar.
+// Pengguna melihat bagian atas, tidak menemukan apa-apa, menyimpulkan
+// simpanannya gagal, lalu mengulang. Empat kali. Dan belanja hari ini masuk ke
+// laporan April 2022.
+// ============================================================
+
+const HARI_INI = new Date('2026-09-19T10:00:00Z')
+
+Deno.test('tanggal dari nomor referensi struk DITOLAK', () => {
+  // Kasus nyata yang memicu seluruh perbaikan ini.
+  assertFalse(tanggalStrukMasukAkal('2022-04-01', HARI_INI))
+})
+
+Deno.test('tanggal hari ini dan beberapa hari lalu diterima', () => {
+  assert(tanggalStrukMasukAkal('2026-09-19', HARI_INI))
+  assert(tanggalStrukMasukAkal('2026-09-18', HARI_INI))
+  assert(tanggalStrukMasukAkal('2026-09-01', HARI_INI))
+})
+
+Deno.test('pembukuan menyusul tetap diterima sampai ~13 bulan', () => {
+  // UMKM sering baru memotret struk berminggu-minggu kemudian. Menolaknya
+  // akan memaksa mereka mengubah tanggal manual setiap kali — dan orang yang
+  // harus melawan validasi setiap hari akan berhenti mempercayainya.
+  assert(tanggalStrukMasukAkal('2026-06-19', HARI_INI))
+  assert(tanggalStrukMasukAkal('2025-09-01', HARI_INI))
+})
+
+Deno.test('lebih tua dari toleransi ditolak', () => {
+  assertFalse(tanggalStrukMasukAkal('2025-06-01', HARI_INI))
+  assertFalse(tanggalStrukMasukAkal('2019-01-01', HARI_INI))
+})
+
+Deno.test('tanggal masa depan ditolak, kecuali selisih zona waktu', () => {
+  // Kasir dengan jam yang meleset sehari masih wajar; seminggu ke depan tidak.
+  assert(tanggalStrukMasukAkal('2026-09-20', HARI_INI))
+  assertFalse(tanggalStrukMasukAkal('2026-09-26', HARI_INI))
+  assertFalse(tanggalStrukMasukAkal('2027-01-01', HARI_INI))
+})
+
+Deno.test('bentuk yang bukan tanggal ditolak tanpa melempar', () => {
+  assertFalse(tanggalStrukMasukAkal('', HARI_INI))
+  assertFalse(tanggalStrukMasukAkal('01.04.22', HARI_INI))
+  assertFalse(tanggalStrukMasukAkal('2026-13-45', HARI_INI))
+})
+
+Deno.test('parseAndValidateReceipt membuang tanggal tak masuk akal TAPI melaporkannya', () => {
+  // Menghilangkannya diam-diam akan membuat pengguna mengira tanggalnya tidak
+  // terbaca, padahal yang terjadi salah baca yang perlu dia ketahui.
+  const r = parseAndValidateReceipt(JSON.stringify({
+    merchant: 'Indomaret',
+    date: '2022-04-01',
+    total: 22400,
+    items: [
+      { name: 'INDOMI KARI AYAM 72G', qty: 4, unit: 'pcs', unit_price: 2700, total: 10800 },
+      { name: 'INDOMI GORENG SPC 80', qty: 4, unit: 'pcs', unit_price: 2900, total: 11600 },
+    ],
+    tax: 2220,
+  }))
+  assertEquals(r.date, null)
+  assertEquals(r.dateDiabaikan, '2022-04-01')
+  // Sekaligus membuktikan struk PPN inklusif ini lolos checksum.
+  assertEquals(r.total, 22400)
+  assertEquals(r.items.length, 2)
 })
