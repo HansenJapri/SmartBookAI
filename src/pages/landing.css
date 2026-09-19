@@ -122,10 +122,12 @@
 .lp-hero-cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 4px; }
 @media (min-width: 900px) { .lp-hero-cta { justify-content: flex-start; } }
 
-/* Chat mockup */
+/* ============================================================
+   Mockup panel Asisten SmartBook di hero (HeroAssistantMock.jsx)
+   ============================================================ */
 .lp-hero-mock { display: flex; justify-content: center; perspective: 1400px; }
 .lp-mock-frame {
-  width: 100%; max-width: 460px;
+  width: 100%; max-width: 400px;
   background: var(--lp-surface-alt);
   border: 1px solid var(--lp-outline-variant);
   border-radius: var(--lp-radius-xl);
@@ -139,40 +141,67 @@
   50%      { transform: rotateY(-4deg) rotateX(2deg) translateY(-10px); }
 }
 
-.lp-mock-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--lp-primary); color: #fff; }
-.lp-mock-head-l { display: flex; align-items: center; gap: 12px; }
-.lp-mock-avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); display: grid; place-items: center; }
-.lp-mock-name { font-weight: 600; font-size: 14px; }
-.lp-mock-sub  { font-size: 11px; opacity: 0.8; margin-top: 2px; }
-.lp-mock-menu { opacity: 0.8; }
+.lp-mock-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; background: var(--lp-primary); color: #fff; }
+.lp-mock-head-l { display: flex; align-items: center; gap: 10px; }
+.lp-mock-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); display: grid; place-items: center; flex: none; }
+.lp-mock-name { font-weight: 600; font-size: 13px; }
+.lp-mock-sub  { font-size: 10.5px; opacity: 0.8; margin-top: 1px; }
+.lp-mock-menu { opacity: 0.8; flex: none; }
 
-.lp-mock-body { background: var(--lp-surface-container); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 320px; }
-.lp-msg { max-width: 82%; padding: 10px 14px; font-size: 13px; line-height: 1.45; border-radius: 14px; }
-.lp-msg-bot { align-self: flex-start; background: var(--lp-surface-alt); color: var(--lp-on-surface-variant); border-bottom-left-radius: 4px; box-shadow: var(--lp-shadow-1); }
-.lp-msg-me  { align-self: flex-end;   background: var(--lp-primary); color: #fff; border-bottom-right-radius: 4px; }
-.lp-msg-card { max-width: 90%; }
-.lp-msg-card-head { display: flex; align-items: center; gap: 6px; color: var(--lp-primary); font-weight: 700; font-size: 12px; margin-bottom: 6px; }
-.lp-msg-card-list { border-left: 2px solid var(--lp-primary); padding: 2px 0 2px 10px; font-size: 12px; color: var(--lp-on-surface); }
-.lp-msg-card-list p { margin: 0; padding: 2px 0; color: var(--lp-on-surface); font-size: 12px; }
-.lp-msg-card-note { font-size: 11px; margin-top: 8px !important; color: var(--lp-on-surface-variant) !important; }
+/* Tab Tanya/Catat — pemilih mode yang sama seperti di panel asisten asli. */
+.lp-mock-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 12px 2px; background: var(--lp-surface-alt); }
+.lp-mock-tab { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 8px; border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--lp-on-surface-variant); background: var(--lp-surface-container); }
+/* Hijau tua, bukan hijau terang: teks putih di atasnya harus tetap lolos ambang
+   kontras WCAG AA 4.5:1 — halaman ini dikunci oleh e2e/a11y.spec.js. */
+.lp-mock-tab.is-on { background: #157f4f; color: #fff; }
 
-.lp-msg-anim { opacity: 0; transform: translateY(6px); animation: lp-fadeUp 0.5s ease forwards; }
-@keyframes lp-fadeUp { to { opacity: 1; transform: translateY(0); } }
+.lp-mock-body { position: relative; background: var(--lp-surface-alt); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 
-.lp-typing { align-self: flex-start; display: inline-flex; gap: 4px; padding: 10px 14px; background: var(--lp-surface-alt); border-radius: 14px; border-bottom-left-radius: 4px; box-shadow: var(--lp-shadow-1); }
+/* Setiap tahap animasi memakai kelas yang sama; komponen hanya menyalakan
+   .is-on sesuai jam putaran. Semua elemen tetap ada di DOM supaya tinggi
+   bingkai tidak berubah-ubah tiap putaran. */
+.lp-mock-step { opacity: 0; transform: translateY(6px); transition: opacity 0.32s ease, transform 0.32s ease; }
+.lp-mock-step.is-on { opacity: 1; transform: translateY(0); }
+
+.lp-msg { max-width: 88%; padding: 9px 13px; font-size: 12.5px; line-height: 1.45; border-radius: 14px; }
+.lp-msg-me { align-self: flex-end; background: var(--lp-primary); color: #fff; border-bottom-right-radius: 4px; transform: translateY(6px) scale(0.96); transform-origin: bottom right; }
+.lp-msg-me.is-on { transform: translateY(0) scale(1); }
+
+.lp-typing { position: absolute; left: 12px; display: inline-flex; gap: 4px; padding: 9px 13px; background: var(--lp-surface-container); border-radius: 14px; border-bottom-left-radius: 4px; height: 33px; align-items: center; }
 .lp-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--lp-outline); animation: lp-bounce 1.2s infinite; }
 .lp-typing span:nth-child(2) { animation-delay: 0.15s; }
 .lp-typing span:nth-child(3) { animation-delay: 0.3s; }
 @keyframes lp-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
 
-/* Teks di baris input memakai --lp-on-surface-variant (#444656), BUKAN
-   --lp-outline (#757688). --lp-outline hanya mencapai rasio 3.83:1 di atas
-   --lp-surface-container — di bawah ambang WCAG 2.1 AA 4.5:1 untuk teks
-   berukuran normal (13px). Dikunci oleh e2e/a11y.spec.js. */
-.lp-mock-input { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--lp-surface-alt); border-top: 1px solid var(--lp-outline-variant); color: var(--lp-on-surface-variant); }
-.lp-mock-textbox { flex: 1; background: var(--lp-surface-container); border-radius: 999px; padding: 10px 14px; font-size: 13px; color: var(--lp-on-surface-variant); }
-.lp-mock-send { width: 36px; height: 36px; border-radius: 50%; background: var(--lp-primary); color: #fff; border: none; display: grid; place-items: center; cursor: pointer; transition: transform 0.15s ease; }
-.lp-mock-send:hover { transform: scale(1.08); }
+/* Kartu pratinjau "Menambah Transaksi" */
+.lp-mock-draft { display: flex; flex-direction: column; gap: 7px; }
+.lp-mock-draft-title { font-size: 12.5px; font-weight: 700; color: var(--lp-on-surface); }
+.lp-mock-draft-card { border: 1px solid var(--lp-outline-variant); border-left: 3px solid #157f4f; border-radius: var(--lp-radius); background: var(--lp-surface); padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+.lp-mock-field { display: flex; flex-direction: column; gap: 2px; }
+.lp-mock-field-l { font-size: 10.5px; color: var(--lp-on-surface-variant); }
+.lp-mock-field-v { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--lp-on-surface); background: var(--lp-surface-alt); border: 1px solid var(--lp-outline-variant); border-radius: 8px; padding: 6px 10px; }
+.lp-mock-field-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-mock-field-v.is-select > svg { flex: none; color: var(--lp-on-surface-variant); }
+
+.lp-mock-tail { display: flex; flex-direction: column; gap: 7px; }
+.lp-mock-warn { display: flex; align-items: flex-start; gap: 6px; font-size: 10.5px !important; line-height: 1.4; color: var(--lp-on-error-container) !important; background: var(--lp-error-container); border-radius: 8px; padding: 6px 8px; }
+.lp-mock-warn > svg { flex: none; margin-top: 1px; }
+.lp-mock-save { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--lp-primary); color: #fff; font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 9px; }
+.lp-mock-tail.is-on .lp-mock-save { animation: lp-pop 0.45s ease both; }
+@keyframes lp-pop { 0% { transform: scale(0.94); } 60% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
+/* Baris input. Teks memakai --lp-on-surface-variant (#444656), BUKAN
+   --lp-outline (#757688): --lp-outline hanya mencapai 3.83:1 di atas
+   --lp-surface-container, di bawah ambang WCAG 2.1 AA 4.5:1 untuk teks
+   berukuran normal. Dikunci oleh e2e/a11y.spec.js. */
+.lp-mock-foot { background: var(--lp-surface-alt); border-top: 1px solid var(--lp-outline-variant); padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+.lp-mock-input { display: flex; align-items: center; gap: 8px; }
+.lp-mock-textbox { flex: 1; min-width: 0; background: var(--lp-surface-container); border: 1px solid var(--lp-outline-variant); border-radius: 9px; padding: 8px 12px; font-size: 12px; line-height: 1.4; color: var(--lp-on-surface-variant); min-height: 34px; display: flex; align-items: center; }
+.lp-mock-textbox.is-typing { color: var(--lp-on-surface); }
+.lp-caret { display: inline-block; width: 1.5px; height: 13px; margin-left: 1px; background: var(--lp-primary); animation: lp-blink 1s steps(1) infinite; }
+@keyframes lp-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.lp-mock-send { width: 34px; height: 34px; border-radius: 9px; background: var(--lp-primary); color: #fff; border: none; display: grid; place-items: center; flex: none; }
+.lp-mock-footnote { font-size: 10px !important; color: var(--lp-on-surface-variant) !important; text-align: center; }
 
 /* Sections */
 .lp-section { padding: clamp(64px, 8vw, 96px) 0; }
@@ -298,6 +327,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lp-rv { opacity: 1 !important; transform: none !important; transition: none !important; }
-  .lp-mock-frame, .lp-hero-blob, .lp-cta-blob, .lp-scan-line, .lp-typing span { animation: none !important; }
-  .lp-msg-anim { animation: none !important; opacity: 1; transform: none; }
+  .lp-mock-frame, .lp-hero-blob, .lp-cta-blob, .lp-scan-line, .lp-typing span, .lp-caret { animation: none !important; }
+  .lp-mock-step { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .lp-typing { display: none !important; }
 }

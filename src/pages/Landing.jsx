@@ -1,10 +1,9 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Mic, ScanLine, Brain, LineChart, AlertTriangle, Users,
-  Bot, CheckCircle2, MoreVertical, Image as ImageIcon,
-  Send, ChevronRight, ClipboardList, TrendingDown, PackageX,
-  Globe, MessageCircle, Mail, MapPin,
+  Keyboard, Brain, LineChart, AlertTriangle, Users,
+  ClipboardList, TrendingDown, PackageX,
+  Globe, MessageCircle, Mail, MapPin, PlayCircle,
 } from 'lucide-react'
 
 // Ikon Instagram inline — versi lucide yang terpasang tidak mengekspor <Instagram/>.
@@ -15,12 +14,26 @@ const InstagramIcon = ({ size = 16 }) => (
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
   </svg>
 )
-import { CONTACT_EMAIL } from '../lib/legal'
+// Ikon WhatsApp inline — lucide tidak menyediakan ikon merek ini.
+const WhatsAppIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.53.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.67-1.61-.92-2.2-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.8.38-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.87 1.22 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.28.17-1.41-.07-.13-.27-.2-.57-.35z" />
+    <path d="M12.04 2C6.6 2 2.17 6.43 2.16 11.87c0 1.74.46 3.44 1.32 4.94L2 22.5l5.85-1.53a9.87 9.87 0 0 0 4.18.93h.01c5.44 0 9.87-4.43 9.88-9.87A9.82 9.82 0 0 0 12.04 2zm0 17.86h-.01a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3.1.81.83-3.02-.2-.31a8.17 8.17 0 0 1-1.25-4.35c0-4.52 3.68-8.2 8.21-8.2 2.19 0 4.25.86 5.8 2.41a8.14 8.14 0 0 1 2.4 5.8c0 4.52-3.68 8.19-8.2 8.19z" />
+  </svg>
+)
+import { CONTACT_EMAIL, SALES_WHATSAPP_URL } from '../lib/legal'
 import { useLang } from '../context/LangContext'
 import LangToggle from '../components/LangToggle'
+import HeroAssistantMock from '../components/HeroAssistantMock'
 import './landing.css'
 
 const PROBLEM_ICONS = [ClipboardList, TrendingDown, PackageX]
+
+// Tautan video demo. SENGAJA dikosongkan sampai videonya jadi: selama string ini
+// kosong, tombol "Video Demo" dirender sebagai tombol nonaktif, bukan tautan mati
+// yang membawa pengunjung ke halaman kosong. Isi dengan URL YouTube/Vimeo penuh
+// (mis. 'https://youtu.be/xxxx') dan tombolnya otomatis hidup, membuka tab baru.
+const VIDEO_DEMO_URL = ''
 
 export default function Landing() {
   const { t } = useLang()
@@ -83,60 +96,33 @@ export default function Landing() {
             <p className="lp-lead lp-rv">{L.hero.lead}</p>
             <div className="lp-hero-cta lp-rv">
               <Link to="/daftar" className="lp-btn lp-btn-primary lp-btn-lg">{L.hero.ctaPrimary}</Link>
-              {/* Diarahkan ke /demo (task B4): tujuannya kini laporan kebocoran
-                  berdata contoh, bukan jangkar #cara. Label dan ikon ikut diganti
-                  karena tidak pernah ada video di balik tautan ini. */}
-              <Link to="/demo" className="lp-btn lp-btn-outline lp-btn-lg">
-                <TrendingDown size={18} aria-hidden="true" /> {L.hero.ctaSecondary}
-              </Link>
+              {/* Tombol video demo. Selama VIDEO_DEMO_URL kosong, dirender sebagai
+                  <button disabled> agar pengunjung tidak mengeklik tautan buntu;
+                  judulnya menjelaskan kenapa. Begitu URL diisi, berubah jadi <a>
+                  yang membuka tab baru. */}
+              {VIDEO_DEMO_URL ? (
+                <a
+                  href={VIDEO_DEMO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lp-btn lp-btn-outline lp-btn-lg"
+                >
+                  <PlayCircle size={18} aria-hidden="true" /> {L.hero.ctaSecondary}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title={L.hero.ctaSecondarySoon}
+                  className="lp-btn lp-btn-outline lp-btn-lg lp-btn-soon"
+                >
+                  <PlayCircle size={18} aria-hidden="true" /> {L.hero.ctaSecondary}
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Chat mockup card */}
-          <div className="lp-hero-mock lp-rv">
-            <div className="lp-mock-frame">
-              <div className="lp-mock-head">
-                <div className="lp-mock-head-l">
-                  <div className="lp-mock-avatar"><Bot size={20} aria-hidden="true" /></div>
-                  <div>
-                    <div className="lp-mock-name">{L.hero.chatTitle}</div>
-                    <div className="lp-mock-sub">{L.hero.chatStatus}</div>
-                  </div>
-                </div>
-                <MoreVertical size={18} className="lp-mock-menu" aria-hidden="true" />
-              </div>
-
-              <div className="lp-mock-body">
-                <div className="lp-msg lp-msg-bot lp-msg-anim" style={{ animationDelay: '.2s' }}>
-                  {L.hero.msgBot}
-                </div>
-                <div className="lp-msg lp-msg-me lp-msg-anim" style={{ animationDelay: '.9s' }}>
-                  {L.hero.msgUser}
-                </div>
-                <div className="lp-msg lp-msg-bot lp-msg-card lp-msg-anim" style={{ animationDelay: '1.6s' }}>
-                  <div className="lp-msg-card-head">
-                    <CheckCircle2 size={16} aria-hidden="true" />
-                    <span>{L.hero.recTitle}</span>
-                  </div>
-                  <div className="lp-msg-card-list">
-                    <p>{L.hero.recL1}</p>
-                    <p>{L.hero.recL2}</p>
-                    <p className="lp-strong">{L.hero.recL3}</p>
-                  </div>
-                  <p className="lp-msg-card-note">{L.hero.recNote}</p>
-                </div>
-                <div className="lp-typing lp-msg-anim" style={{ animationDelay: '2.3s' }} aria-hidden="true">
-                  <span /><span /><span />
-                </div>
-              </div>
-
-              <div className="lp-mock-input">
-                <ImageIcon size={18} aria-hidden="true" />
-                <div className="lp-mock-textbox">{L.hero.inputPh}</div>
-                <button type="button" className="lp-mock-send" aria-label="Kirim"><Send size={16} /></button>
-              </div>
-            </div>
-          </div>
+          <HeroAssistantMock />
         </div>
       </section>
 
@@ -169,7 +155,7 @@ export default function Landing() {
           </div>
           <div className="lp-bento">
             <article className="lp-bento-c lp-bento-1 lp-rv">
-              <div className="lp-icon-tile lp-icon-primary" aria-hidden="true"><Mic size={22} /></div>
+              <div className="lp-icon-tile lp-icon-primary" aria-hidden="true"><Keyboard size={22} /></div>
               <h3>{L.features.voiceT}</h3>
               <p>{L.features.voiceD}</p>
             </article>
@@ -259,7 +245,17 @@ export default function Landing() {
           <p>{L.ctaFinal.p}</p>
           <div className="lp-cta-btns">
             <Link to="/daftar" className="lp-btn lp-btn-primary lp-btn-lg">{L.ctaFinal.primary}</Link>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="lp-btn lp-btn-outline-strong lp-btn-lg">{L.ctaFinal.secondary}</a>
+            {/* Hubungi Sales membuka WhatsApp dengan pesan pembuka siap kirim.
+                rel="noopener" wajib karena target="_blank": tanpa itu halaman
+                tujuan bisa mengakses window.opener milik landing. */}
+            <a
+              href={SALES_WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="lp-btn lp-btn-outline-strong lp-btn-lg"
+            >
+              <WhatsAppIcon size={18} /> {L.ctaFinal.secondary}
+            </a>
           </div>
           <p className="lp-cta-note">{L.ctaFinal.note}</p>
         </div>
@@ -277,6 +273,7 @@ export default function Landing() {
             <div className="lp-foot-social">
               <a href="#" aria-label="Website"><Globe size={16} /></a>
               <a href="https://instagram.com/sovralytics_tech" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><InstagramIcon size={16} /></a>
+              <a href={SALES_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><WhatsAppIcon size={16} /></a>
               <a href={`mailto:${CONTACT_EMAIL}`} aria-label="Kontak"><MessageCircle size={16} /></a>
             </div>
           </div>
@@ -301,6 +298,7 @@ export default function Landing() {
           <div>
             <h6>{L.footer.kontak}</h6>
             <p className="lp-foot-line"><span className="lp-foot-ic"><MapPin size={14} aria-hidden="true" /></span> {L.footer.alamat}</p>
+            <p className="lp-foot-line"><a href={SALES_WHATSAPP_URL} target="_blank" rel="noopener noreferrer"><span className="lp-foot-ic"><WhatsAppIcon size={14} /></span> {L.footer.whatsapp}</a></p>
             <p className="lp-foot-line"><a href={`mailto:${CONTACT_EMAIL}`}><span className="lp-foot-ic"><Mail size={14} aria-hidden="true" /></span> {CONTACT_EMAIL}</a></p>
             <p className="lp-foot-line"><a href="https://instagram.com/sovralytics_tech" target="_blank" rel="noopener noreferrer"><span className="lp-foot-ic"><InstagramIcon size={14} /></span> {L.footer.instagram}</a></p>
           </div>

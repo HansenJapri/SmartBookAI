@@ -25,3 +25,13 @@ export const TERMS_EFFECTIVE = '2 Agustus 2026'
 // kewajiban UU PDP terputus tanpa jalur pemulihan.
 export const CONTROLLER_NAME = 'Sovralytics Technology (usaha perorangan)'
 export const CONTACT_EMAIL = 'sovralyticstech@gmail.com'
+
+// Kanal sales via WhatsApp. Nomor ditulis format internasional tanpa "+" karena
+// itu yang diterima wa.me. Pesan awal di-encode lewat encodeURIComponent supaya
+// spasi, koma, dan tanda baca tidak memutus query string di sebagian peramban
+// ponsel (menempelkan string yang sudah di-encode manual berisiko double-encode).
+export const SALES_WHATSAPP = '6289527058398'
+export const SALES_WHATSAPP_MESSAGE =
+  'Halo tim SmartBook AI, saya tertarik untuk konsultasi fitur dan implementasinya'
+export const SALES_WHATSAPP_URL =
+  `https://wa.me/${SALES_WHATSAPP}?text=${encodeURIComponent(SALES_WHATSAPP_MESSAGE)}`
