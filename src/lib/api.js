@@ -590,11 +590,20 @@ export async function exportMyData() {
 export async function deleteMyData() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Sesi tidak ditemukan.')
-  const tables = ['transactions', 'categorization_rules', 'products', 'suppliers',
-    'units', 'product_categories', 'channels', 'categories', 'feedback', 'app_events']
-  for (const tbl of tables) {
-    try { await supabase.from(tbl).delete().eq('user_id', user.id) } catch { /* abaikan tabel yang tidak ada */ }
-  }
+  // Dipindahkan ke RPC hapus_data_saya(). Dua alasan:
+  //
+  // 1. Transaksi tidak boleh dihapus langsung lagi — trigger database
+  //    menolaknya supaya nota tidak bisa lenyap dari jejak audit. RPC itulah
+  //    satu-satunya jalur yang menyatakan "ini penghapusan data subjek",
+  //    sehingga hak hukum pengguna tidak berubah jadi pesan error.
+  //
+  // 2. Perulangan lamanya menghapus tabel satu per satu dengan catch yang
+  //    MENELAN kegagalan. Gagal di tabel kelima berarti empat tabel sudah
+  //    terhapus, sisanya utuh, dan pengguna tetap diberi tahu datanya sudah
+  //    dihapus — penghapusan separuh jalan yang tidak diketahui siapa pun.
+  //    RPC-nya satu transaksi: semua, atau tidak sama sekali.
+  const { error } = await supabase.rpc('hapus_data_saya')
+  if (error) periksaGalat(error)
   // Hapus berkas struk milik sendiri dari penyimpanan.
   try {
     const { data: files } = await supabase.storage.from('receipts').list(user.id, { limit: 1000 })

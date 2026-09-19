@@ -362,11 +362,43 @@ create trigger trg_balikkan_stok
 -- `delete from transactions` dari klien mana pun tetap melenyapkan notanya,
 -- dan cascade ikut menghapus buku mutasinya sekalian — menghilangkan justru
 -- bukti yang dibangun untuk mencegahnya.
+-- DUA JALAN KELUAR, DAN KEDUANYA WAJIB ADA.
+--
+-- Trigger BEFORE DELETE ikut menyala pada CASCADE. Tanpa pengecualian di bawah,
+-- larangan ini akan mematahkan hak penghapusan data menurut UU PDP — yaitu
+-- justru kewajiban hukum, bukan sekadar fitur:
+--
+--   1. admin_delete_user() menjalankan `delete from auth.users`, yang
+--      cascade ke transactions. Admin tidak akan bisa menghapus akun siapa pun.
+--   2. deleteMyData() menghapus baris milik pemanggil sendiri (hak penghapusan
+--      data subjek). Pengguna tidak akan bisa menghapus datanya sendiri.
+--
+-- Pengecualian 1 — PEMILIKNYA SUDAH TIDAK ADA.
+-- Pada cascade dari auth.users, Postgres menghapus baris induk LEBIH DULU, baru
+-- menjalankan aksi cascade-nya. Jadi saat trigger ini menyala karena cascade,
+-- auth.users-nya sudah lenyap. Sinyal itu tidak bisa dipalsukan dari aplikasi:
+-- tidak ada klien yang bisa membuat barisnya sendiri hilang sambil tetap login.
+--
+-- Pengecualian 2 — PENGHAPUSAN YANG DINYATAKAN.
+-- Penanda lokal yang hanya bisa dipasang fungsi SECURITY DEFINER milik kita
+-- (hapus_data_saya()). is_local = true, jadi ia hilang begitu transaksinya
+-- selesai dan tidak bisa bocor ke permintaan berikutnya di koneksi yang sama.
+-- Klien lewat PostgREST tidak punya cara memanggil set_config sendiri.
 create or replace function public.tolak_hapus_transaksi()
 returns trigger
 language plpgsql
+security definer
+set search_path to 'public'
 as $function$
 begin
+  if coalesce(current_setting('app.hapus_data_saya', true), '') = '1' then
+    return old;
+  end if;
+
+  if not exists (select 1 from auth.users u where u.id = old.user_id) then
+    return old;
+  end if;
+
   raise exception
     'Transaksi tidak boleh dihapus. Batalkan dengan mengubah status menjadi "batal" — stoknya akan dibalik otomatis dan notanya tetap terekam.'
     using errcode = 'restrict_violation';
@@ -438,7 +470,7 @@ comment on function public.batalkan_transaksi(uuid, text, uuid) is
   'Membatalkan transaksi: status jadi batal, stok dibalik lewat trigger, nota tetap terekam. Idempoten.';
 
 -- ------------------------------------------------------------
--- 8. test_pembatalan() — 8 kasus, masuk gerbang CI
+-- 8. test_pembatalan() — 9 kasus, masuk gerbang CI
 -- ------------------------------------------------------------
 --
 -- Menggantikan test_pembatalan() lama yang hilang bersama project Supabase
@@ -543,8 +575,18 @@ begin
     'P8 membatalkan transaksi lain tidak mengusik yang masih aktif',
     'jual=99', format('jual=%s', v_stok));
 
-  delete from public.profiles where id = v_uid;
+  -- P9 — LARANGAN HAPUS TIDAK BOLEH MEMATAHKAN HAK PENGHAPUSAN DATA.
+  --
+  -- Trigger BEFORE DELETE ikut menyala pada cascade. Kalau ia menolak tanpa
+  -- pengecualian, `delete from auth.users` di admin_delete_user() akan gagal
+  -- dan akun tidak bisa dihapus sama sekali — mengubah kewajiban UU PDP jadi
+  -- pesan error. Kasus ini yang menjaga agar itu tidak terjadi diam-diam.
   delete from auth.users where id = v_uid;
+  select count(*)::text into v_teks from public.transactions where user_id = v_uid;
+  return query select * from public.uji_kasus('pembatalan',
+    'P9 penghapusan akun tetap menghapus transaksinya (UU PDP)', '0', v_teks);
+
+  delete from public.profiles where id = v_uid;
   return;
 
 exception when others then
@@ -557,7 +599,7 @@ end
 $function$;
 
 comment on function public.test_pembatalan() is
-  '8 kasus pembatalan transaksi: pembalikan stok langsung dan BOM, idempotensi, nota yang tetap ada, dan penolakan DELETE di level database.';
+  '9 kasus pembatalan transaksi: pembalikan stok langsung dan BOM, idempotensi, nota yang tetap ada, penolakan DELETE di level database, dan jaminan bahwa penghapusan akun (UU PDP) tetap bisa berjalan.';
 
 -- test_semua() ikut memanggilnya. Tanpa baris ini, seluruh 8 kasus di atas
 -- hanya bisa dijalankan oleh orang yang INGAT menjalankannya — dan itu persis
@@ -600,3 +642,70 @@ begin
   return;
 end
 $function$;
+
+-- ------------------------------------------------------------
+-- 9. hapus_data_saya() — hak penghapusan data subjek (UU PDP)
+-- ------------------------------------------------------------
+--
+-- Menggantikan perulangan DELETE per tabel di sisi klien (deleteMyData di
+-- src/lib/api.js). Dua alasan, dan keduanya sama pentingnya:
+--
+-- 1. LARANGAN HAPUS TRANSAKSI. Klien tidak bisa memasang penanda
+--    app.hapus_data_saya, jadi jalur lamanya akan ditolak trigger
+--    tolak_hapus_transaksi() — dan hak hukum pengguna untuk menghapus datanya
+--    berubah jadi pesan error.
+--
+-- 2. PENGHAPUSAN SEPARUH JALAN. Versi klien menghapus tabel satu per satu
+--    dengan `try { } catch { }` yang MENELAN kegagalan. Kalau gagal di tabel
+--    kelima, empat tabel sudah terhapus, sisanya tidak, dan pengguna diberi
+--    tahu datanya sudah dihapus. Di sini semuanya dalam SATU transaksi: semua
+--    terhapus, atau tidak ada yang terhapus dan errornya terlihat.
+--
+-- Berkas struk di Storage tetap dihapus dari sisi klien — object storage tidak
+-- ikut transaksi database, jadi menyatukannya hanya akan menciptakan ilusi
+-- keutuhan yang tidak dimiliki.
+create or replace function public.hapus_data_saya()
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$
+declare
+  v_uid uuid := auth.uid();
+  v_hasil jsonb := '{}'::jsonb;
+  v_tabel text;
+  v_n bigint;
+begin
+  if v_uid is null then
+    raise exception 'Harus masuk (login).' using errcode = 'insufficient_privilege';
+  end if;
+
+  -- Menyatakan niatnya kepada tolak_hapus_transaksi(). is_local = true: hilang
+  -- saat transaksi ini selesai, tidak bisa terbawa ke permintaan berikutnya.
+  perform set_config('app.hapus_data_saya', '1', true);
+
+  foreach v_tabel in array array[
+    'transactions', 'categorization_rules', 'products', 'suppliers',
+    'units', 'product_categories', 'channels', 'categories', 'feedback', 'app_events'
+  ] loop
+    -- to_regclass: tabel yang belum ada di instance ini dilewati tanpa
+    -- menggagalkan sisanya — tapi secara EKSPLISIT, bukan lewat catch yang
+    -- ikut menelan kegagalan sungguhan seperti versi klien.
+    if to_regclass('public.' || v_tabel) is null then
+      v_hasil := v_hasil || jsonb_build_object(v_tabel, 'tabel tidak ada');
+      continue;
+    end if;
+    execute format('delete from public.%I where user_id = $1', v_tabel) using v_uid;
+    get diagnostics v_n = row_count;
+    v_hasil := v_hasil || jsonb_build_object(v_tabel, v_n);
+  end loop;
+
+  return v_hasil;
+end
+$function$;
+
+revoke all on function public.hapus_data_saya() from public;
+grant execute on function public.hapus_data_saya() to authenticated;
+
+comment on function public.hapus_data_saya() is
+  'Hak penghapusan data subjek (UU PDP). Menghapus seluruh data milik pemanggil dalam SATU transaksi. Satu-satunya jalur yang boleh menghapus baris transactions selain penghapusan akun.';
