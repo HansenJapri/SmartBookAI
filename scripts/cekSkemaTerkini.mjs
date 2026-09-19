@@ -67,13 +67,13 @@ function buangKomentar(teks) {
  * @returns {{path: string, hilang: string[]}[]}
  */
 /**
- * Migrasi yang memang BELUM diterapkan ke produksi.
+ * Migrasi yang objeknya memang TIDAK seharusnya ada di dump.
  *
  * Ini masalah yang BERBEDA dari yang dijaga berkas ini. Penjaga ini menanyakan
- * "apakah dump-nya segar?"; migrasi yang tidak pernah dijalankan menanyakan
- * "kenapa ini tidak pernah dijalankan?". Menggabungkan keduanya akan membuat
- * utang lama memblokir setiap perubahan yang tidak ada hubungannya, dan itu
- * cara tercepat mengajari orang mengabaikan warna merah.
+ * "apakah dump-nya segar?". Objek yang sengaja hidup di luar jangkauan dump
+ * menanyakan hal lain sama sekali. Menggabungkan keduanya akan membuat utang
+ * lama memblokir setiap perubahan yang tidak ada hubungannya — cara tercepat
+ * mengajari orang mengabaikan warna merah.
  *
  * Memasukkan nama ke sini adalah tindakan SENGAJA dan wajib menyebut alasannya.
  * Daftar yang tumbuh adalah utang yang terlihat — jauh lebih baik daripada
@@ -81,11 +81,13 @@ function buangKomentar(teks) {
  */
 export const BELUM_DITERAPKAN = {
   'supabase/migration_heartbeat_dan_provenance_ai.sql':
-    'pangkas_heartbeat() dan panggil_keepalive() tidak ada di project '
-    + 'vbzmtnpmtgrhovmwjqqk (diperiksa 19 Sep 2026). Migrasinya tampaknya hanya '
-    + 'pernah diterapkan ke project lama yang sudah dihapus. Utang terbuka: '
-    + 'putuskan apakah keepalive-nya masih dibutuhkan, lalu terapkan dan '
-    + 'perbarui dump — atau hapus berkasnya.',
+    'pangkas_heartbeat() dan panggil_keepalive() HIDUP dan terjadwal di '
+    + 'produksi, tapi di skema ops — bukan public seperti yang tertulis di '
+    + 'berkas migrasinya (cron.job memanggil ops.panggil_keepalive). '
+    + 'supabase/schema.sql hanya mencakup public dan auth, jadi seluruh skema '
+    + 'ops berada DI LUAR jangkauan gerbang DB dan tidak diuji sama sekali. '
+    + 'Diperiksa 19 Sep 2026. Utang terbuka: sertakan --schema ops pada dump, '
+    + 'lalu hapus baris ini.',
 }
 
 /**
@@ -118,7 +120,7 @@ export function laporanSkemaTerkini(kurang, dikecualikan = []) {
   // pernah terbaca di log adalah utang yang perlahan berubah jadi keadaan
   // normal.
   const catatan = dikecualikan.length
-    ? ['', `Dikecualikan (belum diterapkan ke produksi): ${dikecualikan.join(', ')}`,
+    ? ['', `Dikecualikan (objeknya di luar jangkauan dump): ${dikecualikan.join(', ')}`,
        'Lihat BELUM_DITERAPKAN di scripts/cekSkemaTerkini.mjs untuk alasannya.'].join('\n')
     : ''
 

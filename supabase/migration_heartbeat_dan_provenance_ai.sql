@@ -1,4 +1,23 @@
 -- ============================================================
+-- CATATAN 19 Sep 2026 — BERKAS INI TIDAK LAGI MENGGAMBARKAN PRODUKSI.
+--
+-- Bagian 1 (provenance AI: macro_runs.ai_status dkk) memang terpasang di
+-- skema public seperti tertulis di bawah.
+--
+-- Bagian 2 dan 3 TIDAK. service_heartbeat, service_config, pangkas_heartbeat(),
+-- panggil_keepalive() dan ringkasan_kesehatan() hidup di skema **ops**, bukan
+-- public. Keduanya aktif dan terjadwal — cron.job memanggil
+-- `ops.panggil_keepalive('cron-6-hari')`, terakhir sukses 19 Sep 2026 02:00 UTC.
+-- Perpindahan ke ops tidak pernah tercermin di berkas ini, jadi membacanya apa
+-- adanya akan menyesatkan siapa pun yang mencarinya di public.
+--
+-- AKIBAT YANG LEBIH PENTING: supabase/schema.sql hanya mencakup public dan
+-- auth, sehingga SELURUH skema ops berada di luar jangkauan gerbang DB di CI
+-- dan tidak diuji sama sekali. Tercatat di BELUM_DITERAPKAN pada
+-- scripts/cekSkemaTerkini.mjs.
+-- ============================================================
+
+-- ============================================================
 -- Migrasi: provenance AI + heartbeat keep-alive
 --
 -- Dua masalah berbeda yang lahir dari satu akar yang sama: tidak ada satu pun
