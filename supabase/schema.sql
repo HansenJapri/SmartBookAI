@@ -3869,8 +3869,7 @@ declare
   r      record;
   v_hilang text := '';
 begin
-  delete from public.profiles where id = v_uid;
-  delete from auth.users where id = v_uid;
+  perform public.uji_bersihkan(v_uid);
   insert into auth.users (id, email) values (v_uid, 'uji-kolom@contoh.invalid');
   perform set_config('request.jwt.claims',
                      json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
@@ -3905,15 +3904,13 @@ begin
     'semua tersimpan',
     case when v_hilang = '' then 'semua tersimpan' else 'DIBUANG: ' || btrim(v_hilang) end);
 
-  delete from public.profiles where id = v_uid;
-  delete from auth.users where id = v_uid;
+  perform public.uji_bersihkan(v_uid);
   return;
 
 exception when others then
   return query select * from public.uji_kasus('kolom_transaksi',
     'harness kolom gagal sebelum selesai', 'tanpa error', sqlstate || ' ' || sqlerrm);
-  delete from public.profiles where id = v_uid;
-  delete from auth.users where id = v_uid;
+  perform public.uji_bersihkan(v_uid);
   return;
 end
 $$;
@@ -4070,6 +4067,9 @@ begin
     end loop;
   end if;
 
+  -- PALING AKHIR, dan itu disengaja: ia memeriksa sisa yang ditinggalkan
+  -- harness DI ATASNYA. Menaruhnya lebih awal akan membuatnya selalu hijau.
+  return query select * from public.test_sisa_harness();
   return;
 end
 $$;
@@ -4079,6 +4079,69 @@ ALTER FUNCTION "public"."test_semua"() OWNER TO "postgres";
 
 
 COMMENT ON FUNCTION "public"."test_semua"() IS 'Gerbang uji database: test_bom + rls_lint + tenancy_lint. Dipanggil scripts/uji-db.mjs di CI. Lint bersih tetap mengembalikan satu baris lulus, supaya "0 kasus" selalu berarti gerbangnya rusak.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."test_sisa_harness"() RETURNS TABLE("suite" "text", "kasus" "text", "hasil" "text", "lulus" boolean)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  r record;
+  v_n bigint;
+  v_sisa text := '';
+begin
+  -- Setiap tabel public yang punya kolom user_id uuid disapu, bukan hanya
+  -- yang kebetulan terpikirkan saat menulis ini. Tabel yang ditambahkan nanti
+  -- ikut terperiksa tanpa ada yang perlu mengingat memperbarui daftar.
+  for r in
+    select c.relname
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    join pg_attribute a on a.attrelid = c.oid and a.attname = 'user_id' and not a.attisdropped
+    where n.nspname = 'public' and c.relkind = 'r'
+      and format_type(a.atttypid, null) = 'uuid'
+  loop
+    execute format(
+      'select count(*) from public.%I where user_id::text like ''dbdbdbdb-%%''', r.relname)
+      into v_n;
+    if v_n > 0 then v_sisa := v_sisa || r.relname || '(' || v_n || ') '; end if;
+  end loop;
+
+  -- Tabel bersama memakai owner_id/actor_id, bukan user_id, dan sengaja tidak
+  -- ikut cascade saat akun dihapus — justru di sinilah residu paling mungkin
+  -- tertinggal tanpa ada yang menyadarinya.
+  for r in
+    select c.relname, a.attname
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    join pg_attribute a on a.attrelid = c.oid and not a.attisdropped
+    where n.nspname = 'public' and c.relkind = 'r'
+      and a.attname in ('owner_id', 'actor_id', 'workspace_id', 'holder_id', 'admin_id')
+      and format_type(a.atttypid, null) = 'uuid'
+  loop
+    execute format(
+      'select count(*) from public.%I where %I::text like ''dbdbdbdb-%%''', r.relname, r.attname)
+      into v_n;
+    if v_n > 0 then v_sisa := v_sisa || r.relname || '.' || r.attname || '(' || v_n || ') '; end if;
+  end loop;
+
+  select count(*) into v_n from auth.users where id::text like 'dbdbdbdb-%';
+  if v_n > 0 then v_sisa := v_sisa || 'auth.users(' || v_n || ') '; end if;
+
+  return query select * from public.uji_kasus('sisa_harness',
+    'P11 harness tidak meninggalkan satu baris pun',
+    'tidak ada sisa',
+    case when v_sisa = '' then 'tidak ada sisa' else 'TERTINGGAL: ' || btrim(v_sisa) end);
+  return;
+end
+$$;
+
+
+ALTER FUNCTION "public"."test_sisa_harness"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."test_sisa_harness"() IS 'Menyapu SETIAP tabel public untuk baris milik akun uji sintetis (dbdbdbdb-%). Dijalankan PALING AKHIR di test_semua, setelah semua harness selesai.';
 
 
 
@@ -4119,6 +4182,40 @@ $$;
 
 
 ALTER FUNCTION "public"."topeng_email"("p_email" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+begin
+  -- URUTANNYA PENTING, dan versi pertama fungsi ini salah.
+  --
+  -- Menghapus audit_logs LEBIH DULU tidak menyelesaikan apa pun: penghapusan
+  -- akun di bawah memicu cascade ke customers, trigger audit menulis baris
+  -- DELETE yang baru, dan baris itu lahir SETELAH pembersihan lewat. Residunya
+  -- justru diciptakan oleh pembersihnya sendiri.
+  --
+  -- Akun dulu, jejaknya kemudian.
+  delete from public.profiles where id = p_uid;
+  delete from auth.users      where id = p_uid;
+
+  -- Tabel bersama sengaja TIDAK punya FK cascade ke auth.users: jejak audit
+  -- harus bertahan justru ketika akunnya dihapus. Karena itu ia harus disebut
+  -- satu per satu, dan disebut PALING AKHIR.
+  delete from public.audit_logs      where owner_id = p_uid or actor_id = p_uid;
+  delete from public.ai_activity_log where owner_id = p_uid or actor_id = p_uid;
+  delete from public.app_events      where user_id = p_uid;
+  delete from public.error_logs      where user_id = p_uid or workspace_id = p_uid;
+end
+$$;
+
+
+ALTER FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") IS 'Membersihkan SELURUH jejak satu akun uji sintetis. Akun dihapus lebih dulu, jejak di tabel bersama (audit_logs, ai_activity_log, app_events, error_logs) dihapus SETELAHNYA — karena cascade penghapusan akun itu sendiri memicu trigger audit yang menulis baris baru.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."uji_kasus"("p_suite" "text", "p_kasus" "text", "p_harap" "text", "p_aktual" "text") RETURNS TABLE("suite" "text", "kasus" "text", "hasil" "text", "lulus" boolean)
@@ -8738,6 +8835,12 @@ GRANT ALL ON FUNCTION "public"."test_semua"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."test_sisa_harness"() TO "anon";
+GRANT ALL ON FUNCTION "public"."test_sisa_harness"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."test_sisa_harness"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "anon";
 GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "service_role";
@@ -8747,6 +8850,12 @@ GRANT ALL ON FUNCTION "public"."tolak_hapus_transaksi"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."topeng_email"("p_email" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."topeng_email"("p_email" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."topeng_email"("p_email" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."uji_bersihkan"("p_uid" "uuid") TO "service_role";
 
 
 

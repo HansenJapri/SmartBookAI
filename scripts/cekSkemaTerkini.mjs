@@ -79,23 +79,26 @@ function buangKomentar(teks) {
  * Daftar yang tumbuh adalah utang yang terlihat — jauh lebih baik daripada
  * utang yang tidak terlihat.
  */
-export const BELUM_DITERAPKAN = {
-  'supabase/migration_heartbeat_dan_provenance_ai.sql':
-    'pangkas_heartbeat() dan panggil_keepalive() HIDUP dan terjadwal di '
-    + 'produksi, tapi di skema ops — bukan public seperti yang tertulis di '
-    + 'berkas migrasinya (cron.job memanggil ops.panggil_keepalive). '
-    + 'supabase/schema.sql hanya mencakup public dan auth, jadi seluruh skema '
-    + 'ops berada DI LUAR jangkauan gerbang DB dan tidak diuji sama sekali. '
-    + 'Diperiksa 19 Sep 2026. Utang terbuka: sertakan --schema ops pada dump, '
-    + 'lalu hapus baris ini.',
-}
+// SENGAJA KOSONG per 19 Sep 2026.
+//
+// Satu-satunya penghuninya dulu adalah migration_heartbeat_dan_provenance_ai.sql,
+// yang objeknya hidup di skema `ops` sementara dump hanya mencakup public dan
+// auth. Utang itu LUNAS: dump sekarang menyertakan --schema ops, seluruh skema
+// ops ikut terbangun di CI, dan pengecualiannya tidak dibutuhkan lagi.
+//
+// Dibiarkan kosong, bukan dihapus, karena mekanismenya masih benar untuk kasus
+// berikutnya. Tapi entri yang sudah tidak berlaku HARUS dikeluarkan begitu
+// alasannya hilang: pengecualian yang menganggur akan membisukan masalah nyata
+// pada berkas yang sama, dan tidak ada yang akan menyadarinya karena lognya
+// tetap berbunyi "Bersih".
+export const BELUM_DITERAPKAN = {}
 
 /**
  * @param {{path: string, isi: string}[]} migrasi
  * @param {string} dump isi supabase/schema.sql
  * @returns {{kurang: {path: string, hilang: string[]}[], dikecualikan: string[]}}
  */
-export function periksaSkemaTerkini(migrasi, dump) {
+export function periksaSkemaTerkini(migrasi, dump, pengecualian = BELUM_DITERAPKAN) {
   const teksDump = String(dump).toLowerCase()
   const kurang = []
   const dikecualikan = []
@@ -105,7 +108,7 @@ export function periksaSkemaTerkini(migrasi, dump) {
     const { objek, kolom } = objekMigrasi(isi)
     const hilang = [...objek, ...kolom].filter((n) => !teksDump.includes(n))
     if (!hilang.length) continue
-    if (BELUM_DITERAPKAN[jalur]) {
+    if (pengecualian[jalur]) {
       dikecualikan.push(jalur)
       continue
     }

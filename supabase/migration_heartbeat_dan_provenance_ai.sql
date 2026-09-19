@@ -11,10 +11,14 @@
 -- Perpindahan ke ops tidak pernah tercermin di berkas ini, jadi membacanya apa
 -- adanya akan menyesatkan siapa pun yang mencarinya di public.
 --
--- AKIBAT YANG LEBIH PENTING: supabase/schema.sql hanya mencakup public dan
--- auth, sehingga SELURUH skema ops berada di luar jangkauan gerbang DB di CI
--- dan tidak diuji sama sekali. Tercatat di BELUM_DITERAPKAN pada
--- scripts/cekSkemaTerkini.mjs.
+-- SUDAH DITUTUP (19 Sep 2026, sore): supabase/schema.sql kini di-dump dengan
+-- --schema ops, sehingga seluruh skema ops ikut dibangun di container CI dan
+-- berada dalam jangkauan gerbang DB. Terverifikasi: ops.panggil_keepalive,
+-- ops.pangkas_heartbeat dan ops.ringkasan_kesehatan terbangun di postgres:17
+-- bersih, dan public.test_semua() lulus 31/31 di sana.
+--
+-- Yang TETAP jadi utang: berkas ini masih menulis `public.` untuk objek yang
+-- sebenarnya ada di `ops`. Jangan dijadikan acuan lokasi — periksa databasenya.
 -- ============================================================
 
 -- ============================================================
