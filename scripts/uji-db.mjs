@@ -27,15 +27,33 @@
 // Untuk repo utama, rahasianya ada sehingga gerbangnya benar-benar berjalan.
 
 import { execFileSync } from 'node:child_process'
-import { uraikanKeluaran, nilaiHasil, formatBaris } from './ujiDbParse.mjs'
+import { uraikanKeluaran, nilaiHasil, formatBaris, normalisasiUrlDb } from './ujiDbParse.mjs'
 
-const URL_DB = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL
+const konfigUrl = normalisasiUrlDb(process.env.SUPABASE_DB_URL || process.env.DATABASE_URL)
 
-if (!URL_DB) {
+if (!konfigUrl.ada) {
   console.log('[uji-db] SUPABASE_DB_URL tidak diset — pengujian database DILEWATI.')
   console.log('[uji-db] Ini bukan kelulusan. Gerbang DB hanya berjalan bila rahasianya tersedia.')
   process.exit(0)
 }
+
+// Rahasia yang ADA tapi rusak bukan alasan untuk melewati gerbang. "Dilewati"
+// hanya berlaku untuk PR dari fork yang memang tidak punya akses rahasia;
+// memperlakukan nilai yang salah bentuk sebagai "dilewati" akan mengubah
+// gerbang yang rusak jadi hijau — persis kegagalan yang berulang di repo ini.
+if (!konfigUrl.sah) {
+  console.error(`[uji-db] ${konfigUrl.alasan}`)
+  process.exit(1)
+}
+
+if (konfigUrl.dirapikan) {
+  console.warn('[uji-db] SUPABASE_DB_URL punya spasi/baris baru terbawa — dirapikan sebelum dipakai.')
+}
+if (konfigUrl.peringatan) {
+  console.warn(`[uji-db] ${konfigUrl.peringatan}`)
+}
+
+const URL_DB = konfigUrl.url
 
 // SELURUH pengujian dibungkus BEGIN ... ROLLBACK, dan itu bukan formalitas.
 //

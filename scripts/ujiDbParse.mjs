@@ -64,6 +64,72 @@ export function nilaiHasil(baris) {
   }
 }
 
+/**
+ * Memeriksa dan merapikan SUPABASE_DB_URL sebelum diserahkan ke psql.
+ *
+ * KENAPA INI ADA — kegagalan CI 19 Sep 2026.
+ * psql memperlakukan argumen pertama yang TIDAK diawali `postgresql://` sebagai
+ * NAMA DATABASE, bukan connection string. Satu spasi atau baris baru yang ikut
+ * terbawa saat menyalin secret sudah cukup: psql diam-diam beralih ke socket
+ * Unix lokal dan gagal dengan
+ *
+ *   connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed
+ *
+ * Pesan itu tidak menyebut Supabase, tidak menyebut secret, dan mengirim
+ * pembacanya berburu server Postgres yang memang tidak pernah ada di runner.
+ * Memeriksanya di sini mengubah satu jam kebingungan jadi satu baris log.
+ *
+ * TIDAK PERNAH mencetak isi URL-nya: di dalamnya ada password database. Yang
+ * dilaporkan hanya BENTUKNYA — panjang, dan apakah ada spasi terbawa.
+ */
+export function normalisasiUrlDb(mentah) {
+  const asli = String(mentah ?? '')
+  const url = asli.trim()
+
+  if (!url) return { ada: false }
+
+  if (!/^postgres(ql)?:\/\//i.test(url)) {
+    return {
+      ada: true,
+      sah: false,
+      alasan:
+        'SUPABASE_DB_URL tidak diawali "postgresql://" atau "postgres://". '
+        + `Panjang nilainya ${url.length} karakter. `
+        + 'psql akan menganggapnya NAMA DATABASE dan mencoba socket lokal — '
+        + 'itulah asal pesan "/var/run/postgresql/.s.PGSQL.5432". '
+        + 'Salin ulang dari Supabase Dashboard > Connect > Session pooler.',
+    }
+  }
+
+  let port = null
+  try {
+    port = new URL(url).port
+  } catch {
+    return {
+      ada: true,
+      sah: false,
+      alasan: 'SUPABASE_DB_URL berawalan benar tapi bukan URL yang bisa diurai.',
+    }
+  }
+
+  return {
+    ada: true,
+    sah: true,
+    url,
+    dirapikan: url !== asli,
+    // Port 6543 = transaction pooler. uji-db.mjs memakai BEGIN ... ROLLBACK
+    // eksplisit, dan di mode transaksi tiap pernyataan bisa mendarat di koneksi
+    // backend yang berbeda — ROLLBACK-nya lalu membatalkan transaksi yang salah,
+    // atau tidak ada transaksi sama sekali. Hasil ujinya jadi tidak bisa
+    // dipercaya justru pada bagian yang menjaga agar data uji tidak ter-commit.
+    peringatan:
+      port === '6543'
+        ? 'SUPABASE_DB_URL memakai port 6543 (transaction pooler). Gerbang ini '
+          + 'butuh Session pooler (5432) karena memakai BEGIN/ROLLBACK eksplisit.'
+        : null,
+  }
+}
+
 /** Satu baris ringkas per kasus, untuk log CI. */
 export function formatBaris(b) {
   return `${b.lulus ? '  ok  ' : '  GAGAL'} [${b.suite}] ${b.kasus} -> ${b.hasil}`
