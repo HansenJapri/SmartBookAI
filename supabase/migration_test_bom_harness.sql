@@ -1,4 +1,20 @@
 -- ============================================================
+-- BERKAS INI CATATAN, BUKAN MIGRASI. TIDAK ADA SATU PUN SQL DI SINI.
+--
+-- Itu persis yang membuatnya berbahaya: namanya "migration_*.sql", isinya nol
+-- pernyataan SQL. Fungsi yang dijanjikannya hanya hidup di project lama
+-- hexaidoxmeycctpwfbst, dan ikut hilang waktu project itu hilang — sementara
+-- gerbang CI tetap memanggilnya dan merah berminggu-minggu.
+--
+-- DEFINISI YANG SEBENARNYA SEKARANG ADA DI:
+--   supabase/migration_uji_db_harness.sql     (test_bom, test_semua, uji_kasus)
+--   supabase/migration_tenancy_fk_komposit.sql (FK komposit + tenancy_lint)
+--
+-- Yang di bawah ini dipertahankan karena ALASAN-nya masih berharga, terutama
+-- catatan uji mutasi floor() vs round(). Jangan tambahkan SQL ke berkas ini.
+-- ============================================================
+
+-- ============================================================
 -- Harness uji mesin pemotongan stok BOM + perbaikan FK komposit.
 -- Terpasang di project hexaidoxmeycctpwfbst sebagai migrasi:
 --   test_bom_harness_v3, test_bom_k13_dan_pulihkan_floor,
