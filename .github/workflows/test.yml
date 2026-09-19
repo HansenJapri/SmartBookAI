@@ -74,6 +74,13 @@ jobs:
       - name: Saringan transaksi batal
         run: node scripts/cek-saringan-batal.mjs
 
+      # Gerbang DB membangun skemanya dari supabase/schema.sql, bukan dari
+      # database produksi. Itu menghapus kredensial produksi dari CI, tapi
+      # menukarnya dengan risiko baru: dump yang tidak ikut diperbarui setelah
+      # migrasi baru membuat CI menguji skema basi — dan tetap hijau.
+      - name: Kesegaran dump skema
+        run: node scripts/cek-skema-terkini.mjs
+
       - name: Unggah laporan coverage
         if: always()
         uses: actions/upload-artifact@v5
@@ -128,18 +135,48 @@ jobs:
 
   # ---- Gerbang 3b: invarian & mesin stok di DATABASE ----
   #
-  # Sebelumnya seluruh penjaga sisi database (rls_lint, tenancy_lint, test_bom,
-  # test_pembatalan, test_stock_applied) hanya berjalan kalau ada yang INGAT
-  # menjalankannya lewat MCP/psql. Penjaga yang bergantung pada ingatan bukan
-  # penjaga. Job ini menjalankannya di setiap push.
+  # Menjalankan public.test_semua() — test_bom (18), test_pembatalan (9),
+  # rls_lint dan tenancy_lint — di Postgres SEKALI PAKAI yang dinyalakan runner,
+  # bukan di database produksi.
   #
-  # Tanpa rahasia SUPABASE_DB_URL, skripnya keluar sukses dengan pesan
-  # "dilewati" — pull request dari fork tidak punya akses rahasia, dan
-  # menggagalkan CI di sana hanya mengajari orang mengabaikan warna merah.
+  # KENAPA TIDAK LAGI MENYENTUH PRODUKSI
+  # Versi sebelumnya menyambung ke project Supabase lewat rahasia
+  # SUPABASE_DB_URL. Tiga hal buruk sekaligus:
+  #
+  #   1. Harness MENULIS baris nyata (produk, bahan, transaksi) ke instance yang
+  #      dipakai pengguna sungguhan. BEGIN..ROLLBACK menutup bagian paling
+  #      berbahayanya, tapi ia tetap memakai koneksi dan mengunci baris sesaat.
+  #   2. Kredensial database produksi harus disimpan di GitHub selamanya.
+  #   3. Gerbangnya bergantung pada satu nilai rahasia yang bisa salah ketik,
+  #      kedaluwarsa, atau ter-set kosong — dan ketiganya sudah terjadi di repo
+  #      ini dalam satu hari, sekali di antaranya menghasilkan CI HIJAU PALSU.
+  #
+  # Sekarang tidak ada rahasia sama sekali. Jalur "dilewati" di uji-db.mjs pun
+  # jadi tidak terjangkau dari sini, karena URL-nya selalu ada dan selalu lokal.
+  #
+  # YANG HARUS DIRAWAT: supabase/schema.sql adalah dump skema produksi. Kalau ia
+  # tidak ikut diperbarui setelah migrasi baru diterapkan, CI akan menguji skema
+  # yang sudah basi — hijau yang tidak berarti apa-apa. Perbarui dengan:
+  #   npx supabase db dump --db-url "<url>" --schema public --schema auth \
+  #     -f supabase/schema.sql
   db:
     name: Invarian & mesin stok (database)
     runs-on: ubuntu-latest
     needs: unit
+    services:
+      postgres:
+        # Versi mayor disamakan dengan produksi (PG17). Menguji invarian di
+        # mayor yang berbeda berarti menguji Postgres yang berbeda.
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -147,22 +184,18 @@ jobs:
           node-version: '22'
       - name: Pasang klien psql
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+      # ci-bootstrap.sql memasang role dan pgcrypto — dua hal yang memang bukan
+      # bagian dari skema, jadi tidak ikut ter-dump. Tanpa role-nya, GRANT di
+      # dalam dump gagal dan pemuatannya berhenti di sepertiga jalan.
+      - name: Bangun skema produksi di Postgres sekali pakai
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -q -f supabase/ci-bootstrap.sql
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -q -f supabase/schema.sql
       - name: Jalankan public.test_semua()
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          # Penjaga anti-"gerbang hampa" untuk job ini — pasangan langkah
-          # "Pastikan test benar-benar dijalankan" milik job unit.
-          #
-          # 19 Sep 2026 secret ini pernah ter-set jadi KOSONG. Skripnya mengambil
-          # jalur "dilewati" yang sebenarnya diperuntukkan bagi PR dari fork,
-          # mencetak DILEWATI, lalu keluar 0 — dan seluruh run dilaporkan HIJAU
-          # tanpa satu pun kasus SQL berjalan.
-          #
-          # Ekspresi ini bernilai false HANYA untuk pull request dari fork, yaitu
-          # satu-satunya keadaan di mana rahasia memang tidak tersedia dan
-          # melewatinya masuk akal. Di semua keadaan lain, rahasia yang hilang
-          # adalah konfigurasi rusak dan gerbangnya wajib merah.
-          UJI_DB_WAJIB: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: node scripts/uji-db.mjs
 
   # ---- Gerbang 4: build produksi + audit rahasia (G-13, G-07) ----
